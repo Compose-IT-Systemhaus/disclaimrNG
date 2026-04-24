@@ -13,7 +13,7 @@ class PerformanceTest(TestCase):
 
     def setUp(self):
 
-        if not settings.TEST_PERFORMANCE_ENABLE:
+        if not getattr(settings, "TEST_PERFORMANCE_ENABLE", False):
 
             raise SkipTest()
 

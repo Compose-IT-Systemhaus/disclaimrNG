@@ -1,43 +1,31 @@
-""" Functions to help with building the milter configuration """
+"""Helpers to assemble the static milter configuration from the database."""
+
+from __future__ import annotations
+
+from typing import Any
 
 from disclaimrwebadmin import models
 
 
-def build_configuration():
+def build_configuration() -> dict[str, list[dict[str, Any]]]:
+    """Return the milter bootstrap configuration.
 
-    configuration = {
-        "sender_ip": []
-    }
+    Currently this consists of the sender-IP requirements that have at least
+    one enabled action in their associated rule. The milter uses this to
+    short-circuit early on connections it does not care about.
+    """
 
-    # Fetch the sender_ip networks of all enabled requirements, that have at
-    # least one enabled action in their associated rule
+    configuration: dict[str, list[dict[str, Any]]] = {"sender_ip": []}
 
-    for requirement in models.Requirement.objects.all():
+    for requirement in models.Requirement.objects.filter(enabled=True):
+        if not requirement.rule.action_set.filter(enabled=True).exists():
+            continue
 
-        if requirement.enabled:
-
-            # Check, if all associated actions are enabled
-
-            enabled_actions = requirement.rule.action_set.count()
-
-            for test_action in requirement.rule.action_set.all():
-
-                if not test_action.enabled:
-
-                    enabled_actions -= 1
-
-            if enabled_actions > 0:
-
-                # There are some enabled actions.
-
-                configuration["sender_ip"].append({
-
-                    "ip": requirement.get_sender_ip_network(),
-                    "id": requirement.id
-
-                })
+        configuration["sender_ip"].append(
+            {
+                "ip": requirement.get_sender_ip_network(),
+                "id": requirement.id,
+            }
+        )
 
     return configuration
-
-
-

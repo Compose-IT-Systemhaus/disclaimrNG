@@ -1,0 +1,46 @@
+.directory-server-actions {
+    margin: 0 0 1.5rem;
+    padding: 1rem;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+}
+
+.directory-server-actions__buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.directory-server-actions__hint {
+    margin: 0;
+    color: #57606a;
+    font-style: italic;
+}
+
+.directory-server-actions__output {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    max-height: 240px;
+    overflow: auto;
+}
+
+.directory-server-actions__output.is-ok {
+    border-color: #2da44e;
+    background: #dafbe1;
+}
+
+.directory-server-actions__output.is-error {
+    border-color: #cf222e;
+    background: #ffebe9;
+}
+
+.directory-server-actions__output.is-pending {
+    color: #57606a;
+}

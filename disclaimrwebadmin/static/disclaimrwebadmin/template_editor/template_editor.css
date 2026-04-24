@@ -1,0 +1,57 @@
+.template-editor {
+    border: 1px solid var(--unfold-border-base, #e5e7eb);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.template-editor__tabs {
+    display: flex;
+    background: #f3f4f6;
+    border-bottom: 1px solid var(--unfold-border-base, #e5e7eb);
+}
+
+.template-editor__tab {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--unfold-border-base, #e5e7eb);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.template-editor__tab.is-active {
+    background: #fff;
+    color: var(--unfold-primary-600, #0284c7);
+}
+
+.template-editor__panes {
+    position: relative;
+    min-height: 320px;
+}
+
+.template-editor__pane {
+    display: none;
+    height: 320px;
+}
+
+.template-editor__pane.is-active {
+    display: block;
+}
+
+.template-editor__monaco,
+.template-editor__tinymce,
+.template-editor__preview {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.template-editor__source {
+    /* The canonical textarea is hidden — Monaco/TinyMCE write into it. */
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}

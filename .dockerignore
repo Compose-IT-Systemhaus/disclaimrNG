@@ -1,0 +1,41 @@
+.git
+.gitignore
+.github
+.claude
+.idea
+.vscode
+
+# Python tooling caches
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+.tox
+.venv
+venv
+
+# Docker / runtime artefacts
+.env
+.env.local
+docker-compose.override.yml
+compose.dev.yml
+
+# Build outputs
+build
+dist
+*.egg-info
+
+# Editor / OS junk
+*.swp
+.DS_Store
+Thumbs.db
+
+# Static / media (will be regenerated in container)
+staticfiles
+media
+
+# Documentation we don't need in the image
+CHANGELOG.md
+CONTRIBUTING.md

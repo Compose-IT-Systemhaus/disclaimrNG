@@ -1,0 +1,35 @@
+{% load static %}
+<div class="template-editor"
+     data-content-type="{{ widget.content_type }}"
+     data-preview-url="{{ widget.preview_url }}"
+     data-vocabulary-url="{{ widget.vocabulary_url }}">
+    <div class="template-editor__tabs" role="tablist">
+        <button type="button" class="template-editor__tab is-active"
+                data-tab="code" role="tab" aria-selected="true">Code</button>
+        {% if widget.content_type == "text/html" %}
+        <button type="button" class="template-editor__tab"
+                data-tab="visual" role="tab" aria-selected="false">Visual</button>
+        {% endif %}
+        <button type="button" class="template-editor__tab"
+                data-tab="preview" role="tab" aria-selected="false">Preview</button>
+    </div>
+
+    <div class="template-editor__panes">
+        <div class="template-editor__pane is-active" data-pane="code">
+            <div class="template-editor__monaco" data-target="{{ widget.attrs.id }}"></div>
+        </div>
+        {% if widget.content_type == "text/html" %}
+        <div class="template-editor__pane" data-pane="visual">
+            <textarea class="template-editor__tinymce" data-target="{{ widget.attrs.id }}"></textarea>
+        </div>
+        {% endif %}
+        <div class="template-editor__pane" data-pane="preview">
+            <iframe class="template-editor__preview" sandbox="allow-same-origin"></iframe>
+        </div>
+    </div>
+
+    <textarea name="{{ widget.name }}"
+              id="{{ widget.attrs.id }}"
+              class="template-editor__source"
+              {% include "django/forms/widgets/attrs.html" %}>{% if widget.value %}{{ widget.value }}{% endif %}</textarea>
+</div>

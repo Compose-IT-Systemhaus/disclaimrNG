@@ -1,0 +1,23 @@
+# Dev overrides: live source mount + Django runserver + exposed Postgres port.
+# Usage: docker compose -f compose.yml -f compose.dev.yml up
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      target: runtime
+    environment:
+      DJANGO_DEBUG: "True"
+    volumes:
+      - .:/app
+    command:
+      - manage
+      - runserver
+      - 0.0.0.0:8000
+
+  milter:
+    volumes:
+      - .:/app

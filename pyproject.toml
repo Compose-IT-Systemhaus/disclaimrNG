@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "disclaimrng"
+version = "0.1.0.dev0"
+description = "Modernised, dockerized mail signature server with LDAP/AD integration and web template editor"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Compose-IT-Systemhaus" },
+]
+maintainers = [
+    { name = "Compose-IT-Systemhaus" },
+]
+keywords = ["milter", "postfix", "sendmail", "disclaimer", "signature", "ldap", "active-directory"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Email :: Filters",
+]
+dependencies = [
+    "Django>=5.0,<6.0",
+    "django-environ>=0.11",
+    "django-adminsortable2>=2.2",
+    "django-unfold>=0.40",
+    "psycopg[binary]>=3.1",
+    "python-ldap>=3.4",
+    "python-libmilter>=1.0.4",
+    "lxml>=5.0",
+    "netaddr>=1.0",
+    "gunicorn>=22.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "django-stubs[compatible-mypy]>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Compose-IT-Systemhaus/disclaimrNG"
+Repository = "https://github.com/Compose-IT-Systemhaus/disclaimrNG"
+Issues = "https://github.com/Compose-IT-Systemhaus/disclaimrNG/issues"
+Changelog = "https://github.com/Compose-IT-Systemhaus/disclaimrNG/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["disclaimr", "disclaimrweb", "disclaimrwebadmin"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",       # pycodestyle + pyflakes
+    "I",                  # isort
+    "B",                  # bugbear
+    "UP",                 # pyupgrade
+    "DJ",                 # flake8-django
+]
+ignore = [
+    "E501",               # line length is handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["E", "F", "UP"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "disclaimrweb.settings"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+# --no-migrations syncs the test DB straight from models. We haven't
+# committed the initial migration yet (that lands once the model layout
+# stabilises), and re-running makemigrations on every test job would be
+# slower than letting Django build the schema in one shot.
+addopts = "--no-migrations"
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+strict = false
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "disclaimrweb.settings"

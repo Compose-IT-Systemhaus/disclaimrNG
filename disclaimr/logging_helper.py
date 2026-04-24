@@ -1,24 +1,43 @@
+"""Logging helpers for the disclaimr milter.
+
+Logs to syslog (LOG_MAIL facility) when ``/dev/log`` is available, otherwise
+falls back to stderr. The :class:`queueFilter` annotates each record with the
+current MTA queue id so messages can be correlated across the milter pipeline.
+"""
+
+from __future__ import annotations
+
 import logging
+import os
 from logging.handlers import SysLogHandler
 
-# the filter will take care of appending the
-# queueid to log messages as soon as we have one
+
 class queueFilter(logging.Filter):
-    def __init__(self, id = ''):
-        if len(id) > 0:
-            id += ': '
-        self.queue = id
-    def filter(self, record):
+    """Append the MTA queue id to each log record."""
+
+    def __init__(self, queue_id: str = "") -> None:
+        super().__init__()
+        if queue_id:
+            queue_id = f"{queue_id}: "
+        self.queue = queue_id
+
+    def filter(self, record: logging.LogRecord) -> bool:
         record.queueid = self.queue
         return True
 
-# lets be nice and log our usual stuff like info and
-# warn to syslogs LOG_MAIL facility instead of stdout    
-syslog = logging.getLogger('disclaimr')
-syslog.propagate = False # This will disable sending duplicates to stdout
+
+syslog = logging.getLogger("disclaimr")
+syslog.propagate = False
 syslog.addFilter(queueFilter())
-logger = logging.StreamHandler()
-handler = logging.handlers.SysLogHandler(address='/dev/log', facility=SysLogHandler.LOG_MAIL)
-formatter = logging.Formatter('%(name)s[%(process)d]: %(queueid)s%(message)s')
+
+formatter = logging.Formatter("%(name)s[%(process)d]: %(queueid)s%(message)s")
+
+if os.path.exists("/dev/log"):
+    handler: logging.Handler = SysLogHandler(
+        address="/dev/log", facility=SysLogHandler.LOG_MAIL
+    )
+else:
+    handler = logging.StreamHandler()
+
 handler.setFormatter(formatter)
 syslog.addHandler(handler)

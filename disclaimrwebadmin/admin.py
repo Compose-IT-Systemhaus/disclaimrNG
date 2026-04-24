@@ -8,6 +8,7 @@ from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django import forms
 from django.contrib import admin
 from django.forms import PasswordInput
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 
 from . import constants
@@ -18,6 +19,7 @@ from .models import (
     Disclaimer,
     Requirement,
     Rule,
+    SignatureImage,
 )
 from .widgets import TemplateEditorWidget
 
@@ -85,6 +87,29 @@ class DisclaimerAdmin(ModelAdmin):
         ),
         ("Behaviour", {"fields": ("template_fail",)}),
     )
+
+
+@admin.register(SignatureImage)
+class SignatureImageAdmin(ModelAdmin):
+    list_display = ("slug", "name", "thumbnail")
+    search_fields = ("slug", "name", "description")
+    readonly_fields = ("thumbnail",)
+    fieldsets = (
+        (None, {"fields": ("slug", "name", "description")}),
+        ("File", {"fields": ("image", "thumbnail")}),
+        ("Display", {"fields": ("alt_text", "width", "height")}),
+    )
+
+    @admin.display(description="Preview")
+    def thumbnail(self, obj: SignatureImage) -> str:
+        if not obj.image:
+            return "—"
+        return format_html(
+            '<img src="{}" alt="{}" style="max-height:80px;max-width:240px;'
+            'border:1px solid #d0d7de;border-radius:4px"/>',
+            obj.image.url,
+            obj.alt_text or obj.name,
+        )
 
 
 class DirectoryServerForm(forms.ModelForm):

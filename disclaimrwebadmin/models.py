@@ -9,6 +9,17 @@ from django.utils.translation import gettext_lazy as _
 from . import constants
 
 
+def _signature_image_upload_to(instance: "SignatureImage", filename: str) -> str:
+    """Place uploads under ``signatures/<slug>/<filename>``.
+
+    Keeping the slug in the path means re-uploading a different file under
+    the same slug doesn't collide with the previous one (older files stay
+    on disk until manually purged), and a single ``ls signatures/<slug>/``
+    shows the version history.
+    """
+    return f"signatures/{instance.slug}/{filename}"
+
+
 class Rule(models.Model):
     """A disclaimer rule.
 
@@ -363,6 +374,69 @@ class DirectoryServerURL(models.Model):
 
     def __str__(self) -> str:
         return self.url
+
+
+class SignatureImage(models.Model):
+    """An image asset that can be embedded in disclaimers via ``{image["slug"]}``.
+
+    Stored on disk under ``MEDIA_ROOT/signatures/<slug>/`` and referenced
+    from rendered HTML disclaimers as an absolute URL (``MEDIA_BASE_URL`` +
+    file path). For plaintext disclaimers, the tag expands to the bare URL.
+    """
+
+    slug = models.SlugField(
+        _("slug"),
+        max_length=64,
+        unique=True,
+        help_text=_(
+            "Used as the substitution key — write {image[\"<slug>\"]} in a "
+            "disclaimer to embed this image."
+        ),
+    )
+    name = models.CharField(
+        _("name"),
+        max_length=255,
+        help_text=_("Display name shown in the admin and in autocomplete."),
+    )
+    description = models.TextField(
+        _("description"),
+        blank=True,
+        default="",
+    )
+    image = models.ImageField(
+        _("image"),
+        upload_to=_signature_image_upload_to,
+        help_text=_("PNG/JPG/SVG file. Keep it small — every recipient will load it."),
+    )
+    alt_text = models.CharField(
+        _("alt text"),
+        max_length=255,
+        blank=True,
+        default="",
+        help_text=_("Used as the <img alt=\"…\"> attribute when rendered."),
+    )
+    width = models.PositiveSmallIntegerField(
+        _("display width"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional width in pixels. Leave empty to use the image's intrinsic size."
+        ),
+    )
+    height = models.PositiveSmallIntegerField(
+        _("display height"),
+        null=True,
+        blank=True,
+        help_text=_("Optional height in pixels."),
+    )
+
+    class Meta:
+        ordering = ["slug"]
+        verbose_name = _("Signature image")
+        verbose_name_plural = _("Signature images")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.slug})"
 
 
 class Action(models.Model):

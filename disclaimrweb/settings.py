@@ -14,6 +14,7 @@ env = environ.Env(
     DJANGO_TIME_ZONE=(str, "UTC"),
     DJANGO_LANGUAGE_CODE=(str, "en-us"),
     DJANGO_CSRF_TRUSTED_ORIGINS=(list, []),
+    MEDIA_BASE_URL=(str, ""),
 )
 
 env_file = BASE_DIR / ".env"
@@ -69,6 +70,12 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+
+# Public absolute base URL prepended to media file paths when rendered into
+# emails (signatures fly through MTAs, so relative URLs are useless). Falls
+# back to MEDIA_URL for local development; in production set this to the
+# public hostname of your disclaimrNG deployment.
+MEDIA_BASE_URL = env("MEDIA_BASE_URL").rstrip("/") or MEDIA_URL.rstrip("/")
 
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",

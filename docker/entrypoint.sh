@@ -19,6 +19,10 @@ case "$ROLE" in
         python manage.py migrate --noinput
         echo "[entrypoint] collecting static files"
         python manage.py collectstatic --noinput
+        if [ -n "${LDAP_SERVERS:-}" ]; then
+            echo "[entrypoint] syncing directory servers from LDAP_SERVERS"
+            python manage.py sync_directory_servers ${LDAP_SYNC_PRUNE:+--prune}
+        fi
         echo "[entrypoint] starting gunicorn"
         exec gunicorn disclaimrweb.wsgi:application \
             --bind "0.0.0.0:8000" \

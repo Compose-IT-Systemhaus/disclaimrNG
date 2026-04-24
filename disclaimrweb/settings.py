@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import environ
+from django.templatetags.static import static
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -105,6 +106,17 @@ UNFOLD = {
     "SITE_TITLE": "disclaimrNG",
     "SITE_HEADER": "disclaimrNG",
     "SITE_URL": "/",
+    # Logo as a lazy callable — django-unfold resolves it at request time so
+    # the static finder is fully wired before static() runs. Same image for
+    # light/dark for now; swap in a dark-mode variant once we have one.
+    "SITE_LOGO": {
+        "light": lambda request: static("disclaimrwebadmin/img/disclaimrng_logo.jpg"),
+        "dark": lambda request: static("disclaimrwebadmin/img/disclaimrng_logo.jpg"),
+    },
+    "SITE_ICON": {
+        "light": lambda request: static("disclaimrwebadmin/img/disclaimrng_logo.jpg"),
+        "dark": lambda request: static("disclaimrwebadmin/img/disclaimrng_logo.jpg"),
+    },
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
     "COLORS": {

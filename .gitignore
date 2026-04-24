@@ -56,3 +56,25 @@ target/
 
 settings/*.conf
 secret.txt
+
+# Editor / tooling
+.claude/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Environment
+.env
+.env.local
+.venv/
+venv/
+
+# Python tooling
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml
+

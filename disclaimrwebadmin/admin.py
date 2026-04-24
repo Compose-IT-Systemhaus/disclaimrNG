@@ -1,77 +1,143 @@
-from adminsortable2.admin import SortableAdminMixin
+"""Django admin registration for disclaimrNG models, themed with django-unfold."""
+
+from __future__ import annotations
+
+import json
+
+from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django import forms
 from django.contrib import admin
 from django.forms import PasswordInput
-from grappelli.forms import GrappelliSortableHiddenMixin
-from .models import Rule, Requirement, Action, Disclaimer, DirectoryServer, \
-    DirectoryServerURL
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
+
+from . import constants
+from .models import (
+    Action,
+    DirectoryServer,
+    DirectoryServerURL,
+    Disclaimer,
+    Requirement,
+    Rule,
+)
+from .widgets import TemplateEditorWidget
 
 
-class RequirementInline(admin.StackedInline):
-
+class RequirementInline(StackedInline):
     model = Requirement
     extra = 0
-    inline_classes = ('grp-collapse grp-open',)
 
 
-class ActionInline(GrappelliSortableHiddenMixin, admin.StackedInline):
-
+class ActionInline(StackedInline):
     model = Action
     extra = 0
-    inline_classes = ('grp-collapse grp-open',)
+    ordering = ["position"]
 
 
-class DirectoryServerURLInline(
-    GrappelliSortableHiddenMixin,
-    admin.TabularInline
-):
-
+class DirectoryServerURLInline(SortableTabularInline, TabularInline):
     model = DirectoryServerURL
     extra = 0
     min_num = 1
 
 
 @admin.register(Rule)
-class RuleAdmin(SortableAdminMixin, admin.ModelAdmin):
-
-    inlines = [
-        RequirementInline,
-        ActionInline
-    ]
+class RuleAdmin(SortableAdminBase, ModelAdmin):
+    list_display = ("name", "position", "continue_rules")
+    inlines = [RequirementInline, ActionInline]
 
 
-@admin.register(Disclaimer)
-class DisclaimerAdmin(admin.ModelAdmin):
-
-    class Media:
-
-        js = [
-
-            "//tinymce.cachefly.net/4.1/tinymce.min.js",
-            "/static/tinymce_setup.js"
-
-        ]
-
-
-class DirectoryServerForm(forms.ModelForm):
-
+class DisclaimerForm(forms.ModelForm):
     class Meta:
-
-        model = DirectoryServer
+        model = Disclaimer
         fields = "__all__"
-
         widgets = {
-
-            "password": PasswordInput()
-
+            "text": TemplateEditorWidget(content_type="text/plain"),
+            "html": TemplateEditorWidget(content_type="text/html"),
         }
 
 
+@admin.register(Disclaimer)
+class DisclaimerAdmin(ModelAdmin):
+    form = DisclaimerForm
+    list_display = ("name", "html_use_text", "use_html_fallback")
+    fieldsets = (
+        (None, {"fields": ("name", "description")}),
+        (
+            "Plaintext part",
+            {
+                "fields": (
+                    "text",
+                    "text_charset",
+                    "text_use_template",
+                ),
+            },
+        ),
+        (
+            "HTML part",
+            {
+                "fields": (
+                    "html_use_text",
+                    "html",
+                    "html_charset",
+                    "html_use_template",
+                    "use_html_fallback",
+                ),
+            },
+        ),
+        ("Behaviour", {"fields": ("template_fail",)}),
+    )
+
+
+class DirectoryServerForm(forms.ModelForm):
+    class Meta:
+        model = DirectoryServer
+        fields = "__all__"
+        widgets = {"password": PasswordInput(render_value=True)}
+
+
 @admin.register(DirectoryServer)
-class DirectoryServerAdmin(admin.ModelAdmin):
-
+class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
+    list_display = ("name", "flavor", "enabled", "base_dn")
+    list_filter = ("flavor", "enabled")
     form = DirectoryServerForm
+    inlines = [DirectoryServerURLInline]
+    change_form_template = "admin/disclaimrwebadmin/directoryserver/change_form.html"
+    fieldsets = (
+        (None, {"fields": ("name", "description", "enabled")}),
+        (
+            "Connection",
+            {
+                "fields": ("flavor", "base_dn", "auth", "userdn", "password"),
+            },
+        ),
+        (
+            "Query",
+            {
+                "fields": ("search_query", "search_attributes"),
+            },
+        ),
+        (
+            "Cache",
+            {
+                "fields": ("enable_cache", "cache_timeout"),
+            },
+        ),
+    )
 
-    inlines = [
-        DirectoryServerURLInline
-    ]
+    class Media:
+        js = ("disclaimrwebadmin/directory_server/directory_server.js",)
+        css = {
+            "all": ("disclaimrwebadmin/directory_server/directory_server.css",),
+        }
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["flavor_defaults"] = json.dumps(
+            {
+                str(flavor): {
+                    "search_query": constants.DIR_FLAVOR_DEFAULT_QUERY[flavor],
+                    "attributes": constants.DIR_FLAVOR_DEFAULT_ATTRIBUTES[flavor],
+                }
+                for flavor in constants.DIR_FLAVOR_DEFAULT_QUERY
+            }
+        )
+        return super().changeform_view(request, object_id, form_url, extra_context)

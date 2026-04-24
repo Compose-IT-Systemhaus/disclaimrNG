@@ -99,7 +99,7 @@ class DisclaimerTestCase(TestCase):
 
         if header is not None:
 
-            for key in header.iterkeys():
+            for key in header.keys():
 
                 helper.header(key, header[key], {})
 

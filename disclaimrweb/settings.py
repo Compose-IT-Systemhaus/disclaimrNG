@@ -1,131 +1,145 @@
-"""
-Django settings for disclaimrweb project.
+"""Django settings for the disclaimrNG web administration."""
 
-For more information on this file, see
-https://docs.djangoproject.com/en/1.7/topics/settings/
+from __future__ import annotations
 
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.7/ref/settings/
-"""
+from pathlib import Path
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import glob
-import os
+import environ
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = True
-
-ALLOWED_HOSTS = ["0.0.0.0/0"]
-
-# Application definition
-
-INSTALLED_APPS = (
-    'grappelli',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'disclaimrwebadmin',
-    'adminsortable2'
+env = environ.Env(
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(list, ["*"]),
+    DJANGO_TIME_ZONE=(str, "UTC"),
+    DJANGO_LANGUAGE_CODE=(str, "en-us"),
+    DJANGO_CSRF_TRUSTED_ORIGINS=(list, []),
 )
 
-MIDDLEWARE_CLASSES = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
+env_file = BASE_DIR / ".env"
+if env_file.is_file():
+    environ.Env.read_env(env_file)
 
-ROOT_URLCONF = 'disclaimrweb.urls'
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DEBUG = env("DJANGO_DEBUG")
+ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
-WSGI_APPLICATION = 'disclaimrweb.wsgi.application'
+INSTALLED_APPS = [
+    # django-unfold must precede django.contrib.admin so its templates win.
+    "unfold",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "adminsortable2",
+    "disclaimrwebadmin",
+]
 
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.7/topics/i18n/
+ROOT_URLCONF = "disclaimrweb.urls"
+WSGI_APPLICATION = "disclaimrweb.wsgi.application"
 
-LANGUAGE_CODE = 'en-us'
+DATABASES = {
+    "default": env.db("DATABASE_URL", default="postgres://disclaimr:disclaimr@db:5432/disclaimr"),
+}
 
-TIME_ZONE = 'UTC'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+LANGUAGE_CODE = env("DJANGO_LANGUAGE_CODE")
+TIME_ZONE = env("DJANGO_TIME_ZONE")
 USE_I18N = True
-
-USE_L10N = True
-
 USE_TZ = True
 
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.7/howto/static-files/
-
-STATIC_URL = '/static/'
-STATIC_ROOT = ''
-MEDIA_ROOT = ''
-
-STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-)
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+]
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            # insert your TEMPLATE_DIRS here
-        ],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
-                # list if you haven't customized them:
-                'django.contrib.auth.context_processors.auth',
-                'django.template.context_processors.debug',
-                'django.template.context_processors.i18n',
-                'django.template.context_processors.media',
-                'django.template.context_processors.static',
-                'django.template.context_processors.tz',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.contrib.auth.context_processors.auth",
+                "django.template.context_processors.debug",
+                "django.template.context_processors.i18n",
+                "django.template.context_processors.media",
+                "django.template.context_processors.static",
+                "django.template.context_processors.tz",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-GRAPPELLI_ADMIN_TITLE = "DisclaimR Web Administration"
+UNFOLD = {
+    "SITE_TITLE": "disclaimrNG",
+    "SITE_HEADER": "disclaimrNG",
+    "SITE_URL": "/",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+    "COLORS": {
+        "primary": {
+            "50": "240 249 255",
+            "100": "224 242 254",
+            "200": "186 230 253",
+            "300": "125 211 252",
+            "400": "56 189 248",
+            "500": "14 165 233",
+            "600": "2 132 199",
+            "700": "3 105 161",
+            "800": "7 89 133",
+            "900": "12 74 110",
+            "950": "8 47 73",
+        },
+    },
+}
 
-# Import local settings
-
-conffiles = glob.glob(os.path.join(BASE_DIR, "settings", "*.conf"))
-conffiles.sort()
-for f in conffiles:
-    execfile(os.path.abspath(f))
-
-# Generate a SECRET_KEY if it hasn't been already set.
-# Taken from https://gist.github.com/ndarville/3452907
-
-try:
-    SECRET_KEY
-except NameError:
-    SECRET_FILE = os.path.join(BASE_DIR, "secret.txt")
-    try:
-        SECRET_KEY = open(SECRET_FILE).read().strip()
-    except IOError:
-        try:
-            import random
-            SECRET_KEY = "".join(
-                [random.SystemRandom().choice(
-                    "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
-                ) for i in range(50)]
-            )
-            secret = file(SECRET_FILE, "w")
-            secret.write(SECRET_KEY)
-            secret.close()
-        except IOError:
-            Exception("Please create a %s file with random characters to "
-                      "generate your secret key!" % SECRET_FILE)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s %(levelname)s %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": env("DJANGO_LOG_LEVEL", default="INFO"),
+    },
+    "loggers": {
+        "disclaimr": {
+            "handlers": ["console"],
+            "level": env("DJANGO_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
+}

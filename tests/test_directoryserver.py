@@ -24,7 +24,7 @@ class DirectoryServerTestCase(TestCase):
             basic rule and a basic action
         """
 
-        if not settings.TEST_DIRECTORY_SERVER_ENABLE:
+        if not getattr(settings, "TEST_DIRECTORY_SERVER_ENABLE", False):
 
             # Skip this test, if it isn't enabled
 

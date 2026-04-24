@@ -1,7 +1,7 @@
-from django.conf.urls import include, url
 from django.contrib import admin
+from django.urls import include, path
 
 urlpatterns = [
-    url(r'^grappelli/', include('grappelli.urls')),
-    url(r'', include(admin.site.urls))
+    path("admin/disclaimr/", include("disclaimrwebadmin.urls")),
+    path("", admin.site.urls),
 ]

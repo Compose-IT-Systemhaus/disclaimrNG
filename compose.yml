@@ -30,7 +30,11 @@ services:
       - "8000:8000"
     volumes:
       - staticfiles:/app/staticfiles
-      - media:/app/media
+      # Uploaded signature images live here; the milter container needs
+      # read access so it can resolve image URLs at send time. Override the
+      # bind path with MEDIA_HOST_PATH if you'd rather use a host directory
+      # (handy for backups/rsync from the host).
+      - ${MEDIA_HOST_PATH:-media}:/app/media
     command: ["web"]
 
   milter:
@@ -44,6 +48,8 @@ services:
     env_file: .env
     ports:
       - "5000:5000"
+    volumes:
+      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
 
 volumes:

@@ -46,6 +46,52 @@ def _to_str(value: Any, charset: str = "utf-8") -> str:
     return value
 
 
+# Matches an image reference of the form ``image["slug"]`` (case-insensitive
+# on the key, case-sensitive on the slug since slugs *are* case-sensitive).
+_IMAGE_REF_RE = re.compile(r'image\["([^"]+)"\]', re.IGNORECASE)
+
+
+def _media_base_url() -> str:
+    """Return the absolute base URL prepended to image src attributes."""
+    from django.conf import settings
+
+    return getattr(settings, "MEDIA_BASE_URL", "") or settings.MEDIA_URL.rstrip("/")
+
+
+def _build_image_replacements(
+    disclaimer_text: str, content_type: str
+) -> dict[str, str]:
+    """Resolve ``image["slug"]`` references against the SignatureImage table.
+
+    Returns a slug → rendered-fragment dict. For HTML disclaimers the
+    fragment is an ``<img>`` tag with the absolute URL; for plaintext it is
+    just the URL. Slugs that don't resolve are omitted — the caller's
+    template_fail logic decides whether to skip the action.
+    """
+    slugs = {m.lower() for m in _IMAGE_REF_RE.findall(disclaimer_text)}
+    if not slugs:
+        return {}
+
+    base = _media_base_url()
+    rendered: dict[str, str] = {}
+    for image in models.SignatureImage.objects.filter(slug__in=slugs):
+        if not image.image:
+            continue
+        absolute_url = f"{base}/{image.image.name}"
+        if content_type == "text/html":
+            attrs = [f'src="{absolute_url}"']
+            alt = image.alt_text or image.name
+            attrs.append(f'alt="{alt}"')
+            if image.width:
+                attrs.append(f'width="{image.width}"')
+            if image.height:
+                attrs.append(f'height="{image.height}"')
+            rendered[image.slug.lower()] = f"<img {' '.join(attrs)} />"
+        else:
+            rendered[image.slug.lower()] = absolute_url
+    return rendered
+
+
 class MilterHelper:
     """Stateful helper that processes a single mail through the milter pipeline."""
 
@@ -537,6 +583,7 @@ class MilterHelper:
                 "recipient": self.mail_data["envelope_rcpt"],
                 "header": self.mail_data["headers_dict"],
                 "resolver": {},
+                "image": _build_image_replacements(disclaimer_text, content_type),
             }
 
             if action.resolve_sender:

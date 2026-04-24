@@ -21,7 +21,7 @@ from django.views.generic import View
 
 from disclaimr.ldap_helper import discover_attributes, test_connection
 
-from ..models import DirectoryServer
+from ..models import DirectoryServer, SignatureImage
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -75,9 +75,14 @@ class DirectoryServerVocabularyView(View):
             per_server.append(
                 {"id": srv.id, "name": srv.name, "attributes": attrs}
             )
+        images = [
+            {"slug": img.slug, "name": img.name}
+            for img in SignatureImage.objects.all()
+        ]
         return JsonResponse(
             {
                 "attributes": sorted(vocab, key=str.lower),
                 "servers": per_server,
+                "images": images,
             }
         )

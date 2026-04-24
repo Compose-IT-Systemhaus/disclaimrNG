@@ -82,9 +82,11 @@
         return vocabularyPromise;
     }
 
-    function registerCompletions(monaco, language, attributes) {
+    function registerCompletions(monaco, language, vocab) {
         const fixed = ["sender", "recipient"];
         const headers = ["subject", "from", "to", "cc", "date"];
+        const attributes = vocab.attributes || [];
+        const images = vocab.images || [];
 
         monaco.languages.registerCompletionItemProvider(language, {
             triggerCharacters: ["{", '"'],
@@ -122,6 +124,15 @@
                         range,
                     });
                 }
+                for (const img of images) {
+                    suggestions.push({
+                        label: `{image["${img.slug}"]}`,
+                        kind: monaco.languages.CompletionItemKind.File,
+                        insertText: `{image["${img.slug}"]}`,
+                        detail: `Signature image — ${img.name}`,
+                        range,
+                    });
+                }
                 return { suggestions };
             },
         });
@@ -148,7 +159,7 @@
         });
 
         loadVocabulary(vocabularyUrl).then((vocab) => {
-            registerCompletions(monaco, language, vocab.attributes || []);
+            registerCompletions(monaco, language, vocab);
         });
 
         let tinymceEditor = null;

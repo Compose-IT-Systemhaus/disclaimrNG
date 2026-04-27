@@ -107,14 +107,15 @@ UNFOLD = {
     "SITE_HEADER": "disclaimrNG",
     "SITE_URL": "/",
     # Logo as a lazy callable — django-unfold resolves it at request time so
-    # the static finder is fully wired before static() runs.
+    # the static finder is fully wired before static() runs. Transparent
+    # PNGs so the chrome shows through cleanly in both themes.
     "SITE_LOGO": {
-        "light": lambda request: static("disclaimrwebadmin/img/logo_light.jpg"),
-        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark.jpg"),
+        "light": lambda request: static("disclaimrwebadmin/img/logo_light_mode.png"),
+        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark_mode.png"),
     },
     "SITE_ICON": {
-        "light": lambda request: static("disclaimrwebadmin/img/logo_light.jpg"),
-        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark.jpg"),
+        "light": lambda request: static("disclaimrwebadmin/img/logo_light_mode.png"),
+        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark_mode.png"),
     },
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,

@@ -1,0 +1,128 @@
+# disclaimrNG behind Traefik with automatic Let's Encrypt TLS.
+#
+# This is a self-contained alternative to ``compose.yml`` — it does NOT
+# overlay it. Pick one or the other:
+#
+#   docker compose -f compose.traefik.yml up -d
+#
+# The ``web`` service is no longer published on the host (Traefik routes
+# to it on the internal Docker network). The ``milter`` service is left
+# on TCP 5000 because Postfix speaks libmilter directly, not HTTP — it
+# does not pass through Traefik.
+#
+# Required env vars (add to your ``.env``):
+#
+#   DISCLAIMR_HOSTNAME=signatures.example.com
+#   ACME_EMAIL=ops@example.com
+#   DJANGO_CSRF_TRUSTED_ORIGINS=https://signatures.example.com
+#   MEDIA_BASE_URL=https://signatures.example.com/media
+#
+# Already running Traefik elsewhere? Drop the ``traefik`` service and
+# the ``letsencrypt`` volume below, attach ``web`` to your existing
+# Traefik network (``networks: [your_proxy_net]``), and keep the labels.
+
+name: disclaimrng
+
+services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Force HTTP → HTTPS so cleartext links don't slip through.
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL is required}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - proxy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-disclaimr}
+      POSTGRES_USER: ${POSTGRES_USER:-disclaimr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required, see .env.example}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    # No host port mapping — Traefik reaches the container on the
+    # ``proxy`` network at port 8000.
+    expose:
+      - "8000"
+    volumes:
+      - staticfiles:/app/staticfiles
+      - ${MEDIA_HOST_PATH:-media}:/app/media
+    command: ["web"]
+    networks:
+      - backend
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=disclaimrng_proxy
+      - traefik.http.routers.disclaimr.rule=Host(`${DISCLAIMR_HOSTNAME:?DISCLAIMR_HOSTNAME is required}`)
+      - traefik.http.routers.disclaimr.entrypoints=websecure
+      - traefik.http.routers.disclaimr.tls=true
+      - traefik.http.routers.disclaimr.tls.certresolver=le
+      - traefik.http.services.disclaimr.loadbalancer.server.port=8000
+
+  milter:
+    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    env_file: .env
+    # Postfix talks libmilter on this port directly — Traefik does not
+    # proxy it. If your MTA runs on a different host, expose this port
+    # on a private interface only.
+    ports:
+      - "5000:5000"
+    volumes:
+      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
+    command: ["milter"]
+    networks:
+      - backend
+
+networks:
+  # ``proxy`` is shared between Traefik and any service it should expose.
+  # ``backend`` keeps the database off the proxy network entirely.
+  proxy:
+  backend:
+
+volumes:
+  pgdata:
+  staticfiles:
+  media:
+  letsencrypt:

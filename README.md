@@ -61,6 +61,22 @@ milter_default_action = accept
 
 All runtime configuration is via environment variables — see [`.env.example`](.env.example) for the full list. Templates, rules, requirements and directory servers are managed in the web UI and persisted in PostgreSQL.
 
+### Behind Traefik
+
+A ready-to-use compose file with Traefik + Let's Encrypt is included as [`compose.traefik.yml`](compose.traefik.yml). It is a self-contained alternative to `compose.yml` (don't stack the two):
+
+```bash
+# in .env
+DISCLAIMR_HOSTNAME=signatures.example.com
+ACME_EMAIL=ops@example.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://signatures.example.com
+MEDIA_BASE_URL=https://signatures.example.com/media
+
+docker compose -f compose.traefik.yml up -d
+```
+
+The milter still listens on TCP 5000 directly (Postfix speaks libmilter, not HTTP, so it does not pass through the proxy).
+
 ## Documentation
 
 - [CHANGELOG](CHANGELOG.md) — release notes and migration steps from upstream `disclaimr`.

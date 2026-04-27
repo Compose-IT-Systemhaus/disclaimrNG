@@ -19,6 +19,14 @@ case "$ROLE" in
         python manage.py migrate --noinput
         echo "[entrypoint] collecting static files"
         python manage.py collectstatic --noinput
+        echo "[entrypoint] bootstrapping admin user (no-op if one exists)"
+        python manage.py bootstrap_admin
+        # Tenants must exist before directory_servers so the FK link
+        # (LDAP_SERVER_<HANDLE>_TENANT=<slug>) can resolve.
+        if [ -n "${TENANTS:-}" ]; then
+            echo "[entrypoint] syncing tenants from TENANTS"
+            python manage.py sync_tenants ${TENANT_SYNC_PRUNE:+--prune}
+        fi
         if [ -n "${LDAP_SERVERS:-}" ]; then
             echo "[entrypoint] syncing directory servers from LDAP_SERVERS"
             python manage.py sync_directory_servers ${LDAP_SYNC_PRUNE:+--prune}

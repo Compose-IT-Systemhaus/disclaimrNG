@@ -1,0 +1,63 @@
+/*
+ * disclaimrNG admin chrome polish.
+ *
+ * django-unfold already gives us a clean Tailwind base; this stylesheet
+ * trims a few rough edges to match the brand: hairline borders, softer
+ * shadows, more whitespace around form rows, and slightly larger headings.
+ */
+
+:root {
+    --disclaimr-radius: 0.625rem;
+    --disclaimr-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04),
+                        0 1px 3px 0 rgb(15 23 42 / 0.06);
+}
+
+/* Cards / panels — calmer borders, softer shadow, rounder corners. */
+.dark .border-base-200,
+.border-base-200 {
+    border-color: rgb(var(--color-base-200) / 0.8);
+}
+.shadow-sm,
+.shadow {
+    box-shadow: var(--disclaimr-shadow) !important;
+}
+.rounded,
+.rounded-md {
+    border-radius: var(--disclaimr-radius);
+}
+
+/* Page heading: a touch more presence. */
+h1.text-font-important-light,
+.dark h1.text-font-important-dark {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+/* Form rows — give labels and fields room to breathe. */
+.form-row {
+    padding-block: 0.875rem;
+}
+.form-row + .form-row {
+    border-top: 1px solid rgb(var(--color-base-100));
+}
+
+/* Sidebar — sharpen the hover state without the default heavy fill. */
+.sidebar a:hover {
+    background-color: rgb(var(--color-base-100) / 0.6);
+}
+.dark .sidebar a:hover {
+    background-color: rgb(var(--color-base-800) / 0.5);
+}
+
+/* Buttons — primary buttons use the accent solid; secondary stays neutral. */
+.button.default,
+input[type="submit"].default,
+.submit-row input.default {
+    background-color: rgb(var(--color-primary-600));
+    border-color: rgb(var(--color-primary-600));
+}
+.button.default:hover,
+input[type="submit"].default:hover {
+    background-color: rgb(var(--color-primary-700));
+    border-color: rgb(var(--color-primary-700));
+}

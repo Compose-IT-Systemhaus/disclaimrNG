@@ -20,6 +20,8 @@ from .models import (
     Requirement,
     Rule,
     SignatureImage,
+    Tenant,
+    TenantDomain,
 )
 from .widgets import TemplateEditorWidget
 
@@ -35,6 +37,32 @@ class ActionInline(StackedInline):
     ordering = ["position"]
 
 
+class TenantDomainInline(TabularInline):
+    model = TenantDomain
+    extra = 1
+
+
+@admin.register(Tenant)
+class TenantAdmin(ModelAdmin):
+    list_display = ("name", "slug", "enabled", "domain_summary")
+    list_filter = ("enabled",)
+    search_fields = ("name", "slug", "description", "domains__domain")
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [TenantDomainInline]
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "description", "enabled")}),
+    )
+
+    @admin.display(description="Domains")
+    def domain_summary(self, obj: Tenant) -> str:
+        domains = list(obj.domains.values_list("domain", flat=True))
+        if not domains:
+            return "—"
+        if len(domains) <= 3:
+            return ", ".join(domains)
+        return f"{', '.join(domains[:3])} (+{len(domains) - 3} more)"
+
+
 class DirectoryServerURLInline(SortableTabularInline, TabularInline):
     model = DirectoryServerURL
     extra = 0
@@ -43,7 +71,10 @@ class DirectoryServerURLInline(SortableTabularInline, TabularInline):
 
 @admin.register(Rule)
 class RuleAdmin(SortableAdminBase, ModelAdmin):
-    list_display = ("name", "position", "continue_rules")
+    list_display = ("name", "tenant", "position", "continue_rules")
+    list_filter = ("tenant", "continue_rules")
+    list_select_related = ("tenant",)
+    autocomplete_fields = ("tenant",)
     inlines = [RequirementInline, ActionInline]
 
 
@@ -60,9 +91,12 @@ class DisclaimerForm(forms.ModelForm):
 @admin.register(Disclaimer)
 class DisclaimerAdmin(ModelAdmin):
     form = DisclaimerForm
-    list_display = ("name", "html_use_text", "use_html_fallback")
+    list_display = ("name", "tenant", "html_use_text", "use_html_fallback")
+    list_filter = ("tenant",)
+    list_select_related = ("tenant",)
+    autocomplete_fields = ("tenant",)
     fieldsets = (
-        (None, {"fields": ("name", "description")}),
+        (None, {"fields": ("tenant", "name", "description")}),
         (
             "Plaintext part",
             {
@@ -121,13 +155,15 @@ class DirectoryServerForm(forms.ModelForm):
 
 @admin.register(DirectoryServer)
 class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
-    list_display = ("name", "flavor", "enabled", "base_dn")
-    list_filter = ("flavor", "enabled")
+    list_display = ("name", "tenant", "flavor", "enabled", "base_dn")
+    list_filter = ("tenant", "flavor", "enabled")
+    list_select_related = ("tenant",)
+    autocomplete_fields = ("tenant",)
     form = DirectoryServerForm
     inlines = [DirectoryServerURLInline]
     change_form_template = "admin/disclaimrwebadmin/directoryserver/change_form.html"
     fieldsets = (
-        (None, {"fields": ("name", "description", "enabled")}),
+        (None, {"fields": ("tenant", "name", "description", "enabled")}),
         (
             "Connection",
             {

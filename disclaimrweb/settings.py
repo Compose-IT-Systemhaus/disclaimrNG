@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import environ
+from django.templatetags.static import static
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -105,23 +106,56 @@ UNFOLD = {
     "SITE_TITLE": "disclaimrNG",
     "SITE_HEADER": "disclaimrNG",
     "SITE_URL": "/",
+    # Logo as a lazy callable — django-unfold resolves it at request time so
+    # the static finder is fully wired before static() runs.
+    "SITE_LOGO": {
+        "light": lambda request: static("disclaimrwebadmin/img/logo_light.jpg"),
+        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark.jpg"),
+    },
+    "SITE_ICON": {
+        "light": lambda request: static("disclaimrwebadmin/img/logo_light.jpg"),
+        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark.jpg"),
+    },
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
+    # Calm steel-blue accent on a near-neutral slate base. Primary is the
+    # accent (used for buttons, links, focus rings); base is the chrome
+    # (sidebar, cards, dividers). Both palettes use the Tailwind 50–950
+    # ramp django-unfold expects, expressed as space-separated R G B so
+    # the same definition works in light and dark mode.
     "COLORS": {
+        "base": {
+            "50": "248 250 252",
+            "100": "241 245 249",
+            "200": "226 232 240",
+            "300": "203 213 225",
+            "400": "148 163 184",
+            "500": "100 116 139",
+            "600": "71 85 105",
+            "700": "51 65 85",
+            "800": "30 41 59",
+            "900": "15 23 42",
+            "950": "2 6 23",
+        },
         "primary": {
-            "50": "240 249 255",
-            "100": "224 242 254",
-            "200": "186 230 253",
-            "300": "125 211 252",
-            "400": "56 189 248",
-            "500": "14 165 233",
-            "600": "2 132 199",
-            "700": "3 105 161",
-            "800": "7 89 133",
-            "900": "12 74 110",
-            "950": "8 47 73",
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
         },
     },
+    # A pinch of bespoke CSS to lighten visual weight: thinner borders,
+    # softer shadows, slightly more breathing room around form rows.
+    "STYLES": [
+        lambda request: static("disclaimrwebadmin/css/admin_chrome.css"),
+    ],
 }
 
 LOGGING = {

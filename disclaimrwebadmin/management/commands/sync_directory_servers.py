@@ -42,7 +42,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from disclaimrwebadmin import constants
-from disclaimrwebadmin.models import DirectoryServer, DirectoryServerURL
+from disclaimrwebadmin.models import DirectoryServer, DirectoryServerURL, Tenant
 
 # Stamped on the description of env-managed rows so the admin UI can label
 # them and so ``--prune`` knows what is safe to remove.
@@ -128,6 +128,7 @@ def _build_payload(handle: str) -> dict[str, Any]:
         "enable_cache": _bool(_server_var(handle, "ENABLE_CACHE"), True),
         "cache_timeout": int(_server_var(handle, "CACHE_TIMEOUT") or 3600),
         "urls": urls,
+        "tenant_slug": (_server_var(handle, "TENANT") or "").strip().lower() or None,
     }
 
 
@@ -175,6 +176,19 @@ class Command(BaseCommand):
     def _upsert(self, payload: dict[str, Any], *, dry_run: bool) -> None:
         urls: list[str] = payload.pop("urls")
         handle: str = payload.pop("handle")
+        tenant_slug: str | None = payload.pop("tenant_slug")
+
+        if tenant_slug:
+            tenant = Tenant.objects.filter(slug=tenant_slug).first()
+            if tenant is None:
+                raise CommandError(
+                    f"LDAP_SERVER_{handle.upper()}_TENANT references unknown "
+                    f"tenant slug {tenant_slug!r}. Define the tenant via "
+                    "TENANTS env vars (sync_tenants runs before this command)."
+                )
+            payload["tenant"] = tenant
+        else:
+            payload["tenant"] = None
 
         existing = DirectoryServer.objects.filter(name=payload["name"]).first()
         action = "update" if existing else "create"

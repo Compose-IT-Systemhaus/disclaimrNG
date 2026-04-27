@@ -301,6 +301,29 @@ class MilterHelper:
 
         return encoding, mail_text
 
+    def _directory_servers_for(
+        self, action: models.Action, envelope_from: str
+    ) -> list[models.DirectoryServer]:
+        """Return the directory servers to query for ``action``.
+
+        Resolution order:
+
+        1. ``action.directory_servers`` if any are linked — explicit wins.
+        2. Otherwise, look up the tenant that owns the sender's domain and
+           use its directory servers — this is the multi-tenant path.
+
+        Disabled servers are filtered out at this layer so the inner loop
+        in :meth:`_resolve_sender` only sees what's actually queryable.
+        """
+        explicit = list(action.directory_servers.all())
+        if explicit:
+            return explicit
+
+        tenant = models.Tenant.match_sender(envelope_from)
+        if tenant is None:
+            return []
+        return list(tenant.directory_servers.filter(enabled=True))
+
     def _resolve_sender(
         self, action: models.Action, replacements: dict[str, Any]
     ) -> bool:
@@ -311,7 +334,7 @@ class MilterHelper:
         resolved_successfully = False
         envelope_from = self.mail_data["envelope_from"]
 
-        for directory_server in action.directory_servers.all():
+        for directory_server in self._directory_servers_for(action, envelope_from):
             if not directory_server.enabled:
                 logging.debug(
                     "Directory server %s is disabled. Skipping.", directory_server.name

@@ -20,6 +20,104 @@ def _signature_image_upload_to(instance: "SignatureImage", filename: str) -> str
     return f"signatures/{instance.slug}/{filename}"
 
 
+class Tenant(models.Model):
+    """A logical mandant — bundles sender domains, LDAP servers, disclaimers.
+
+    Multi-tenancy in disclaimrNG is *additive*: a Tenant gathers the
+    DirectoryServers and Disclaimers that belong to one customer, and the
+    milter falls back to the tenant's directory servers when an Action
+    doesn't specify any of its own. Tenants are matched against incoming
+    mail by sender domain (see :class:`TenantDomain`).
+
+    Existing single-tenant configurations keep working — every link from
+    DirectoryServer/Disclaimer/Rule to Tenant is nullable.
+    """
+
+    name = models.CharField(
+        _("name"),
+        max_length=255,
+        help_text=_("Display name of this tenant (e.g. customer name)."),
+    )
+    slug = models.SlugField(
+        _("slug"),
+        max_length=64,
+        unique=True,
+        help_text=_("URL-safe identifier — also used as the env-bootstrap key."),
+    )
+    description = models.TextField(
+        _("description"),
+        blank=True,
+        default="",
+    )
+    enabled = models.BooleanField(
+        _("enabled"),
+        default=True,
+        help_text=_("Disable to skip this tenant during sender resolution."),
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("Tenant")
+        verbose_name_plural = _("Tenants")
+
+    def __str__(self) -> str:
+        return self.name
+
+    @classmethod
+    def match_sender(cls, sender_address: str) -> "Tenant | None":
+        """Return the tenant whose domain owns ``sender_address``.
+
+        Domain match is case-insensitive and exact (no wildcard support
+        yet — wildcards live in the Rule.requirements regex). When more
+        than one tenant claims the same domain, the lowest pk wins.
+        """
+        if "@" not in sender_address:
+            return None
+        domain = sender_address.rsplit("@", 1)[1].lower().strip()
+        if not domain:
+            return None
+        match = (
+            cls.objects.filter(enabled=True, domains__domain__iexact=domain)
+            .order_by("pk")
+            .first()
+        )
+        return match
+
+
+class TenantDomain(models.Model):
+    """A sender domain owned by a :class:`Tenant`."""
+
+    tenant = models.ForeignKey(
+        Tenant,
+        verbose_name=_("Tenant"),
+        on_delete=models.CASCADE,
+        related_name="domains",
+    )
+    domain = models.CharField(
+        _("domain"),
+        max_length=255,
+        unique=True,
+        help_text=_(
+            "Bare sender domain (e.g. ``example.com``) — matched against the "
+            "right-hand side of the envelope-from address, case-insensitive."
+        ),
+    )
+
+    class Meta:
+        ordering = ["domain"]
+        verbose_name = _("Tenant domain")
+        verbose_name_plural = _("Tenant domains")
+
+    def save(self, *args, **kwargs):
+        # Normalise so case differences don't sneak past the unique constraint.
+        if self.domain:
+            self.domain = self.domain.strip().lower()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.domain
+
+
 class Rule(models.Model):
     """A disclaimer rule.
 
@@ -47,6 +145,15 @@ class Rule(models.Model):
             "Continue with other possibly matching rules after this one is processed?"
         ),
         default=False,
+    )
+    tenant = models.ForeignKey(
+        Tenant,
+        verbose_name=_("Tenant"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rules",
+        help_text=_("Optional — group this rule under a tenant for the admin UI."),
     )
 
     class Meta:
@@ -150,6 +257,18 @@ class Disclaimer(models.Model):
     template-tag substitution.
     """
 
+    tenant = models.ForeignKey(
+        Tenant,
+        verbose_name=_("Tenant"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="disclaimers",
+        help_text=_(
+            "Owning tenant. When the action's directory_servers is empty the "
+            "milter falls back to this tenant's directory servers."
+        ),
+    )
     name = models.CharField(
         _("name"),
         max_length=255,
@@ -241,6 +360,18 @@ class Disclaimer(models.Model):
 class DirectoryServer(models.Model):
     """An LDAP / Active Directory server used by the resolver."""
 
+    tenant = models.ForeignKey(
+        Tenant,
+        verbose_name=_("Tenant"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="directory_servers",
+        help_text=_(
+            "Owning tenant. Used as a fallback when an Action has no explicit "
+            "directory_servers selection."
+        ),
+    )
     name = models.CharField(
         _("name"),
         max_length=255,

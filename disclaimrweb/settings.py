@@ -44,6 +44,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise serves /static/ directly out of gunicorn so the stack
+    # works without a separate nginx/Apache. Must come right after
+    # SecurityMiddleware, before everything else, per the WhiteNoise docs.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -71,6 +75,21 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+
+# Django 5+ STORAGES API. WhiteNoise's compressed (non-manifest)
+# backend ships gzip/brotli alternates for every static file. We
+# can't use the *Manifest* variant because the template editor's
+# vendored Monaco/TinyMCE assets are referenced from JS with
+# hard-coded ``/static/...`` paths, which the manifest backend would
+# rename with a hash suffix and break.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 # Public absolute base URL prepended to media file paths when rendered into
 # emails (signatures fly through MTAs, so relative URLs are useless). Falls

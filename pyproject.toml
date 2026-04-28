@@ -42,6 +42,10 @@ dependencies = [
     "netaddr>=1.0",
     "gunicorn>=22.0",
     "Pillow>=10.3",
+    # Serves /static/ from gunicorn so the stack works end-to-end without
+    # a separate nginx/Apache reverse proxy. Production-grade: gzipped,
+    # immutable cache headers via the Manifest storage backend.
+    "whitenoise[brotli]>=6.7",
 ]
 
 [project.optional-dependencies]

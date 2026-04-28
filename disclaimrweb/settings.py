@@ -6,6 +6,8 @@ from pathlib import Path
 
 import environ
 from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -177,6 +179,80 @@ UNFOLD = {
     "STYLES": [
         lambda request: static("disclaimrwebadmin/css/admin_chrome.css"),
     ],
+    # Hand-curated sidebar — explicit groups in the order operators
+    # think about them, with German labels matching the rest of the UI.
+    # Setting ``navigation`` overrides Django's default app/model
+    # auto-grouping, so anything not listed here is hidden from the
+    # sidebar (still reachable by URL).
+    "SIDEBAR": {
+        "show_search": True,
+        "navigation": [
+            {
+                "title": _("Signaturen"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Signaturen verwalten"),
+                        "icon": "draw",
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_disclaimer_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Regeln"),
+                        "icon": "rule",
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_rule_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Bilder"),
+                        "icon": "image",
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_signatureimage_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Signaturtest"),
+                        "icon": "science",
+                        "link": reverse_lazy(
+                            "disclaimrwebadmin:signature-test"
+                        ),
+                    },
+                ],
+            },
+            {
+                "title": _("Einstellungen"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Tenants"),
+                        "icon": "groups",
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_tenant_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Verzeichnisserver"),
+                        "icon": "dns",
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_directoryserver_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Benutzer"),
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                    },
+                    {
+                        "title": _("Gruppen"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
 }
 
 LOGGING = {

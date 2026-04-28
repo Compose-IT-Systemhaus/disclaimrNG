@@ -350,8 +350,8 @@ class Disclaimer(models.Model):
     )
 
     class Meta:
-        verbose_name = _("Disclaimer")
-        verbose_name_plural = _("Disclaimers")
+        verbose_name = _("Signature")
+        verbose_name_plural = _("Signatures")
 
     def __str__(self) -> str:
         return self.name
@@ -563,8 +563,8 @@ class SignatureImage(models.Model):
 
     class Meta:
         ordering = ["slug"]
-        verbose_name = _("Signature image")
-        verbose_name_plural = _("Signature images")
+        verbose_name = _("Image")
+        verbose_name_plural = _("Images")
 
     def __str__(self) -> str:
         return f"{self.name} ({self.slug})"

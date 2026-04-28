@@ -31,7 +31,9 @@ classifiers = [
 dependencies = [
     "Django>=5.0,<6.0",
     "django-environ>=0.11",
-    "django-adminsortable2>=2.2",
+    # PyPI distribution is hyphenated (``django-admin-sortable2``); the
+    # importable Python module is ``adminsortable2`` (no hyphens).
+    "django-admin-sortable2>=2.2",
     "django-unfold>=0.40",
     "psycopg[binary]>=3.1",
     "python-ldap>=3.4",
@@ -78,6 +80,15 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*.py" = ["E", "F", "UP"]
+# The four ``test_*`` files below were inherited from upstream
+# disclaimr (Python 2 era, lots of percent-format strings and
+# unsorted imports). They still exercise valuable end-to-end paths,
+# so we keep them but skip purely stylistic rules — modernising them
+# is its own follow-up issue.
+"tests/test_disclaimer.py" = ["UP031", "I001"]
+"tests/test_directoryserver.py" = ["UP031"]
+"tests/test_performance.py" = ["UP031", "I001", "B007"]
+"tests/test_requirements.py" = ["I001"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "disclaimrweb.settings"

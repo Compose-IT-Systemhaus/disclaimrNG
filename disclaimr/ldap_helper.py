@@ -45,7 +45,7 @@ class AttributeDiscoveryResult:
     detail: str = ""
 
 
-def _bind(directory_server: "DirectoryServer", url: str):
+def _bind(directory_server: DirectoryServer, url: str):
     """Open a connection to ``url`` and bind using the server's credentials."""
     conn = ldap.initialize(url)
     conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
@@ -62,7 +62,7 @@ def _bind(directory_server: "DirectoryServer", url: str):
     return conn
 
 
-def test_connection(directory_server: "DirectoryServer") -> TestResult:
+def test_connection(directory_server: DirectoryServer) -> TestResult:
     """Try to bind to every configured URL and report the result of each."""
     urls = list(directory_server.directoryserverurl_set.order_by("position"))
     if not urls:
@@ -108,7 +108,7 @@ def test_connection(directory_server: "DirectoryServer") -> TestResult:
 
 
 def discover_attributes(
-    directory_server: "DirectoryServer", sample_size: int = 5
+    directory_server: DirectoryServer, sample_size: int = 5
 ) -> AttributeDiscoveryResult:
     """Sample ``sample_size`` entries from the directory and union their attribute names.
 

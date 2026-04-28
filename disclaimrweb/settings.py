@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "adminsortable2",
-    "disclaimrwebadmin",
+    "disclaimrwebadmin.apps.DisclaimrwebadminConfig",
 ]
 
 MIDDLEWARE = [

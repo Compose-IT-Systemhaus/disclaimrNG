@@ -18,6 +18,7 @@ import email
 import re
 from dataclasses import dataclass
 
+from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -48,8 +49,22 @@ class SignatureTestView(View):
 
     template_name = "admin/disclaimrwebadmin/signature_test.html"
 
+    def _admin_context(self, request: HttpRequest) -> dict:
+        """Seed the template with everything unfold's chrome needs.
+
+        ``admin.site.each_context`` populates ``site_header``,
+        ``available_apps`` (drives the sidebar) and — crucially —
+        unfold's ``colors`` dict that gets rendered into the inline
+        ``<style id="unfold-theme-colors">`` block. Without it, the
+        custom view runs but loses the sidebar AND every CSS variable
+        we use for borders / button colours / dark-mode contrast.
+        """
+        return admin.site.each_context(request)
+
     def get(self, request: HttpRequest) -> HttpResponse:
-        return render(request, self.template_name, {"defaults": _defaults()})
+        context = self._admin_context(request)
+        context["defaults"] = _defaults()
+        return render(request, self.template_name, context)
 
     def post(self, request: HttpRequest) -> HttpResponse:
         sender = request.POST.get("sender", "").strip()
@@ -70,18 +85,21 @@ class SignatureTestView(View):
             sender_ip=sender_ip,
         )
 
-        context = {
-            "defaults": {
-                "sender": sender,
-                "recipient": recipient,
-                "subject": subject,
-                "body": body,
-                "content_type": content_type,
-                "sender_ip": sender_ip,
-            },
-            "outcome": outcome,
-            "raw_input": raw_input,
-        }
+        context = self._admin_context(request)
+        context.update(
+            {
+                "defaults": {
+                    "sender": sender,
+                    "recipient": recipient,
+                    "subject": subject,
+                    "body": body,
+                    "content_type": content_type,
+                    "sender_ip": sender_ip,
+                },
+                "outcome": outcome,
+                "raw_input": raw_input,
+            }
+        )
         return render(request, self.template_name, context)
 
 

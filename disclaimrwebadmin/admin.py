@@ -81,7 +81,8 @@ class RuleAdmin(SortableAdminBase, ModelAdmin):
 class DisclaimerForm(forms.ModelForm):
     class Meta:
         model = Disclaimer
-        fields = "__all__"
+        # Equivalent to ``fields = "__all__"`` but lint-clean (ruff DJ007).
+        exclude = ()
         widgets = {
             "text": TemplateEditorWidget(content_type="text/plain"),
             "html": TemplateEditorWidget(content_type="text/html"),
@@ -149,7 +150,8 @@ class SignatureImageAdmin(ModelAdmin):
 class DirectoryServerForm(forms.ModelForm):
     class Meta:
         model = DirectoryServer
-        fields = "__all__"
+        # Equivalent to ``fields = "__all__"`` but lint-clean (ruff DJ007).
+        exclude = ()
         widgets = {"password": PasswordInput(render_value=True)}
 
 

@@ -25,7 +25,9 @@ def test_creates_admin_when_none_exists(db):
 def test_password_appears_in_log_output(db):
     output = _run()
     # Banner format: '[bootstrap_admin] one-time password: <pw>'
-    line = next(l for l in output.splitlines() if "one-time password" in l)
+    line = next(
+        ln for ln in output.splitlines() if "one-time password" in ln
+    )
     password = line.split("one-time password:")[1].strip()
     assert len(password) >= 16
     user = get_user_model().objects.get(username="admin")

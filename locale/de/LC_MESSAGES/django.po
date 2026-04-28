@@ -281,6 +281,19 @@ msgstr "Vollständige Mail nach der Pipeline"
 msgid "Input mail (before pipeline)"
 msgstr "Eingegebene Mail (vor Pipeline)"
 
+# --- Template editor common-field chips ---------------------------------
+msgid "Name"
+msgstr "Name"
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Email"
+msgstr "E-Mail"
+
+msgid "Address"
+msgstr "Adresse"
+
 # --- Signaturtest pipeline messages --------------------------------------
 msgid ""
 "The sender IP did not match any requirement — the milter pipeline would "

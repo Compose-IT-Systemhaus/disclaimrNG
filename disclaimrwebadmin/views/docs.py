@@ -28,7 +28,7 @@ DOCS_ROOT = Path(settings.BASE_DIR) / "docs"
 # Markdown filename without ``.md``. Titles are translatable so the
 # sidebar matches the active language even before the operator clicks
 # through to the page.
-TOC: list[tuple[str, "object"]] = [
+TOC: list[tuple[str, object]] = [
     ("index", _("Overview")),
     ("installation", _("Installation")),
     ("configuration", _("Configuration")),

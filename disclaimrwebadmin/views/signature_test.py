@@ -55,6 +55,23 @@ class _TestOutcome:
     matched_rules: list[_MatchedRule]
     error: str = ""
 
+    @property
+    def html_preview_data_url(self) -> str:
+        """Return ``rendered_body`` as a ``data:`` URL for an ``<iframe src=>``.
+
+        Avoids the double-escaping you get with ``<iframe srcdoc=...>``:
+        Django auto-escapes ``&`` to ``&amp;`` for attribute safety, the
+        browser then de-escapes once when reading the attribute, and the
+        iframe sees text like ``&#252;`` as literal characters instead of
+        a ü entity. Encoding the whole HTML body as base64 in a data URL
+        sidesteps the attribute layer.
+        """
+        body_bytes = self.rendered_body.encode("utf-8")
+        return (
+            "data:text/html;charset=utf-8;base64,"
+            + base64.b64encode(body_bytes).decode("ascii")
+        )
+
 
 @method_decorator(staff_member_required, name="dispatch")
 class SignatureTestView(View):
@@ -371,23 +388,53 @@ def _decode_result(
 def _extract_text_part(
     message: email.message.Message, fallback_content_type: str
 ) -> tuple[str, str]:
-    """Walk ``message`` and return the first text/* part as decoded str."""
+    """Walk ``message`` and return the first text/* part as decoded str.
+
+    Python's email library returns wildly different payload types
+    depending on the Content-Transfer-Encoding header:
+
+    * For ``base64`` / ``quoted-printable`` ``get_payload(decode=True)``
+      returns the *decoded* bytes — we then have to decode those bytes
+      using the part's charset.
+    * For ``7bit`` / ``8bit`` / ``binary`` (or no header at all) the
+      payload was never actually re-encoded, so ``get_payload(decode=True)``
+      effectively round-trips through latin-1 — which mangles every
+      non-ASCII character. We must instead use ``get_payload(decode=False)``,
+      which returns the original ``str`` untouched.
+    """
     parts = message.walk() if message.is_multipart() else [message]
     for part in parts:
         ctype = part.get_content_type()
         if ctype not in ("text/plain", "text/html"):
             continue
         charset = part.get_content_charset() or "utf-8"
-        payload = part.get_payload(decode=True)
-        if payload is None:
-            continue
-        if isinstance(payload, bytes):
-            try:
-                text = payload.decode(charset, errors="replace")
-            except (LookupError, UnicodeDecodeError):
-                text = payload.decode("utf-8", errors="replace")
+        cte = (part.get("Content-Transfer-Encoding") or "").strip().lower()
+
+        if cte in ("quoted-printable", "base64"):
+            payload = part.get_payload(decode=True)
+            if payload is None:
+                continue
+            if isinstance(payload, bytes):
+                try:
+                    text = payload.decode(charset, errors="replace")
+                except (LookupError, UnicodeDecodeError):
+                    text = payload.decode("utf-8", errors="replace")
+            else:
+                text = str(payload)
         else:
-            text = str(payload)
+            # 7bit, 8bit, binary, or no CTE header at all: the payload
+            # was never encoded — return it as the original string.
+            payload = part.get_payload(decode=False)
+            if payload is None:
+                continue
+            if isinstance(payload, bytes):
+                try:
+                    text = payload.decode(charset, errors="replace")
+                except (LookupError, UnicodeDecodeError):
+                    text = payload.decode("utf-8", errors="replace")
+            else:
+                text = str(payload)
+
         return _maybe_unbase64(text, charset), ctype
     return "", fallback_content_type
 

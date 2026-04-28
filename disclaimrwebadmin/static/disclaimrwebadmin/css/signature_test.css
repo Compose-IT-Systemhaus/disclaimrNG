@@ -217,14 +217,18 @@
 
 .signature-test__html-preview {
     width: 100%;
-    min-height: 240px;
-    border: 1px solid rgb(var(--color-base-200, 226 232 240));
+    min-height: 320px;
+    border: 1px solid rgb(var(--color-base-300, 203 213 225));
     border-radius: 4px;
     background: #fff;
+    /* Drop shadow so the preview reads as a distinct surface — admins
+     * tend to mistake the bare iframe for plain text otherwise. */
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.06);
 }
 
 .dark .signature-test__html-preview {
-    border-color: rgb(var(--color-base-800, 30 41 59));
+    border-color: rgb(var(--color-base-700, 51 65 85));
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.4);
 }
 
 .signature-test__list {

@@ -100,15 +100,17 @@
         </ul>
         {% endif %}
 
-        <h3>{% translate "Modifizierter Mail-Body" %}</h3>
         {% if outcome.rendered_content_type == "text/html" %}
-        <iframe class="signature-test__html-preview" sandbox="allow-same-origin"
-                srcdoc="{{ outcome.rendered_body }}"></iframe>
+        <h3>{% translate "Vorschau (HTML gerendert)" %}</h3>
+        <iframe class="signature-test__html-preview"
+                sandbox="allow-same-origin"
+                src="{{ outcome.html_preview_data_url }}"></iframe>
         <details>
             <summary>{% translate "HTML-Quelltext anzeigen" %}</summary>
             <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         </details>
         {% else %}
+        <h3>{% translate "Modifizierter Mail-Body" %}</h3>
         <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         {% endif %}
 

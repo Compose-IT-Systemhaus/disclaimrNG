@@ -30,6 +30,15 @@ from disclaimr.milter_helper import MilterHelper
 
 
 @dataclass
+class _MatchedRule:
+    """Lightweight projection of a Rule that survived the pipeline."""
+
+    name: str
+    description: str
+    pk: int
+
+
+@dataclass
 class _TestOutcome:
     """Everything the result template needs to render — no Django models."""
 
@@ -37,9 +46,11 @@ class _TestOutcome:
     summary: str
     rendered_body: str
     rendered_content_type: str
+    rendered_full_mail: str
     add_headers: dict[str, str]
     change_headers: dict[str, str]
     delete_headers: list[str]
+    matched_rules: list[_MatchedRule]
     error: str = ""
 
 
@@ -146,18 +157,15 @@ def _run_pipeline(
 
         if not helper.enabled:
             return (
-                _TestOutcome(
-                    matched=False,
+                _passthrough_outcome(
+                    body,
+                    content_type,
+                    raw_input,
                     summary=(
                         "Sender-IP traf auf keine Requirement zu — "
                         "die Milter-Pipeline würde diese Mail unverändert "
                         "durchlassen."
                     ),
-                    rendered_body=body,
-                    rendered_content_type=content_type,
-                    add_headers={},
-                    change_headers={},
-                    delete_headers=[],
                 ),
                 f"<no MIME — sender_ip {sender_ip} did not match>",
             )
@@ -173,14 +181,10 @@ def _run_pipeline(
         workflow = helper.eob({})
     except re.error as exc:
         return (
-            _TestOutcome(
-                matched=False,
-                summary="",
-                rendered_body=body,
-                rendered_content_type=content_type,
-                add_headers={},
-                change_headers={},
-                delete_headers=[],
+            _error_outcome(
+                body,
+                content_type,
+                raw_input,
                 error=(
                     "Eine konfigurierte Requirement enthält ein ungültiges "
                     f"Regex-Muster: {exc}. Bitte das Regex-Feld der "
@@ -193,14 +197,10 @@ def _run_pipeline(
         )
     except Exception as exc:  # noqa: BLE001 — last-ditch UI safety net
         return (
-            _TestOutcome(
-                matched=False,
-                summary="",
-                rendered_body=body,
-                rendered_content_type=content_type,
-                add_headers={},
-                change_headers={},
-                delete_headers=[],
+            _error_outcome(
+                body,
+                content_type,
+                raw_input,
                 error=f"{type(exc).__name__}: {exc}",
             ),
             raw_input,
@@ -208,49 +208,183 @@ def _run_pipeline(
 
     if workflow is None:
         return (
-            _TestOutcome(
-                matched=False,
+            _passthrough_outcome(
+                body,
+                content_type,
+                raw_input,
                 summary=(
                     "Die Mail traf auf keine aktive Regel — "
                     "die Pipeline würde sie unverändert durchlassen."
                 ),
-                rendered_body=body,
-                rendered_content_type=content_type,
-                add_headers={},
-                change_headers={},
-                delete_headers=[],
             ),
             raw_input,
         )
 
-    rendered_body = workflow.get("repl_body", body)
-    # Try to detect whether the milter wrapped the mail in multipart;
-    # if so, surface the first text/html or text/plain part to the
-    # template so the rendered preview makes sense to a human.
-    rendered_content_type = content_type
-    try:
-        parsed = email.message_from_string(raw_input.split("\n\n", 1)[0] + "\n\n" + rendered_body)
-        if parsed.is_multipart():
-            for part in parsed.walk():
-                ctype = part.get_content_type()
-                if ctype in ("text/plain", "text/html"):
-                    rendered_body = part.get_payload(decode=False)
-                    rendered_content_type = ctype
-                    break
-    except Exception:  # noqa: BLE001 — best-effort UI hint
-        pass
+    matched_rules = _matched_rules(helper)
+    rendered_body, rendered_content_type, rendered_full_mail = _decode_result(
+        original_headers=headers,
+        workflow=workflow,
+        fallback_body=body,
+        fallback_content_type=content_type,
+    )
 
-    summary = "Eine oder mehrere Regeln haben gegriffen — "
-    summary += "die Mail würde wie unten gezeigt verändert werden."
+    if matched_rules:
+        rule_word = "Regel" if len(matched_rules) == 1 else "Regeln"
+        summary = (
+            f"{len(matched_rules)} {rule_word} hat gegriffen — die Mail würde "
+            "wie unten gezeigt verändert werden."
+            if len(matched_rules) == 1
+            else
+            f"{len(matched_rules)} {rule_word} haben gegriffen — die Mail würde "
+            "wie unten gezeigt verändert werden."
+        )
+    else:
+        summary = (
+            "Die Pipeline hat die Mail verändert, aber keine Regel "
+            "konnte eindeutig zugeordnet werden."
+        )
+
     return (
         _TestOutcome(
             matched=True,
             summary=summary,
             rendered_body=rendered_body,
             rendered_content_type=rendered_content_type,
+            rendered_full_mail=rendered_full_mail,
             add_headers=workflow.get("add_header", {}),
             change_headers=workflow.get("change_header", {}),
             delete_headers=workflow.get("delete_header", []),
+            matched_rules=matched_rules,
         ),
         raw_input,
     )
+
+
+def _passthrough_outcome(
+    body: str, content_type: str, raw_input: str, *, summary: str
+) -> _TestOutcome:
+    return _TestOutcome(
+        matched=False,
+        summary=summary,
+        rendered_body=body,
+        rendered_content_type=content_type,
+        rendered_full_mail=raw_input,
+        add_headers={},
+        change_headers={},
+        delete_headers=[],
+        matched_rules=[],
+    )
+
+
+def _error_outcome(
+    body: str, content_type: str, raw_input: str, *, error: str
+) -> _TestOutcome:
+    return _TestOutcome(
+        matched=False,
+        summary="",
+        rendered_body=body,
+        rendered_content_type=content_type,
+        rendered_full_mail=raw_input,
+        add_headers={},
+        change_headers={},
+        delete_headers=[],
+        matched_rules=[],
+        error=error,
+    )
+
+
+def _matched_rules(helper: MilterHelper) -> list[_MatchedRule]:
+    """Return the rules whose requirements survived the pipeline.
+
+    After ``eob()`` ``helper.requirements`` is the list of Requirement IDs
+    that matched every check. The rule that owns at least one such
+    requirement is the one whose actions just ran.
+    """
+    # Lazy import — avoids a circular dependency at module load time
+    # (this view module is reached via disclaimrwebadmin.urls, which is
+    # included before all models have finished loading on a cold start).
+    from disclaimrwebadmin.models import Requirement, Rule
+
+    if not helper.requirements:
+        return []
+    rule_ids = (
+        Requirement.objects.filter(id__in=helper.requirements)
+        .values_list("rule_id", flat=True)
+        .distinct()
+    )
+    return [
+        _MatchedRule(
+            name=rule.name or f"Regel #{rule.pk}",
+            description=rule.description or "",
+            pk=rule.pk,
+        )
+        for rule in Rule.objects.filter(id__in=list(rule_ids))
+    ]
+
+
+def _decode_result(
+    *,
+    original_headers: list[tuple[str, str]],
+    workflow: dict,
+    fallback_body: str,
+    fallback_content_type: str,
+) -> tuple[str, str, str]:
+    """Reconstruct the post-pipeline mail and decode it for display.
+
+    ``workflow["repl_body"]`` is the *encoded* body Python's email
+    machinery wrote out — for an 8-bit text body that often comes back
+    as base64, which is unreadable in a UI. We rebuild the full mail
+    (headers + body, with the workflow's add/change/delete applied),
+    parse it back into a Message, and surface the *decoded* payload of
+    the first text/plain or text/html part.
+
+    Returns ``(decoded_body, content_type, full_rfc822_mail)``.
+    """
+    final_headers = dict(original_headers)
+    for key in workflow.get("delete_header", []):
+        final_headers.pop(key, None)
+    for key, value in workflow.get("change_header", {}).items():
+        final_headers[key] = value
+    for key, value in workflow.get("add_header", {}).items():
+        final_headers[key] = value
+
+    repl_body = workflow.get("repl_body", fallback_body)
+    full_mail_str = (
+        "\n".join(f"{k}: {v}" for k, v in final_headers.items())
+        + "\n\n"
+        + repl_body
+    )
+
+    try:
+        parsed = email.message_from_string(full_mail_str)
+    except Exception:  # noqa: BLE001 — best-effort UI hint
+        return fallback_body, fallback_content_type, full_mail_str
+
+    decoded_body, decoded_content_type = _extract_text_part(
+        parsed, fallback_content_type
+    )
+    return decoded_body or fallback_body, decoded_content_type, full_mail_str
+
+
+def _extract_text_part(
+    message: email.message.Message, fallback_content_type: str
+) -> tuple[str, str]:
+    """Walk ``message`` and return the first text/* part as decoded str."""
+    parts = message.walk() if message.is_multipart() else [message]
+    for part in parts:
+        ctype = part.get_content_type()
+        if ctype not in ("text/plain", "text/html"):
+            continue
+        payload = part.get_payload(decode=True)
+        if payload is None:
+            continue
+        if isinstance(payload, bytes):
+            charset = part.get_content_charset() or "utf-8"
+            try:
+                text = payload.decode(charset, errors="replace")
+            except (LookupError, UnicodeDecodeError):
+                text = payload.decode("utf-8", errors="replace")
+        else:
+            text = str(payload)
+        return text, ctype
+    return "", fallback_content_type

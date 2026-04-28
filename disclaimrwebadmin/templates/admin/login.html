@@ -1,0 +1,92 @@
+{# Override of unfold's admin/login.html — extends the layout directly to     #}
+{# avoid the {% extends "admin/login.html" %} self-recursion. Re-emits all of #}
+{# unfold's own login chrome inside the right slots, plus a centred logo in   #}
+{# the ``login_before`` slot above the form.                                  #}
+
+{% extends "unfold/layouts/unauthenticated.html" %}
+{% load i18n static %}
+
+{% block title %}{% translate 'Log in' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .disclaimrng-login-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 0 1.5rem 0;
+        }
+        .disclaimrng-login-logo img {
+            max-height: 72px;
+            max-width: 280px;
+            height: auto;
+            width: auto;
+        }
+        .disclaimrng-login-logo--light { display: block; }
+        .disclaimrng-login-logo--dark { display: none; }
+        .dark .disclaimrng-login-logo--light { display: none; }
+        .dark .disclaimrng-login-logo--dark { display: block; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {% include "unfold/helpers/messages.html" %}
+
+    <div class="disclaimrng-login-logo">
+        <img class="disclaimrng-login-logo--light"
+             src="{% static 'disclaimrwebadmin/img/logo_light_mode.png' %}"
+             alt="{{ site_header|default:_('disclaimrNG') }}">
+        <img class="disclaimrng-login-logo--dark"
+             src="{% static 'disclaimrwebadmin/img/logo_dark_mode.png' %}"
+             alt="{{ site_header|default:_('disclaimrNG') }}">
+    </div>
+
+    {% include "unfold/helpers/unauthenticated_title.html" %}
+
+    {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">
+            {% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+        </p>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <p class="errornote">{{ error }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <div id="content-main">
+        {% if user.is_authenticated %}
+            <p class="errornote">
+                {% blocktranslate trimmed %}
+                    You are authenticated as {{ username }}, but are not authorized to access this page. Would you like to login to a different account?
+                {% endblocktranslate %}
+            </p>
+        {% endif %}
+
+        <form action="{{ app_path }}" method="post" id="login-form">
+            {% csrf_token %}
+            <div class="form-row">
+                {{ form.username.errors }}
+                {{ form.username.label_tag }} {{ form.username }}
+            </div>
+            <div class="form-row">
+                {{ form.password.errors }}
+                {{ form.password.label_tag }} {{ form.password }}
+                <input type="hidden" name="next" value="{{ next }}">
+            </div>
+
+            {% url 'admin_password_reset' as password_reset_url %}
+            {% if password_reset_url %}
+                <div class="password-reset-link">
+                    <a href="{{ password_reset_url }}">{% translate 'Forgotten your password or username?' %}</a>
+                </div>
+            {% endif %}
+
+            <div class="submit-row">
+                <input type="submit" value="{% translate 'Log in' %}">
+            </div>
+        </form>
+    </div>
+{% endblock %}

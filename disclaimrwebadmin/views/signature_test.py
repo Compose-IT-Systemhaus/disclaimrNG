@@ -14,6 +14,8 @@ admin context where blocking that briefly is acceptable.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import email
 import re
 from dataclasses import dataclass
@@ -375,16 +377,44 @@ def _extract_text_part(
         ctype = part.get_content_type()
         if ctype not in ("text/plain", "text/html"):
             continue
+        charset = part.get_content_charset() or "utf-8"
         payload = part.get_payload(decode=True)
         if payload is None:
             continue
         if isinstance(payload, bytes):
-            charset = part.get_content_charset() or "utf-8"
             try:
                 text = payload.decode(charset, errors="replace")
             except (LookupError, UnicodeDecodeError):
                 text = payload.decode("utf-8", errors="replace")
         else:
             text = str(payload)
-        return text, ctype
+        return _maybe_unbase64(text, charset), ctype
     return "", fallback_content_type
+
+
+def _maybe_unbase64(text: str, charset: str) -> str:
+    """Decode ``text`` if it actually is base64 even though the header lied.
+
+    Belt-and-braces against an old build of the milter (or any future
+    regression where ``Content-Transfer-Encoding`` says one thing and
+    the body is encoded as another). If the input is short enough not
+    to look like base64 — or doesn't decode — we return it unchanged.
+    """
+    cleaned = "".join(text.split())
+    if len(cleaned) < 8 or len(cleaned) % 4 != 0:
+        return text
+    if not re.fullmatch(r"[A-Za-z0-9+/=]+", cleaned):
+        return text
+    try:
+        decoded_bytes = base64.b64decode(cleaned, validate=True)
+    except (binascii.Error, ValueError):
+        return text
+    try:
+        decoded = decoded_bytes.decode(charset, errors="strict")
+    except (UnicodeDecodeError, LookupError):
+        return text
+    # Sanity gate: if the decoded result is mostly non-printable noise it
+    # was almost certainly *not* base64 to begin with — fall back to raw.
+    if "\x00" in decoded:
+        return text
+    return decoded

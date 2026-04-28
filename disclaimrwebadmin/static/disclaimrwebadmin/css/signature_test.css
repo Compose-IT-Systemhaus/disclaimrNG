@@ -131,6 +131,17 @@
     background: rgb(var(--color-primary-700, 29 78 216));
 }
 
+.dark .signature-test__submit {
+    background: rgb(15 15 15);
+    color: rgb(var(--color-base-100, 241 245 249));
+    border: 1px solid rgb(var(--color-base-700, 51 65 85));
+}
+
+.dark .signature-test__submit:hover {
+    background: rgb(0 0 0);
+    border-color: rgb(var(--color-primary-500, 59 130 246));
+}
+
 /* --- Result panel ---------------------------------------------------- */
 
 .signature-test__result h2 {

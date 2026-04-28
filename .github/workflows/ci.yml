@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
+    tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -74,27 +75,60 @@ jobs:
 
   docker:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image (no push)
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Hard-coded lowercase — GHCR rejects mixed case in image
+          # paths and the org slug ``Compose-IT-Systemhaus`` would
+          # otherwise sneak through.
+          images: ghcr.io/compose-it-systemhaus/disclaimrng
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+            type=ref,event=pr
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          flavor: |
+            latest=auto
+
+      - name: Log in to GHCR
+        # Only push from master pushes and tags; PR builds stay local
+        # (forks don't have package-write permission anyway).
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
-          load: true
-          tags: disclaimrng:ci
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name != 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke test image
+      - name: Smoke test image (PR / non-push runs only)
+        if: github.event_name != 'push'
         run: |
+          tag=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           docker run --rm \
             -e DJANGO_SECRET_KEY=ci \
             -e DJANGO_DEBUG=False \
             -e DJANGO_ALLOWED_HOSTS=* \
             -e DATABASE_URL=sqlite:///:memory: \
-            disclaimrng:ci python -c "import django, disclaimrweb.settings; print(django.get_version())"
+            "$tag" python -c "import django, disclaimrweb.settings; print(django.get_version())"

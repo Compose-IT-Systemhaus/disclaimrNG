@@ -70,6 +70,9 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    # Build locally until the image is published to GHCR; switch to
+    # ``pull_policy: missing`` once CI starts pushing.
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       db:
@@ -96,7 +99,11 @@ services:
       - traefik.http.services.disclaimr.loadbalancer.server.port=8000
 
   milter:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       db:

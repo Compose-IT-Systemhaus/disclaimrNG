@@ -179,9 +179,11 @@ UNFOLD = {
     "STYLES": [
         lambda request: static("disclaimrwebadmin/css/admin_chrome.css"),
         lambda request: static("disclaimrwebadmin/css/language_switcher.css"),
+        lambda request: static("disclaimrwebadmin/css/help_button.css"),
     ],
     "SCRIPTS": [
         lambda request: static("disclaimrwebadmin/js/language_switcher.js"),
+        lambda request: static("disclaimrwebadmin/js/help_button.js"),
     ],
     # Hand-curated sidebar — explicit groups in the order operators
     # think about them, with German labels matching the rest of the UI.

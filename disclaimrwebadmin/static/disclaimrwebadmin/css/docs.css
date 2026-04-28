@@ -1,0 +1,251 @@
+/*
+ * In-admin documentation page.
+ *
+ * Two-column layout (sticky sidebar + scrolling article) themed
+ * against unfold's CSS variables so light + dark both work.
+ */
+
+.docs-page {
+    color: rgb(var(--color-base-900, 15 23 42));
+    max-width: 1200px;
+}
+
+.dark .docs-page {
+    color: rgb(var(--color-base-100, 241 245 249));
+}
+
+.docs-page__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem 0;
+}
+
+.docs-page__chevron {
+    color: rgb(var(--color-base-400, 148 163 184));
+    margin: 0 0.375rem;
+    font-weight: 400;
+}
+
+.docs-page__layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 800px) {
+    .docs-page__layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Sidebar ------------------------------------------------------- */
+
+.docs-page__sidebar {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+}
+
+.docs-page__sidebar-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: rgb(var(--color-base-500, 100 116 139));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+}
+
+.docs-page__nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.docs-page__nav li + li {
+    margin-top: 0.125rem;
+}
+
+.docs-page__nav-link {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 4px;
+    color: rgb(var(--color-base-700, 51 65 85));
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.dark .docs-page__nav-link {
+    color: rgb(var(--color-base-300, 203 213 225));
+}
+
+.docs-page__nav-link:hover {
+    background: rgb(var(--color-base-100, 241 245 249));
+    color: rgb(var(--color-primary-700, 29 78 216));
+}
+
+.dark .docs-page__nav-link:hover {
+    background: rgb(var(--color-base-800, 30 41 59));
+    color: rgb(var(--color-primary-300, 147 197 253));
+}
+
+.docs-page__nav-link--active {
+    background: rgb(var(--color-primary-50, 239 246 255));
+    color: rgb(var(--color-primary-700, 29 78 216));
+    font-weight: 600;
+}
+
+.dark .docs-page__nav-link--active {
+    background: rgb(var(--color-primary-900, 30 58 138) / 0.4);
+    color: rgb(var(--color-primary-300, 147 197 253));
+}
+
+/* --- Article (rendered Markdown) --------------------------------- */
+
+.docs-page__article {
+    background: #fff;
+    border: 1px solid rgb(var(--color-base-200, 226 232 240));
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+}
+
+.dark .docs-page__article {
+    background: rgb(var(--color-base-900, 15 23 42));
+    border-color: rgb(var(--color-base-800, 30 41 59));
+}
+
+.docs-page__article > *:first-child { margin-top: 0; }
+.docs-page__article > *:last-child  { margin-bottom: 0; }
+
+.docs-page__article h1,
+.docs-page__article h2,
+.docs-page__article h3,
+.docs-page__article h4 {
+    font-weight: 600;
+    color: rgb(var(--color-base-900, 15 23 42));
+    margin: 1.5em 0 0.5em 0;
+    line-height: 1.3;
+}
+
+.dark .docs-page__article h1,
+.dark .docs-page__article h2,
+.dark .docs-page__article h3,
+.dark .docs-page__article h4 {
+    color: rgb(var(--color-base-50, 248 250 252));
+}
+
+.docs-page__article h1 { font-size: 1.625rem; border-bottom: 1px solid rgb(var(--color-base-200, 226 232 240)); padding-bottom: 0.375rem; }
+.docs-page__article h2 { font-size: 1.25rem;  border-bottom: 1px solid rgb(var(--color-base-100, 241 245 249)); padding-bottom: 0.25rem; }
+.docs-page__article h3 { font-size: 1.0625rem; }
+.docs-page__article h4 { font-size: 0.95rem; }
+
+.dark .docs-page__article h1 { border-bottom-color: rgb(var(--color-base-800, 30 41 59)); }
+.dark .docs-page__article h2 { border-bottom-color: rgb(var(--color-base-800, 30 41 59)); }
+
+.docs-page__article p,
+.docs-page__article ul,
+.docs-page__article ol {
+    margin: 0.75em 0;
+}
+
+.docs-page__article a {
+    color: rgb(var(--color-primary-600, 37 99 235));
+    text-decoration: none;
+}
+
+.docs-page__article a:hover {
+    text-decoration: underline;
+}
+
+.dark .docs-page__article a {
+    color: rgb(var(--color-primary-400, 96 165 250));
+}
+
+.docs-page__article code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875em;
+    background: rgb(var(--color-base-100, 241 245 249));
+    color: rgb(var(--color-base-900, 15 23 42));
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+}
+
+.dark .docs-page__article code {
+    background: rgb(var(--color-base-800, 30 41 59));
+    color: rgb(var(--color-base-100, 241 245 249));
+}
+
+.docs-page__article pre {
+    background: rgb(var(--color-base-50, 248 250 252));
+    border: 1px solid rgb(var(--color-base-200, 226 232 240));
+    border-radius: 6px;
+    padding: 0.875rem 1rem;
+    overflow-x: auto;
+    line-height: 1.45;
+    font-size: 0.8125rem;
+}
+
+.dark .docs-page__article pre {
+    background: rgb(var(--color-base-950, 2 6 23));
+    border-color: rgb(var(--color-base-800, 30 41 59));
+}
+
+.docs-page__article pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+}
+
+.docs-page__article blockquote {
+    border-left: 3px solid rgb(var(--color-primary-300, 147 197 253));
+    background: rgb(var(--color-primary-50, 239 246 255));
+    padding: 0.5rem 1rem;
+    margin: 0.75em 0;
+    color: rgb(var(--color-base-700, 51 65 85));
+    border-radius: 0 4px 4px 0;
+}
+
+.dark .docs-page__article blockquote {
+    background: rgb(var(--color-primary-900, 30 58 138) / 0.2);
+    color: rgb(var(--color-base-300, 203 213 225));
+}
+
+.docs-page__article table {
+    border-collapse: collapse;
+    margin: 0.75em 0;
+    width: 100%;
+}
+
+.docs-page__article th,
+.docs-page__article td {
+    border: 1px solid rgb(var(--color-base-200, 226 232 240));
+    padding: 0.375rem 0.625rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.docs-page__article th {
+    background: rgb(var(--color-base-50, 248 250 252));
+    font-weight: 600;
+}
+
+.dark .docs-page__article th,
+.dark .docs-page__article td {
+    border-color: rgb(var(--color-base-800, 30 41 59));
+}
+
+.dark .docs-page__article th {
+    background: rgb(var(--color-base-800, 30 41 59));
+}
+
+.docs-page__article hr {
+    border: 0;
+    border-top: 1px solid rgb(var(--color-base-200, 226 232 240));
+    margin: 1.5em 0;
+}
+
+.dark .docs-page__article hr {
+    border-top-color: rgb(var(--color-base-800, 30 41 59));
+}

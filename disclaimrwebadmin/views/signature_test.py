@@ -15,6 +15,7 @@ admin context where blocking that briefly is acceptable.
 from __future__ import annotations
 
 import email
+import re
 from dataclasses import dataclass
 
 from django.contrib.admin.views.decorators import staff_member_required
@@ -38,6 +39,7 @@ class _TestOutcome:
     add_headers: dict[str, str]
     change_headers: dict[str, str]
     delete_headers: list[str]
+    error: str = ""
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -103,30 +105,14 @@ def _run_pipeline(
     content_type: str,
     sender_ip: str,
 ) -> tuple[_TestOutcome, str]:
-    """Drive ``MilterHelper`` through every stage and return the outcome."""
-    helper = MilterHelper(build_configuration())
-    helper.connect("test-host", 0, sender_ip, 0, {})
+    """Drive ``MilterHelper`` through every stage and return the outcome.
 
-    if not helper.enabled:
-        return (
-            _TestOutcome(
-                matched=False,
-                summary=(
-                    "Sender-IP traf auf keine Requirement zu — "
-                    "die Milter-Pipeline würde diese Mail unverändert durchlassen."
-                ),
-                rendered_body=body,
-                rendered_content_type=content_type,
-                add_headers={},
-                change_headers={},
-                delete_headers=[],
-            ),
-            f"<no MIME — sender_ip {sender_ip} did not match>",
-        )
-
-    helper.mail_from(sender, {})
-    helper.rcpt(recipient, {})
-
+    The pipeline calls ``re.search`` against admin-supplied regex patterns
+    on every stage, so a malformed pattern in any active ``Requirement``
+    will raise ``re.error`` and bring the whole run down. We catch every
+    exception here and surface it as a UI hint instead of a 500 — the
+    operator can then jump to the offending Rule and fix the pattern.
+    """
     headers = [
         ("From", sender),
         ("To", recipient),
@@ -134,16 +120,73 @@ def _run_pipeline(
         ("Content-Type", f"{content_type}; charset=utf-8"),
         ("Content-Transfer-Encoding", "8bit"),
     ]
-    for key, value in headers:
-        helper.header(key, value, {})
-    helper.eoh({})
+    raw_input = "\n".join(f"{k}: {v}" for k, v in headers) + "\n\n" + body
 
-    raw_input = (
-        "\n".join(f"{k}: {v}" for k, v in headers) + "\n\n" + body
-    )
+    try:
+        helper = MilterHelper(build_configuration())
+        helper.connect("test-host", 0, sender_ip, 0, {})
 
-    helper.body(body, {})
-    workflow = helper.eob({})
+        if not helper.enabled:
+            return (
+                _TestOutcome(
+                    matched=False,
+                    summary=(
+                        "Sender-IP traf auf keine Requirement zu — "
+                        "die Milter-Pipeline würde diese Mail unverändert "
+                        "durchlassen."
+                    ),
+                    rendered_body=body,
+                    rendered_content_type=content_type,
+                    add_headers={},
+                    change_headers={},
+                    delete_headers=[],
+                ),
+                f"<no MIME — sender_ip {sender_ip} did not match>",
+            )
+
+        helper.mail_from(sender, {})
+        helper.rcpt(recipient, {})
+
+        for key, value in headers:
+            helper.header(key, value, {})
+        helper.eoh({})
+
+        helper.body(body, {})
+        workflow = helper.eob({})
+    except re.error as exc:
+        return (
+            _TestOutcome(
+                matched=False,
+                summary="",
+                rendered_body=body,
+                rendered_content_type=content_type,
+                add_headers={},
+                change_headers={},
+                delete_headers=[],
+                error=(
+                    "Eine konfigurierte Requirement enthält ein ungültiges "
+                    f"Regex-Muster: {exc}. Bitte das Regex-Feld der "
+                    "betroffenen Requirement (Sender / Empfänger / Header / "
+                    "Body) korrigieren — typischer Fehler: ein nacktes "
+                    "``*`` statt ``.*``."
+                ),
+            ),
+            raw_input,
+        )
+    except Exception as exc:  # noqa: BLE001 — last-ditch UI safety net
+        return (
+            _TestOutcome(
+                matched=False,
+                summary="",
+                rendered_body=body,
+                rendered_content_type=content_type,
+                add_headers={},
+                change_headers={},
+                delete_headers=[],
+                error=f"{type(exc).__name__}: {exc}",
+            ),
+            raw_input,
+        )
 
     if workflow is None:
         return (

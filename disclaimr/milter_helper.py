@@ -666,16 +666,36 @@ class MilterHelper:
             if content_type == "text/plain":
                 new_text = f"{new_text}\n{disclaimer_text}"
             elif content_type == "text/html":
+                # ``etree.HTML`` only exposes child *elements* via iteration —
+                # bare text inside ``<body>`` is hidden away in
+                # ``body.text`` / ``element.tail`` and silently disappears
+                # when we copy "for element in disclaimer_body". For a
+                # plaintext-as-HTML disclaimer (the default when
+                # ``html_use_text=True``) that meant nothing got appended
+                # at all. Wrap such a disclaimer in a ``<p>`` so it parses
+                # as a real element subtree.
+                if not disclaimer_text.lstrip().startswith("<"):
+                    disclaimer_text = f"<p>{disclaimer_text}</p>"
+
                 html_part = etree.HTML(new_text)
                 disclaimer_part = etree.HTML(disclaimer_text)
                 disclaimer_body = disclaimer_part.xpath("body")[0]
 
-                if html_part.xpath("body"):
-                    for element in disclaimer_body:
-                        html_part.xpath("body")[0].append(element)
-                else:
-                    for element in disclaimer_body:
-                        html_part.append(element)
+                target = (
+                    html_part.xpath("body")[0]
+                    if html_part.xpath("body")
+                    else html_part
+                )
+                # Copy any leading text that lxml stuffed onto body.text
+                # (rare for our wrapped-in-<p> case but cheap insurance).
+                if disclaimer_body.text:
+                    if len(target) > 0:
+                        last = target[-1]
+                        last.tail = (last.tail or "") + disclaimer_body.text
+                    else:
+                        target.text = (target.text or "") + disclaimer_body.text
+                for element in disclaimer_body:
+                    target.append(element)
 
                 new_text = etree.tostring(
                     html_part, pretty_print=True, method="html"

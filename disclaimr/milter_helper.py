@@ -698,18 +698,26 @@ class MilterHelper:
             syslog.error("Invalid action value %d", action.action)
             return None
 
-        mail.set_payload(new_text.encode(charset, "replace"))
-
         if "Content-Transfer-Encoding" in mail:
             del mail["Content-Transfer-Encoding"]
 
         logging.debug("Encoding %s with Charset %s", encoding, charset)
 
+        # Python's email library decides on its own whether to base64-encode
+        # a payload at ``as_string()`` time based on the payload *type*:
+        # bytes always trigger base64 (regardless of the
+        # Content-Transfer-Encoding header we add below). For 7bit / 8bit /
+        # 78bit we keep the payload as ``str`` so it gets written out
+        # unmolested. quoted-printable / base64 still need bytes because
+        # the encoders mutate the payload in place.
         if encoding == "quoted-printable":
+            mail.set_payload(new_text.encode(charset, "replace"))
             email.encoders.encode_quopri(mail)
         elif encoding == "base64":
+            mail.set_payload(new_text.encode(charset, "replace"))
             email.encoders.encode_base64(mail)
         else:
+            mail.set_payload(new_text)
             mail.add_header("Content-Transfer-Encoding", encoding)
 
         logging.debug(

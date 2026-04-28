@@ -122,6 +122,85 @@
             .join("");
     }
 
+    function renderPlaceholderChips(root, vocab) {
+        const grid = root.querySelector(".template-editor__chips-grid");
+        if (!grid) return;
+        const fixed = ["sender", "recipient"];
+        const headers = ["subject", "from", "to", "cc", "date"];
+        const attributes = (vocab && vocab.attributes) || [];
+
+        const chip = (token, kind, label, hint) =>
+            `<button type="button" class="template-editor__chip"
+                     data-token="${token.replace(/"/g, "&quot;")}"
+                     data-kind="${kind}"
+                     title="${(hint || token).replace(/"/g, "&quot;")}">
+                <span class="template-editor__chip-label">${label}</span>
+            </button>`;
+
+        const sections = [];
+
+        // Envelope (sender / recipient)
+        sections.push(
+            `<div class="template-editor__chip-group">
+                <div class="template-editor__chip-group-title">Umschlag</div>
+                <div class="template-editor__chip-row">${
+                    fixed.map((k) => chip(`{${k}}`, "envelope", k)).join("")
+                }</div>
+            </div>`
+        );
+
+        // Mail headers
+        sections.push(
+            `<div class="template-editor__chip-group">
+                <div class="template-editor__chip-group-title">Header</div>
+                <div class="template-editor__chip-row">${
+                    headers
+                        .map((k) =>
+                            chip(`{header["${k}"]}`, "header", k, `Header: ${k}`)
+                        )
+                        .join("")
+                }</div>
+            </div>`
+        );
+
+        // LDAP / directory attributes
+        if (attributes.length) {
+            sections.push(
+                `<div class="template-editor__chip-group">
+                    <div class="template-editor__chip-group-title">
+                        Verzeichnis-Attribute
+                    </div>
+                    <div class="template-editor__chip-row">${
+                        attributes
+                            .map((a) =>
+                                chip(
+                                    `{resolver["${a}"]}`,
+                                    "resolver",
+                                    a,
+                                    `LDAP / AD attribute: ${a}`
+                                )
+                            )
+                            .join("")
+                    }</div>
+                </div>`
+            );
+        } else {
+            sections.push(
+                `<div class="template-editor__chip-group">
+                    <div class="template-editor__chip-group-title">
+                        Verzeichnis-Attribute
+                    </div>
+                    <div class="template-editor__chips-empty">
+                        Kein Verzeichnis-Server konfiguriert oder noch keine
+                        Attribute entdeckt.
+                    </div>
+                </div>`
+            );
+        }
+
+        grid.innerHTML = sections.join("");
+    }
+
     function setStatus(root, message, kind) {
         const node = root.querySelector(".template-editor__images-status");
         if (!node) return;
@@ -209,19 +288,21 @@
         loadVocabulary(vocabularyUrl).then((vocab) => {
             registerCompletions(monaco, language, vocab);
             renderImageGallery(root, vocab.images || []);
+            renderPlaceholderChips(root, vocab);
         });
 
         async function refreshGallery() {
             invalidateVocabulary();
             const vocab = await loadVocabulary(vocabularyUrl);
             renderImageGallery(root, vocab.images || []);
+            renderPlaceholderChips(root, vocab);
         }
 
-        // Insert an ``{image["slug"]}`` token into the currently active
-        // editor (Code, Visual, or — if neither is mounted — straight
-        // into the textarea).
-        function insertImageToken(slug) {
-            const token = `{image["${slug}"]}`;
+        // Insert an arbitrary token into the currently active editor
+        // (Code, Visual, or — if neither is mounted — straight into the
+        // textarea). Used by both the image gallery and the placeholder
+        // chip strip.
+        function insertToken(token) {
             const activeTab = root.querySelector(
                 ".template-editor__tab.is-active"
             ).dataset.tab;
@@ -246,10 +327,18 @@
         }
 
         root.addEventListener("click", (event) => {
-            const target = event.target.closest(".template-editor__image");
-            if (!target || !root.contains(target)) return;
-            event.preventDefault();
-            insertImageToken(target.dataset.slug);
+            const imageBtn = event.target.closest(".template-editor__image");
+            if (imageBtn && root.contains(imageBtn)) {
+                event.preventDefault();
+                insertToken(`{image["${imageBtn.dataset.slug}"]}`);
+                return;
+            }
+            const chipBtn = event.target.closest(".template-editor__chip");
+            if (chipBtn && root.contains(chipBtn)) {
+                event.preventDefault();
+                insertToken(chipBtn.dataset.token);
+                return;
+            }
         });
 
         const uploadInput = root.querySelector(".template-editor__upload-input");

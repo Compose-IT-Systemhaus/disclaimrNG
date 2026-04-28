@@ -1,25 +1,17 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% translate "Signaturtest" %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
-{% block branding %}
-    <h1 id="site-name">
-        <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
-    </h1>
-{% endblock %}
-
-{% block breadcrumbs %}
-<div class="px-4 lg:px-8 py-4">
-    <a href="{% url 'admin:index' %}">{% translate "Start" %}</a>
-    &rsaquo; {% translate "Signaturtest" %}
-</div>
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'disclaimrwebadmin/css/signature_test.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="px-4 lg:px-8 pb-8">
-    <h1 class="text-2xl font-semibold mb-2">{% translate "Signaturtest" %}</h1>
-    <p class="text-sm text-base-500 dark:text-base-400 mb-6">
+<div class="signature-test">
+    <h1 class="signature-test__title">{% translate "Signaturtest" %}</h1>
+    <p class="signature-test__intro">
         {% blocktranslate %}
         Geben Sie eine Beispiel-Mail ein. Die echte Milter-Pipeline läuft mit
         den aktuell hinterlegten Regeln und zeigt unten das Ergebnis — also
@@ -27,32 +19,32 @@
         {% endblocktranslate %}
     </p>
 
-    <form method="post" class="signature-test-form" novalidate>
+    <form method="post" class="signature-test__card" novalidate>
         {% csrf_token %}
 
-        <fieldset class="signature-test-grid">
-            <div class="signature-test-field">
+        <div class="signature-test__grid">
+            <div class="signature-test__field">
                 <label for="id_sender">{% translate "Absender" %}</label>
                 <input type="email" id="id_sender" name="sender"
                        value="{{ defaults.sender }}" required>
             </div>
-            <div class="signature-test-field">
+            <div class="signature-test__field">
                 <label for="id_recipient">{% translate "Empfänger" %}</label>
                 <input type="email" id="id_recipient" name="recipient"
                        value="{{ defaults.recipient }}" required>
             </div>
-            <div class="signature-test-field">
+            <div class="signature-test__field">
                 <label for="id_subject">{% translate "Betreff" %}</label>
                 <input type="text" id="id_subject" name="subject"
                        value="{{ defaults.subject }}">
             </div>
-            <div class="signature-test-field">
+            <div class="signature-test__field">
                 <label for="id_sender_ip">{% translate "Absender-IP" %}</label>
                 <input type="text" id="id_sender_ip" name="sender_ip"
                        value="{{ defaults.sender_ip }}"
                        placeholder="127.0.0.1">
             </div>
-            <div class="signature-test-field">
+            <div class="signature-test__field">
                 <label for="id_content_type">{% translate "Inhaltstyp" %}</label>
                 <select id="id_content_type" name="content_type">
                     <option value="text/plain"
@@ -65,42 +57,49 @@
                     </option>
                 </select>
             </div>
-        </fieldset>
+        </div>
 
-        <div class="signature-test-field signature-test-field--wide">
+        <div class="signature-test__field signature-test__field--wide">
             <label for="id_body">{% translate "Mail-Inhalt" %}</label>
             <textarea id="id_body" name="body" rows="10">{{ defaults.body }}</textarea>
         </div>
 
-        <button type="submit" class="signature-test-submit">
-            {% translate "Pipeline ausführen" %}
+        <button type="submit" class="signature-test__submit">
+            {% translate "Test ausführen" %}
         </button>
     </form>
 
     {% if outcome %}
-    <section class="signature-test-result">
+    <section class="signature-test__card signature-test__result">
         <h2>{% translate "Ergebnis" %}</h2>
-        <p class="signature-test-summary
-                  {% if outcome.matched %}is-match{% else %}is-pass-through{% endif %}">
+
+        {% if outcome.error %}
+        <p class="signature-test__banner signature-test__banner--error">
+            {{ outcome.error }}
+        </p>
+        {% else %}
+        <p class="signature-test__banner
+                  {% if outcome.matched %}signature-test__banner--match{% else %}signature-test__banner--passthrough{% endif %}">
             {{ outcome.summary }}
         </p>
+        {% endif %}
 
-        {% if outcome.matched %}
+        {% if outcome.matched and not outcome.error %}
         <h3>{% translate "Modifizierter Mail-Body" %}</h3>
         {% if outcome.rendered_content_type == "text/html" %}
-        <iframe class="signature-test-html-preview" sandbox="allow-same-origin"
+        <iframe class="signature-test__html-preview" sandbox="allow-same-origin"
                 srcdoc="{{ outcome.rendered_body }}"></iframe>
         <details>
             <summary>{% translate "HTML-Quelltext anzeigen" %}</summary>
-            <pre class="signature-test-pre">{{ outcome.rendered_body }}</pre>
+            <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         </details>
         {% else %}
-        <pre class="signature-test-pre">{{ outcome.rendered_body }}</pre>
+        <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         {% endif %}
 
         {% if outcome.add_headers %}
         <h3>{% translate "Hinzugefügte Header" %}</h3>
-        <ul class="signature-test-list">
+        <ul class="signature-test__list">
             {% for key, value in outcome.add_headers.items %}
             <li><code>{{ key }}</code>: {{ value }}</li>
             {% endfor %}
@@ -109,7 +108,7 @@
 
         {% if outcome.change_headers %}
         <h3>{% translate "Geänderte Header" %}</h3>
-        <ul class="signature-test-list">
+        <ul class="signature-test__list">
             {% for key, value in outcome.change_headers.items %}
             <li><code>{{ key }}</code>: {{ value }}</li>
             {% endfor %}
@@ -118,7 +117,7 @@
 
         {% if outcome.delete_headers %}
         <h3>{% translate "Entfernte Header" %}</h3>
-        <ul class="signature-test-list">
+        <ul class="signature-test__list">
             {% for key in outcome.delete_headers %}
             <li><code>{{ key }}</code></li>
             {% endfor %}
@@ -128,107 +127,9 @@
 
         <details>
             <summary>{% translate "Eingegebene Mail (vor Pipeline)" %}</summary>
-            <pre class="signature-test-pre">{{ raw_input }}</pre>
+            <pre class="signature-test__pre">{{ raw_input }}</pre>
         </details>
     </section>
     {% endif %}
 </div>
-
-<style>
-.signature-test-form {
-    background: var(--color-base-50, #f8fafc);
-    border: 1px solid var(--color-base-200, #e2e8f0);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    max-width: 960px;
-}
-.signature-test-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.75rem 1rem;
-    border: 0;
-    margin: 0 0 0.75rem 0;
-    padding: 0;
-}
-.signature-test-field { display: flex; flex-direction: column; }
-.signature-test-field--wide { margin-top: 0.75rem; }
-.signature-test-field label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: rgb(51 65 85);
-}
-.signature-test-field input,
-.signature-test-field select,
-.signature-test-field textarea {
-    border: 1px solid var(--color-base-300, #cbd5e1);
-    border-radius: 4px;
-    padding: 0.5rem 0.625rem;
-    font: inherit;
-    background: #fff;
-}
-.signature-test-field textarea {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.875rem;
-}
-.signature-test-submit {
-    margin-top: 1rem;
-    background: rgb(37 99 235);
-    color: #fff;
-    border: 0;
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-.signature-test-submit:hover { background: rgb(29 78 216); }
-
-.signature-test-result {
-    margin-top: 2rem;
-    background: #fff;
-    border: 1px solid var(--color-base-200, #e2e8f0);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    max-width: 960px;
-}
-.signature-test-summary.is-match {
-    background: rgb(220 252 231);
-    color: rgb(22 101 52);
-    padding: 0.625rem 0.875rem;
-    border-radius: 4px;
-}
-.signature-test-summary.is-pass-through {
-    background: rgb(254 243 199);
-    color: rgb(120 53 15);
-    padding: 0.625rem 0.875rem;
-    border-radius: 4px;
-}
-.signature-test-pre {
-    background: rgb(248 250 252);
-    border: 1px solid var(--color-base-200, #e2e8f0);
-    border-radius: 4px;
-    padding: 0.75rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.8125rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.signature-test-html-preview {
-    width: 100%;
-    min-height: 240px;
-    border: 1px solid var(--color-base-200, #e2e8f0);
-    border-radius: 4px;
-    background: #fff;
-}
-.signature-test-list {
-    list-style: disc inside;
-    padding-left: 0.25rem;
-    line-height: 1.6;
-}
-.signature-test-list code {
-    background: rgb(241 245 249);
-    padding: 0.05rem 0.3rem;
-    border-radius: 3px;
-}
-</style>
 {% endblock %}

@@ -129,6 +129,16 @@
         const headers = ["subject", "from", "to", "cc", "date"];
         const attributes = (vocab && vocab.attributes) || [];
 
+        // Pre-translated, server-supplied "common fields" (Name, Phone,
+        // Email, Address). Each entry is {label, token} where token is
+        // the stripped placeholder body — we wrap it in {…} on render.
+        let commonFields = [];
+        try {
+            commonFields = JSON.parse(root.dataset.commonFields || "[]");
+        } catch (e) {
+            commonFields = [];
+        }
+
         const chip = (token, kind, label, hint) =>
             `<button type="button" class="template-editor__chip"
                      data-token="${token.replace(/"/g, "&quot;")}"
@@ -163,7 +173,28 @@
             </div>`
         );
 
-        // LDAP / directory attributes
+        // Common, human-named fields (Name, Phone, Email, Address) —
+        // mapped to the canonical LDAP attributes server-side so the
+        // operator never has to remember whether it's ``cn`` or
+        // ``displayName`` etc.
+        if (commonFields.length) {
+            sections.push(
+                `<div class="template-editor__chip-group">
+                    <div class="template-editor__chip-group-title">
+                        Common fields
+                    </div>
+                    <div class="template-editor__chip-row">${
+                        commonFields
+                            .map((f) =>
+                                chip(`{${f.token}}`, "resolver", f.label, `${f.label} → {${f.token}}`)
+                            )
+                            .join("")
+                    }</div>
+                </div>`
+            );
+        }
+
+        // LDAP / directory attributes (raw, advertised by the server)
         if (attributes.length) {
             sections.push(
                 `<div class="template-editor__chip-group">

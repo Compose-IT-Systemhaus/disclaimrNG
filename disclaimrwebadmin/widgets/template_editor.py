@@ -15,8 +15,24 @@ never loses edits.
 
 from __future__ import annotations
 
+import json
+
 from django import forms
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+
+# Common, human-named placeholder chips. Each entry maps a *display label*
+# (translatable) to the actual ``{resolver["..."]}`` token that should be
+# inserted. The labels here are what an operator naturally reaches for
+# when writing a signature; the underlying LDAP attribute names (cn,
+# mail, telephoneNumber, …) are an implementation detail they shouldn't
+# have to remember.
+_COMMON_FIELDS = [
+    (_("Name"), 'resolver["cn"]'),
+    (_("Phone"), 'resolver["telephoneNumber"]'),
+    (_("Email"), 'resolver["mail"]'),
+    (_("Address"), 'resolver["streetAddress"]'),
+]
 
 
 class TemplateEditorWidget(forms.Textarea):
@@ -52,5 +68,12 @@ class TemplateEditorWidget(forms.Textarea):
         )
         context["widget"]["upload_url"] = str(
             reverse_lazy("disclaimrwebadmin:signatureimage-quick-upload")
+        )
+        # Pre-translated common field chips, JSON-encoded for the JS to
+        # render without having to bother with django.js i18n. Resolved
+        # at request time via ``str(label)`` so gettext_lazy hands us
+        # the active language.
+        context["widget"]["common_fields_json"] = json.dumps(
+            [{"label": str(label), "token": token} for label, token in _COMMON_FIELDS]
         )
         return context

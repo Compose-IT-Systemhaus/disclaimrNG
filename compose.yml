@@ -21,6 +21,10 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    # Build from the local repo if the image isn't in the registry yet.
+    # Once CI publishes the image to GHCR you can switch this to
+    # ``pull_policy: missing`` (or remove it) to prefer the registry.
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       db:
@@ -38,7 +42,14 @@ services:
     command: ["web"]
 
   milter:
+    # Same image as web — the build is cached so this doesn't double the
+    # build time, and pull_policy: build keeps Compose from trying to
+    # fetch from GHCR.
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       db:

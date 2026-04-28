@@ -55,3 +55,122 @@
     height: 1px;
     opacity: 0;
 }
+
+/* --- Image picker gallery ------------------------------------------------ */
+
+.template-editor__images {
+    border-top: 1px solid var(--unfold-border-base, #e5e7eb);
+    background: #f9fafb;
+    padding: 0.75rem 1rem;
+}
+
+.template-editor__images-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.625rem;
+}
+
+.template-editor__images-title {
+    font-weight: 600;
+    color: rgb(51 65 85);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+}
+
+.template-editor__images-upload {
+    cursor: pointer;
+}
+
+.template-editor__upload-input {
+    /* Visually hidden but keyboard-focusable. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.template-editor__upload-button {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: rgb(37 99 235);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.template-editor__upload-input:focus + .template-editor__upload-button {
+    outline: 2px solid rgb(96 165 250);
+    outline-offset: 2px;
+}
+
+.template-editor__images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+}
+
+.template-editor__images-empty {
+    grid-column: 1 / -1;
+    color: rgb(100 116 139);
+    font-style: italic;
+    font-size: 0.875rem;
+    padding: 0.5rem 0;
+}
+
+.template-editor__image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    background: #fff;
+    border: 1px solid var(--unfold-border-base, #e5e7eb);
+    border-radius: 4px;
+    padding: 0.375rem;
+    cursor: pointer;
+    transition: border-color 0.1s, transform 0.05s;
+}
+
+.template-editor__image:hover {
+    border-color: rgb(59 130 246);
+}
+
+.template-editor__image:active {
+    transform: scale(0.97);
+}
+
+.template-editor__image img {
+    max-width: 100%;
+    max-height: 60px;
+    object-fit: contain;
+}
+
+.template-editor__image-slug {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    color: rgb(71 85 105);
+    word-break: break-all;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.template-editor__images-status {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    min-height: 1.2em;
+}
+
+.template-editor__images-status[data-kind="error"] {
+    color: rgb(220 38 38);
+}
+
+.template-editor__images-status[data-kind="success"] {
+    color: rgb(22 163 74);
+}
+
+.template-editor__images-status[data-kind="pending"] {
+    color: rgb(100 116 139);
+}

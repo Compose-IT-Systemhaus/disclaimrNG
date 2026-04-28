@@ -76,7 +76,12 @@ class DirectoryServerVocabularyView(View):
                 {"id": srv.id, "name": srv.name, "attributes": attrs}
             )
         images = [
-            {"slug": img.slug, "name": img.name}
+            {
+                "slug": img.slug,
+                "name": img.name,
+                "url": img.image.url if img.image else "",
+                "alt_text": img.alt_text,
+            }
             for img in SignatureImage.objects.all()
         ]
         return JsonResponse(

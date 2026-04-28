@@ -2,7 +2,8 @@
 <div class="template-editor"
      data-content-type="{{ widget.content_type }}"
      data-preview-url="{{ widget.preview_url }}"
-     data-vocabulary-url="{{ widget.vocabulary_url }}">
+     data-vocabulary-url="{{ widget.vocabulary_url }}"
+     data-upload-url="{{ widget.upload_url }}">
     <div class="template-editor__tabs" role="tablist">
         <button type="button" class="template-editor__tab is-active"
                 data-tab="code" role="tab" aria-selected="true">Code</button>
@@ -26,6 +27,22 @@
         <div class="template-editor__pane" data-pane="preview">
             <iframe class="template-editor__preview" sandbox="allow-same-origin"></iframe>
         </div>
+    </div>
+
+    <div class="template-editor__images">
+        <div class="template-editor__images-header">
+            <span class="template-editor__images-title">Bilder</span>
+            <label class="template-editor__images-upload">
+                <input type="file" accept="image/*" class="template-editor__upload-input">
+                <span class="template-editor__upload-button">+ Hochladen</span>
+            </label>
+        </div>
+        <div class="template-editor__images-grid">
+            <div class="template-editor__images-empty">
+                Noch keine Bilder hochgeladen.
+            </div>
+        </div>
+        <div class="template-editor__images-status" aria-live="polite"></div>
     </div>
 
     <textarea name="{{ widget.name }}"

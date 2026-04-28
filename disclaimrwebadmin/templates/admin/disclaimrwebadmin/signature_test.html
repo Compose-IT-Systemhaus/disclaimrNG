@@ -85,6 +85,21 @@
         {% endif %}
 
         {% if outcome.matched and not outcome.error %}
+        {% if outcome.matched_rules %}
+        <h3>{% translate "Gegriffene Regeln" %}</h3>
+        <ul class="signature-test__rule-list">
+            {% for rule in outcome.matched_rules %}
+            <li>
+                <a href="{% url 'admin:disclaimrwebadmin_rule_change' rule.pk %}"
+                   class="signature-test__rule-link">{{ rule.name }}</a>
+                {% if rule.description %}
+                <span class="signature-test__rule-desc">— {{ rule.description }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
         <h3>{% translate "Modifizierter Mail-Body" %}</h3>
         {% if outcome.rendered_content_type == "text/html" %}
         <iframe class="signature-test__html-preview" sandbox="allow-same-origin"
@@ -123,6 +138,9 @@
             {% endfor %}
         </ul>
         {% endif %}
+
+        <h3>{% translate "Vollständige Mail nach der Pipeline" %}</h3>
+        <pre class="signature-test__pre">{{ outcome.rendered_full_mail }}</pre>
         {% endif %}
 
         <details>

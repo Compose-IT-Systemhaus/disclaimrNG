@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block title %}{% translate "Signaturtest" %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block title %}{% translate "Signature test" %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block extrastyle %}
     {{ block.super }}
@@ -10,12 +10,12 @@
 
 {% block content %}
 <div class="signature-test">
-    <h1 class="signature-test__title">{% translate "Signaturtest" %}</h1>
+    <h1 class="signature-test__title">{% translate "Signature test" %}</h1>
     <p class="signature-test__intro">
         {% blocktranslate %}
-        Geben Sie eine Beispiel-Mail ein. Die echte Milter-Pipeline läuft mit
-        den aktuell hinterlegten Regeln und zeigt unten das Ergebnis — also
-        die Mail mit angehängter Signatur.
+        Enter a sample mail. The real milter pipeline runs against the
+        currently configured rules and shows the result below — i.e. the
+        mail with the appended signature.
         {% endblocktranslate %}
     </p>
 
@@ -24,28 +24,28 @@
 
         <div class="signature-test__grid">
             <div class="signature-test__field">
-                <label for="id_sender">{% translate "Absender" %}</label>
+                <label for="id_sender">{% translate "Sender" %}</label>
                 <input type="email" id="id_sender" name="sender"
                        value="{{ defaults.sender }}" required>
             </div>
             <div class="signature-test__field">
-                <label for="id_recipient">{% translate "Empfänger" %}</label>
+                <label for="id_recipient">{% translate "Recipient" %}</label>
                 <input type="email" id="id_recipient" name="recipient"
                        value="{{ defaults.recipient }}" required>
             </div>
             <div class="signature-test__field">
-                <label for="id_subject">{% translate "Betreff" %}</label>
+                <label for="id_subject">{% translate "Subject" %}</label>
                 <input type="text" id="id_subject" name="subject"
                        value="{{ defaults.subject }}">
             </div>
             <div class="signature-test__field">
-                <label for="id_sender_ip">{% translate "Absender-IP" %}</label>
+                <label for="id_sender_ip">{% translate "Sender IP" %}</label>
                 <input type="text" id="id_sender_ip" name="sender_ip"
                        value="{{ defaults.sender_ip }}"
                        placeholder="127.0.0.1">
             </div>
             <div class="signature-test__field">
-                <label for="id_content_type">{% translate "Inhaltstyp" %}</label>
+                <label for="id_content_type">{% translate "Content type" %}</label>
                 <select id="id_content_type" name="content_type">
                     <option value="text/plain"
                         {% if defaults.content_type == "text/plain" %}selected{% endif %}>
@@ -60,18 +60,18 @@
         </div>
 
         <div class="signature-test__field signature-test__field--wide">
-            <label for="id_body">{% translate "Mail-Inhalt" %}</label>
+            <label for="id_body">{% translate "Mail body" %}</label>
             <textarea id="id_body" name="body" rows="10">{{ defaults.body }}</textarea>
         </div>
 
         <button type="submit" class="signature-test__submit">
-            {% translate "Test ausführen" %}
+            {% translate "Run test" %}
         </button>
     </form>
 
     {% if outcome %}
     <section class="signature-test__card signature-test__result">
-        <h2>{% translate "Ergebnis" %}</h2>
+        <h2>{% translate "Result" %}</h2>
 
         {% if outcome.error %}
         <p class="signature-test__banner signature-test__banner--error">
@@ -86,7 +86,7 @@
 
         {% if outcome.matched and not outcome.error %}
         {% if outcome.matched_rules %}
-        <h3>{% translate "Gegriffene Regeln" %}</h3>
+        <h3>{% translate "Matched rules" %}</h3>
         <ul class="signature-test__rule-list">
             {% for rule in outcome.matched_rules %}
             <li>
@@ -101,21 +101,21 @@
         {% endif %}
 
         {% if outcome.rendered_content_type == "text/html" %}
-        <h3>{% translate "Vorschau (HTML gerendert)" %}</h3>
+        <h3>{% translate "Preview (rendered HTML)" %}</h3>
         <iframe class="signature-test__html-preview"
                 sandbox="allow-same-origin"
                 src="{{ outcome.html_preview_data_url }}"></iframe>
         <details>
-            <summary>{% translate "HTML-Quelltext anzeigen" %}</summary>
+            <summary>{% translate "Show HTML source" %}</summary>
             <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         </details>
         {% else %}
-        <h3>{% translate "Modifizierter Mail-Body" %}</h3>
+        <h3>{% translate "Modified mail body" %}</h3>
         <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
         {% endif %}
 
         {% if outcome.add_headers %}
-        <h3>{% translate "Hinzugefügte Header" %}</h3>
+        <h3>{% translate "Added headers" %}</h3>
         <ul class="signature-test__list">
             {% for key, value in outcome.add_headers.items %}
             <li><code>{{ key }}</code>: {{ value }}</li>
@@ -124,7 +124,7 @@
         {% endif %}
 
         {% if outcome.change_headers %}
-        <h3>{% translate "Geänderte Header" %}</h3>
+        <h3>{% translate "Changed headers" %}</h3>
         <ul class="signature-test__list">
             {% for key, value in outcome.change_headers.items %}
             <li><code>{{ key }}</code>: {{ value }}</li>
@@ -133,7 +133,7 @@
         {% endif %}
 
         {% if outcome.delete_headers %}
-        <h3>{% translate "Entfernte Header" %}</h3>
+        <h3>{% translate "Removed headers" %}</h3>
         <ul class="signature-test__list">
             {% for key in outcome.delete_headers %}
             <li><code>{{ key }}</code></li>
@@ -141,12 +141,12 @@
         </ul>
         {% endif %}
 
-        <h3>{% translate "Vollständige Mail nach der Pipeline" %}</h3>
+        <h3>{% translate "Full mail after pipeline" %}</h3>
         <pre class="signature-test__pre">{{ outcome.rendered_full_mail }}</pre>
         {% endif %}
 
         <details>
-            <summary>{% translate "Eingegebene Mail (vor Pipeline)" %}</summary>
+            <summary>{% translate "Input mail (before pipeline)" %}</summary>
             <pre class="signature-test__pre">{{ raw_input }}</pre>
         </details>
     </section>

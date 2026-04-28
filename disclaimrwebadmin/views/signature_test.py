@@ -26,6 +26,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.generic import View
 
 from disclaimr.configuration_helper import build_configuration
@@ -144,8 +145,10 @@ def _defaults() -> dict[str, str]:
     return {
         "sender": "alice@example.com",
         "recipient": "bob@external.tld",
-        "subject": "Test mail",
-        "body": "Hallo,\n\ndies ist eine Testmail.\n\nViele Grüße",
+        "subject": _("Test mail"),
+        "body": _(
+            "Hello,\n\nthis is a test mail.\n\nKind regards"
+        ),
         "content_type": "text/plain",
         "sender_ip": "127.0.0.1",
     }
@@ -187,10 +190,10 @@ def _run_pipeline(
                     body,
                     content_type,
                     raw_input,
-                    summary=(
-                        "Sender-IP traf auf keine Requirement zu — "
-                        "die Milter-Pipeline würde diese Mail unverändert "
-                        "durchlassen."
+                    summary=_(
+                        "The sender IP did not match any requirement — "
+                        "the milter pipeline would pass this mail through "
+                        "unchanged."
                     ),
                 ),
                 f"<no MIME — sender_ip {sender_ip} did not match>",
@@ -211,13 +214,13 @@ def _run_pipeline(
                 body,
                 content_type,
                 raw_input,
-                error=(
-                    "Eine konfigurierte Requirement enthält ein ungültiges "
-                    f"Regex-Muster: {exc}. Bitte das Regex-Feld der "
-                    "betroffenen Requirement (Sender / Empfänger / Header / "
-                    "Body) korrigieren — typischer Fehler: ein nacktes "
-                    "``*`` statt ``.*``."
-                ),
+                error=_(
+                    "A configured Requirement contains an invalid regex "
+                    "pattern: %(error)s. Please fix the pattern in the "
+                    "Requirement's Sender / Recipient / Header / Body "
+                    "field — a common mistake is a bare ``*`` where you "
+                    "meant ``.*``."
+                ) % {"error": exc},
             ),
             raw_input,
         )
@@ -238,9 +241,9 @@ def _run_pipeline(
                 body,
                 content_type,
                 raw_input,
-                summary=(
-                    "Die Mail traf auf keine aktive Regel — "
-                    "die Pipeline würde sie unverändert durchlassen."
+                summary=_(
+                    "No active rule matched this mail — the pipeline would "
+                    "pass it through unchanged."
                 ),
             ),
             raw_input,
@@ -267,20 +270,17 @@ def _run_pipeline(
         rendered_content_type = content_type
         rendered_full_mail = repr(workflow)
 
+    from django.utils.translation import ngettext
     if matched_rules:
-        rule_word = "Regel" if len(matched_rules) == 1 else "Regeln"
-        summary = (
-            f"{len(matched_rules)} {rule_word} hat gegriffen — die Mail würde "
-            "wie unten gezeigt verändert werden."
-            if len(matched_rules) == 1
-            else
-            f"{len(matched_rules)} {rule_word} haben gegriffen — die Mail würde "
-            "wie unten gezeigt verändert werden."
-        )
+        summary = ngettext(
+            "%(count)d rule matched — the mail would be modified as shown below.",
+            "%(count)d rules matched — the mail would be modified as shown below.",
+            len(matched_rules),
+        ) % {"count": len(matched_rules)}
     else:
-        summary = (
-            "Die Pipeline hat die Mail verändert, aber keine Regel "
-            "konnte eindeutig zugeordnet werden."
+        summary = _(
+            "The pipeline modified the mail but no rule could be "
+            "attributed unambiguously."
         )
 
     return (

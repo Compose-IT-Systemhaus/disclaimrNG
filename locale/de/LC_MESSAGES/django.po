@@ -1,0 +1,324 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: disclaimrNG\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-28 00:00+0000\n"
+"PO-Revision-Date: 2026-04-28 00:00+0000\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- App / sidebar ---------------------------------------------------------
+msgid "disclaimrNG"
+msgstr "disclaimrNG"
+
+msgid "English"
+msgstr "Englisch"
+
+msgid "German"
+msgstr "Deutsch"
+
+msgid "Signatures"
+msgstr "Signaturen"
+
+msgid "Manage signatures"
+msgstr "Signaturen verwalten"
+
+msgid "Rules"
+msgstr "Regeln"
+
+msgid "Images"
+msgstr "Bilder"
+
+msgid "Signature test"
+msgstr "Signaturtest"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Tenants"
+msgstr "Tenants"
+
+msgid "Directory servers"
+msgstr "Verzeichnisserver"
+
+msgid "Users"
+msgstr "Benutzer"
+
+msgid "Groups"
+msgstr "Gruppen"
+
+# --- Models ---------------------------------------------------------------
+msgid "Tenant"
+msgstr "Tenant"
+
+msgid "Tenant domain"
+msgstr "Tenant-Domain"
+
+msgid "Tenant domains"
+msgstr "Tenant-Domains"
+
+msgid "Rule"
+msgstr "Regel"
+
+msgid "Requirement"
+msgstr "Anforderung"
+
+msgid "Requirements"
+msgstr "Anforderungen"
+
+msgid "Signature"
+msgstr "Signatur"
+
+msgid "Directory server"
+msgstr "Verzeichnisserver"
+
+msgid "Image"
+msgstr "Bild"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "URLs"
+msgstr "URLs"
+
+msgid "Action"
+msgstr "Aktion"
+
+msgid "Actions"
+msgstr "Aktionen"
+
+# --- Common model fields --------------------------------------------------
+msgid "name"
+msgstr "Name"
+
+msgid "slug"
+msgstr "Kennung"
+
+msgid "description"
+msgstr "Beschreibung"
+
+msgid "enabled"
+msgstr "aktiviert"
+
+msgid "image"
+msgstr "Bild"
+
+msgid "alt text"
+msgstr "Alternativtext"
+
+msgid "display width"
+msgstr "Anzeigebreite"
+
+msgid "display height"
+msgstr "Anzeigehöhe"
+
+msgid "domain"
+msgstr "Domain"
+
+msgid "position"
+msgstr "Position"
+
+msgid "Continue after this rule"
+msgstr "Nach dieser Regel fortfahren"
+
+msgid "sender"
+msgstr "Absender"
+
+msgid "recipient"
+msgstr "Empfänger"
+
+msgid "header-filter"
+msgstr "Header-Filter"
+
+msgid "body-filter"
+msgstr "Body-Filter"
+
+msgid "sender-IP address"
+msgstr "Absender-IP-Adresse"
+
+msgid "netmask"
+msgstr "Netzmaske"
+
+msgid "Accept rule"
+msgstr "Regel akzeptieren"
+
+msgid "Deny rule"
+msgstr "Regel ablehnen"
+
+msgid "text-part"
+msgstr "Textteil"
+
+msgid "html-part"
+msgstr "HTML-Teil"
+
+msgid "Charset"
+msgstr "Zeichensatz"
+
+msgid "use template tags"
+msgstr "Vorlagen-Platzhalter verwenden"
+
+msgid "use text part"
+msgstr "Textteil verwenden"
+
+msgid "use HTML as a fallback"
+msgstr "HTML als Fallback verwenden"
+
+msgid "fail if template doesn't exist"
+msgstr "Fehler wenn Platzhalter nicht aufgelöst werden kann"
+
+msgid "flavour"
+msgstr "Variante"
+
+msgid "LDAP"
+msgstr "LDAP"
+
+msgid "Active Directory"
+msgstr "Active Directory"
+
+msgid "Custom"
+msgstr "Eigene"
+
+msgid "base-dn"
+msgstr "Base DN"
+
+msgid "auth-method"
+msgstr "Authentifizierungsmethode"
+
+msgid "None"
+msgstr "Keine"
+
+msgid "Simple"
+msgstr "Einfach"
+
+msgid "user-DN"
+msgstr "Benutzer-DN"
+
+msgid "password"
+msgstr "Passwort"
+
+msgid "search query"
+msgstr "Suchanfrage"
+
+msgid "attribute vocabulary"
+msgstr "Attributliste"
+
+msgid "enable cache"
+msgstr "Cache aktivieren"
+
+msgid "cache timeout"
+msgstr "Cache-Timeout"
+
+# --- Signaturtest page ---------------------------------------------------
+msgid "Test mail"
+msgstr "Testmail"
+
+msgid "Hello,\n\nthis is a test mail.\n\nKind regards"
+msgstr "Hallo,\n\ndies ist eine Testmail.\n\nViele Grüße"
+
+msgid ""
+"Enter a sample mail. The real milter pipeline runs against the\n"
+"        currently configured rules and shows the result below — i.e. the\n"
+"        mail with the appended signature.\n"
+"        "
+msgstr ""
+"Geben Sie eine Beispiel-Mail ein. Die echte Milter-Pipeline läuft mit\n"
+"        den aktuell hinterlegten Regeln und zeigt unten das Ergebnis — also\n"
+"        die Mail mit angehängter Signatur.\n"
+"        "
+
+msgid "Sender"
+msgstr "Absender"
+
+msgid "Recipient"
+msgstr "Empfänger"
+
+msgid "Subject"
+msgstr "Betreff"
+
+msgid "Sender IP"
+msgstr "Absender-IP"
+
+msgid "Content type"
+msgstr "Inhaltstyp"
+
+msgid "Mail body"
+msgstr "Mail-Inhalt"
+
+msgid "Run test"
+msgstr "Test ausführen"
+
+msgid "Result"
+msgstr "Ergebnis"
+
+msgid "Matched rules"
+msgstr "Gegriffene Regeln"
+
+msgid "Preview (rendered HTML)"
+msgstr "Vorschau (HTML gerendert)"
+
+msgid "Show HTML source"
+msgstr "HTML-Quelltext anzeigen"
+
+msgid "Modified mail body"
+msgstr "Modifizierter Mail-Body"
+
+msgid "Added headers"
+msgstr "Hinzugefügte Header"
+
+msgid "Changed headers"
+msgstr "Geänderte Header"
+
+msgid "Removed headers"
+msgstr "Entfernte Header"
+
+msgid "Full mail after pipeline"
+msgstr "Vollständige Mail nach der Pipeline"
+
+msgid "Input mail (before pipeline)"
+msgstr "Eingegebene Mail (vor Pipeline)"
+
+# --- Signaturtest pipeline messages --------------------------------------
+msgid ""
+"The sender IP did not match any requirement — the milter pipeline would "
+"pass this mail through unchanged."
+msgstr ""
+"Die Absender-IP traf auf keine Requirement zu — die Milter-Pipeline würde "
+"diese Mail unverändert durchlassen."
+
+msgid ""
+"No active rule matched this mail — the pipeline would pass it through "
+"unchanged."
+msgstr ""
+"Die Mail traf auf keine aktive Regel — die Pipeline würde sie unverändert "
+"durchlassen."
+
+msgid ""
+"A configured Requirement contains an invalid regex pattern: %(error)s. "
+"Please fix the pattern in the Requirement's Sender / Recipient / Header / "
+"Body field — a common mistake is a bare ``*`` where you meant ``.*``."
+msgstr ""
+"Eine konfigurierte Requirement enthält ein ungültiges Regex-Muster: "
+"%(error)s. Bitte das Regex-Feld der betroffenen Requirement (Sender / "
+"Empfänger / Header / Body) korrigieren — typischer Fehler: ein nacktes "
+"``*`` statt ``.*``."
+
+msgid ""
+"The pipeline modified the mail but no rule could be attributed "
+"unambiguously."
+msgstr ""
+"Die Pipeline hat die Mail verändert, aber keine Regel konnte eindeutig "
+"zugeordnet werden."
+
+msgid "%(count)d rule matched — the mail would be modified as shown below."
+msgid_plural ""
+"%(count)d rules matched — the mail would be modified as shown below."
+msgstr[0] ""
+"%(count)d Regel hat gegriffen — die Mail würde wie unten gezeigt verändert "
+"werden."
+msgstr[1] ""
+"%(count)d Regeln haben gegriffen — die Mail würde wie unten gezeigt "
+"verändert werden."

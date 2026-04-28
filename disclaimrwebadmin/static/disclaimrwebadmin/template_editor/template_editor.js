@@ -1,8 +1,11 @@
 /**
  * Template editor — Code / Visual / Preview tabs sharing one textarea.
  *
- * Loaded by the TemplateEditorWidget. Expects the following globals on the
- * page (vendored by docker/fetch-frontend-deps.sh, fallback: CDN):
+ * Loaded by the TemplateEditorWidget. Pulls Monaco and TinyMCE from
+ * jsdelivr — versions are pinned so the editor behaves the same across
+ * deployments. (Self-hosting both libraries would mean shipping a
+ * couple of MB extra in the image; for an admin UI the CDN trade-off
+ * is fine. Vendoring is tracked as a follow-up issue.)
  *
  *   window.monaco — Monaco editor (loaded via require())
  *   window.tinymce — TinyMCE editor
@@ -13,12 +16,15 @@
 (function () {
     "use strict";
 
+    const MONACO_VERSION = "0.50.0";
+    const TINYMCE_VERSION = "7.3.0";
+
     const MONACO_LOADER_URL =
-        "/static/disclaimrwebadmin/template_editor/vendor/monaco/min/vs/loader.js";
+        `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs/loader.js`;
     const MONACO_BASE_URL =
-        "/static/disclaimrwebadmin/template_editor/vendor/monaco/min/vs";
+        `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs`;
     const TINYMCE_URL =
-        "/static/disclaimrwebadmin/template_editor/vendor/tinymce/tinymce.min.js";
+        `https://cdn.jsdelivr.net/npm/tinymce@${TINYMCE_VERSION}/tinymce.min.js`;
 
     function loadScript(src) {
         return new Promise((resolve, reject) => {
@@ -169,6 +175,11 @@
             tinymceHost.value = textarea.value || "";
             const inits = await tinymce.init({
                 target: tinymceHost,
+                // Tell TinyMCE where to fetch its skins/themes/plugins
+                // from — without this it would look for them on the
+                // same-origin host and 404 every plugin import.
+                base_url: `https://cdn.jsdelivr.net/npm/tinymce@${TINYMCE_VERSION}`,
+                suffix: ".min",
                 menubar: false,
                 toolbar:
                     "undo redo | bold italic underline | bullist numlist | " +

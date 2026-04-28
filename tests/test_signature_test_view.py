@@ -21,7 +21,8 @@ def staff_client(db) -> Client:
 def test_get_renders_form_with_defaults(staff_client):
     response = staff_client.get(reverse("disclaimrwebadmin:signature-test"))
     assert response.status_code == 200
-    assert b"Signaturtest" in response.content
+    # Page title appears in the <title> element regardless of language.
+    assert b"Signature test" in response.content
     assert b"alice@example.com" in response.content
 
 
@@ -39,7 +40,13 @@ def test_post_with_no_rules_falls_through(staff_client):
     )
     assert response.status_code == 200
     # No requirements configured → pipeline passes the mail through.
-    assert b"keine Requirement" in response.content or b"keine aktive Regel" in response.content
+    # Source strings (English) are what we get back when the test runs
+    # under the default ``en-us`` locale; the actual text comes from
+    # _passthrough_outcome's ``summary``.
+    assert (
+        b"did not match any requirement" in response.content
+        or b"No active rule matched" in response.content
+    )
 
 
 def test_anonymous_request_is_redirected(client):

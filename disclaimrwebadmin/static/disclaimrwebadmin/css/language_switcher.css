@@ -1,0 +1,67 @@
+/*
+ * Language switcher — two flag/code pills in unfold's topbar.
+ */
+
+.language-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 0.5rem 0 0;
+}
+
+.language-switcher__form {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+
+.language-switcher__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid rgb(var(--color-base-300, 203 213 225));
+    background: transparent;
+    color: rgb(var(--color-base-700, 51 65 85));
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.language-switcher__button:hover {
+    border-color: rgb(var(--color-primary-500, 59 130 246));
+    color: rgb(var(--color-primary-600, 37 99 235));
+}
+
+.language-switcher__button--active {
+    background: rgb(var(--color-primary-600, 37 99 235));
+    color: #fff;
+    border-color: rgb(var(--color-primary-600, 37 99 235));
+}
+
+.language-switcher__button--active:hover {
+    color: #fff;
+    background: rgb(var(--color-primary-700, 29 78 216));
+}
+
+.language-switcher__flag {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.dark .language-switcher__button {
+    border-color: rgb(var(--color-base-700, 51 65 85));
+    color: rgb(var(--color-base-300, 203 213 225));
+}
+
+.dark .language-switcher__button:hover {
+    color: rgb(var(--color-primary-400, 96 165 250));
+}
+
+.dark .language-switcher__button--active {
+    background: rgb(var(--color-primary-500, 59 130 246));
+    border-color: rgb(var(--color-primary-500, 59 130 246));
+    color: #fff;
+}

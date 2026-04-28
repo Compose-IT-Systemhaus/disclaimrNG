@@ -60,8 +60,15 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --chown=disclaimr:disclaimr disclaimr ./disclaimr
 COPY --chown=disclaimr:disclaimr disclaimrweb ./disclaimrweb
 COPY --chown=disclaimr:disclaimr disclaimrwebadmin ./disclaimrwebadmin
+COPY --chown=disclaimr:disclaimr locale ./locale
 COPY --chown=disclaimr:disclaimr manage.py disclaimr.py pyproject.toml ./
 COPY --chown=disclaimr:disclaimr docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# ``compilemessages`` needs gettext to turn .po into the binary .mo
+# files Django actually reads at runtime. Install gettext, build,
+# then drop the apt cache to keep the layer slim.
+RUN apt-get update && apt-get install -y --no-install-recommends gettext \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /app/staticfiles /app/media \
@@ -79,6 +86,15 @@ RUN DJANGO_SECRET_KEY=build-time-only \
     DATABASE_URL=sqlite:///:memory: \
     python manage.py makemigrations disclaimrwebadmin --noinput \
     && chown -R disclaimr:disclaimr /app/disclaimrwebadmin/migrations
+
+# Compile the .po translations to .mo so Django can load them at
+# runtime. Same throwaway env-vars as makemigrations above.
+RUN DJANGO_SECRET_KEY=build-time-only \
+    DJANGO_DEBUG=False \
+    DJANGO_ALLOWED_HOSTS=* \
+    DATABASE_URL=sqlite:///:memory: \
+    python manage.py compilemessages \
+    && chown -R disclaimr:disclaimr /app/locale
 
 USER disclaimr
 

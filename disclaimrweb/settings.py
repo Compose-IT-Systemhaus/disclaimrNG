@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "adminsortable2",
-    "disclaimrwebadmin",
+    "disclaimrwebadmin.apps.DisclaimrwebadminConfig",
 ]
 
 MIDDLEWARE = [
@@ -178,6 +178,10 @@ UNFOLD = {
     # softer shadows, slightly more breathing room around form rows.
     "STYLES": [
         lambda request: static("disclaimrwebadmin/css/admin_chrome.css"),
+        lambda request: static("disclaimrwebadmin/css/language_switcher.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("disclaimrwebadmin/js/language_switcher.js"),
     ],
     # Hand-curated sidebar — explicit groups in the order operators
     # think about them, with German labels matching the rest of the UI.
@@ -188,32 +192,32 @@ UNFOLD = {
         "show_search": True,
         "navigation": [
             {
-                "title": _("Signaturen"),
+                "title": _("Signatures"),
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Signaturen verwalten"),
+                        "title": _("Manage signatures"),
                         "icon": "draw",
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_disclaimer_changelist"
                         ),
                     },
                     {
-                        "title": _("Regeln"),
+                        "title": _("Rules"),
                         "icon": "rule",
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_rule_changelist"
                         ),
                     },
                     {
-                        "title": _("Bilder"),
+                        "title": _("Images"),
                         "icon": "image",
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_signatureimage_changelist"
                         ),
                     },
                     {
-                        "title": _("Signaturtest"),
+                        "title": _("Signature test"),
                         "icon": "science",
                         "link": reverse_lazy(
                             "disclaimrwebadmin:signature-test"
@@ -222,7 +226,7 @@ UNFOLD = {
                 ],
             },
             {
-                "title": _("Einstellungen"),
+                "title": _("Settings"),
                 "separator": True,
                 "items": [
                     {
@@ -233,19 +237,19 @@ UNFOLD = {
                         ),
                     },
                     {
-                        "title": _("Verzeichnisserver"),
+                        "title": _("Directory servers"),
                         "icon": "dns",
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_directoryserver_changelist"
                         ),
                     },
                     {
-                        "title": _("Benutzer"),
+                        "title": _("Users"),
                         "icon": "person",
                         "link": reverse_lazy("admin:auth_user_changelist"),
                     },
                     {
-                        "title": _("Gruppen"),
+                        "title": _("Groups"),
                         "icon": "group",
                         "link": reverse_lazy("admin:auth_group_changelist"),
                     },
@@ -254,6 +258,13 @@ UNFOLD = {
         ],
     },
 }
+
+# Available languages for the in-admin language switcher.
+LANGUAGES = [
+    ("en", _("English")),
+    ("de", _("German")),
+]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 LOGGING = {
     "version": 1,

@@ -56,6 +56,88 @@
     opacity: 0;
 }
 
+/* --- Placeholder chip strip --------------------------------------------- */
+
+.template-editor__chips {
+    border-top: 1px solid var(--unfold-border-base, #e5e7eb);
+    background: #f9fafb;
+    padding: 0.75rem 1rem;
+}
+
+.template-editor__chips-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.template-editor__chips-title {
+    font-weight: 600;
+    color: rgb(51 65 85);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+}
+
+.template-editor__chips-hint {
+    font-size: 0.75rem;
+    color: rgb(100 116 139);
+    font-style: italic;
+}
+
+.template-editor__chip-group + .template-editor__chip-group {
+    margin-top: 0.625rem;
+}
+
+.template-editor__chip-group-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: rgb(100 116 139);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.template-editor__chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.template-editor__chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    background: #fff;
+    border: 1px solid var(--unfold-border-base, #cbd5e1);
+    border-radius: 999px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    color: rgb(51 65 85);
+    cursor: pointer;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+
+.template-editor__chip[data-kind="envelope"] { color: rgb(2 132 199); }
+.template-editor__chip[data-kind="header"]   { color: rgb(120 53 15); }
+.template-editor__chip[data-kind="resolver"] { color: rgb(22 101 52); }
+
+.template-editor__chip:hover {
+    border-color: rgb(59 130 246);
+    background: rgb(239 246 255);
+}
+
+.template-editor__chip:active {
+    transform: translateY(1px);
+}
+
+.template-editor__chips-empty {
+    color: rgb(100 116 139);
+    font-style: italic;
+    font-size: 0.8125rem;
+    padding: 0.25rem 0;
+}
+
 /* --- Image picker gallery ------------------------------------------------ */
 
 .template-editor__images {

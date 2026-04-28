@@ -1,0 +1,40 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ docs_active_title }} | {% translate "Documentation" %}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'disclaimrwebadmin/css/docs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="docs-page">
+    <h1 class="docs-page__title">
+        {% translate "Documentation" %}
+        <span class="docs-page__chevron">›</span>
+        {{ docs_active_title }}
+    </h1>
+
+    <div class="docs-page__layout">
+        <aside class="docs-page__sidebar">
+            <div class="docs-page__sidebar-title">{% translate "Sections" %}</div>
+            <ul class="docs-page__nav">
+                {% for entry in docs_sidebar %}
+                <li>
+                    <a href="{{ entry.url }}"
+                       class="docs-page__nav-link
+                              {% if entry.is_active %}docs-page__nav-link--active{% endif %}">
+                        {{ entry.title }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </aside>
+
+        <article class="docs-page__article">
+            {{ docs_body|safe }}
+        </article>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+/*
+ * Help (?) button — circular pill in the topbar.
+ */
+
+.help-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0 0.5rem 0 0;
+    border: 1px solid rgb(var(--color-base-300, 203 213 225));
+    border-radius: 999px;
+    color: rgb(var(--color-base-700, 51 65 85));
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1;
+    background: transparent;
+    cursor: pointer;
+}
+
+.help-button:hover {
+    border-color: rgb(var(--color-primary-500, 59 130 246));
+    color: rgb(var(--color-primary-600, 37 99 235));
+    background: rgb(var(--color-primary-50, 239 246 255));
+}
+
+.dark .help-button {
+    border-color: rgb(var(--color-base-700, 51 65 85));
+    color: rgb(var(--color-base-300, 203 213 225));
+}
+
+.dark .help-button:hover {
+    border-color: rgb(var(--color-primary-400, 96 165 250));
+    color: rgb(var(--color-primary-300, 147 197 253));
+    background: rgb(var(--color-primary-900, 30 58 138) / 0.4);
+}
+
+.help-button__mark {
+    display: inline-block;
+    transform: translateY(-1px);
+}

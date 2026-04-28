@@ -61,6 +61,9 @@ COPY --chown=disclaimr:disclaimr disclaimr ./disclaimr
 COPY --chown=disclaimr:disclaimr disclaimrweb ./disclaimrweb
 COPY --chown=disclaimr:disclaimr disclaimrwebadmin ./disclaimrwebadmin
 COPY --chown=disclaimr:disclaimr locale ./locale
+# In-admin help docs (Markdown sources read by DocsView at request
+# time). Cheap to ship — under 100 KiB total.
+COPY --chown=disclaimr:disclaimr docs ./docs
 COPY --chown=disclaimr:disclaimr manage.py disclaimr.py pyproject.toml ./
 COPY --chown=disclaimr:disclaimr docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 

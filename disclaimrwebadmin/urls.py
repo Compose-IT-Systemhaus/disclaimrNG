@@ -5,6 +5,7 @@ from .views import (
     DirectoryServerTestView,
     DirectoryServerVocabularyView,
     DisclaimerPreviewView,
+    DocsView,
     SignatureImageQuickUploadView,
     SignatureTestView,
 )
@@ -26,6 +27,16 @@ urlpatterns = [
         "signature-test/",
         SignatureTestView.as_view(),
         name="signature-test",
+    ),
+    path(
+        "docs/",
+        DocsView.as_view(),
+        name="docs-index",
+    ),
+    path(
+        "docs/<slug:slug>/",
+        DocsView.as_view(),
+        name="docs-page",
     ),
     path(
         "directoryserver/<int:pk>/test/",

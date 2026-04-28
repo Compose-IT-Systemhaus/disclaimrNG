@@ -46,6 +46,11 @@ dependencies = [
     # a separate nginx/Apache reverse proxy. Production-grade: gzipped,
     # immutable cache headers via the Manifest storage backend.
     "whitenoise[brotli]>=6.7",
+    # Renders the bundled /docs/ Markdown files served straight from the
+    # admin. Pygments gives us syntax highlighting for the code samples
+    # in the walkthrough and configuration pages.
+    "markdown>=3.6",
+    "Pygments>=2.17",
 ]
 
 [project.optional-dependencies]

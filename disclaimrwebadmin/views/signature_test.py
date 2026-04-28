@@ -21,8 +21,6 @@ import logging
 import re
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
-
 from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
@@ -32,6 +30,8 @@ from django.views.generic import View
 
 from disclaimr.configuration_helper import build_configuration
 from disclaimr.milter_helper import MilterHelper
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

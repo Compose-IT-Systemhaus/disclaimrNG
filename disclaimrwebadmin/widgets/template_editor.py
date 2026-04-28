@@ -50,4 +50,7 @@ class TemplateEditorWidget(forms.Textarea):
         context["widget"]["vocabulary_url"] = str(
             reverse_lazy("disclaimrwebadmin:directoryserver-vocabulary")
         )
+        context["widget"]["upload_url"] = str(
+            reverse_lazy("disclaimrwebadmin:signatureimage-quick-upload")
+        )
         return context

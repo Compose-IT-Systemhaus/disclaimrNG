@@ -5,6 +5,8 @@ from .views import (
     DirectoryServerTestView,
     DirectoryServerVocabularyView,
     DisclaimerPreviewView,
+    SignatureImageQuickUploadView,
+    SignatureTestView,
 )
 
 app_name = "disclaimrwebadmin"
@@ -14,6 +16,16 @@ urlpatterns = [
         "disclaimer/preview/",
         DisclaimerPreviewView.as_view(),
         name="disclaimer-preview",
+    ),
+    path(
+        "signatureimage/quick-upload/",
+        SignatureImageQuickUploadView.as_view(),
+        name="signatureimage-quick-upload",
+    ),
+    path(
+        "signature-test/",
+        SignatureTestView.as_view(),
+        name="signature-test",
     ),
     path(
         "directoryserver/<int:pk>/test/",

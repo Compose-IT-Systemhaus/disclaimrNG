@@ -76,16 +76,57 @@
 
     // Cache the vocabulary fetch across editor instances on the same page —
     // both Disclaimer.text and Disclaimer.html mount the widget, no point
-    // hitting the endpoint twice.
+    // hitting the endpoint twice. Upload handler invalidates the cache so
+    // a freshly-uploaded image shows up immediately in every gallery.
     let vocabularyPromise = null;
     function loadVocabulary(url) {
-        if (!url) return Promise.resolve({ attributes: [] });
+        if (!url) return Promise.resolve({ attributes: [], images: [] });
         if (!vocabularyPromise) {
             vocabularyPromise = fetch(url, { credentials: "same-origin" })
-                .then((r) => (r.ok ? r.json() : { attributes: [] }))
-                .catch(() => ({ attributes: [] }));
+                .then((r) =>
+                    r.ok ? r.json() : { attributes: [], images: [] }
+                )
+                .catch(() => ({ attributes: [], images: [] }));
         }
         return vocabularyPromise;
+    }
+    function invalidateVocabulary() {
+        vocabularyPromise = null;
+    }
+
+    function csrfToken() {
+        const node = document.querySelector("[name=csrfmiddlewaretoken]");
+        return node ? node.value : "";
+    }
+
+    function renderImageGallery(root, images) {
+        const grid = root.querySelector(".template-editor__images-grid");
+        if (!grid) return;
+        if (!images.length) {
+            grid.innerHTML =
+                '<div class="template-editor__images-empty">' +
+                "Noch keine Bilder hochgeladen.</div>";
+            return;
+        }
+        grid.innerHTML = images
+            .map(
+                (img) => `
+                <button type="button" class="template-editor__image"
+                        data-slug="${img.slug}"
+                        title="Klicken zum Einfügen — Slug: ${img.slug}">
+                    <img src="${img.url}" alt="${img.alt_text || img.name}">
+                    <span class="template-editor__image-slug">${img.slug}</span>
+                </button>
+            `
+            )
+            .join("");
+    }
+
+    function setStatus(root, message, kind) {
+        const node = root.querySelector(".template-editor__images-status");
+        if (!node) return;
+        node.textContent = message || "";
+        node.dataset.kind = kind || "";
     }
 
     function registerCompletions(monaco, language, vocab) {
@@ -149,6 +190,7 @@
         const contentType = root.dataset.contentType;
         const previewUrl = root.dataset.previewUrl;
         const vocabularyUrl = root.dataset.vocabularyUrl;
+        const uploadUrl = root.dataset.uploadUrl;
 
         const monaco = await ensureMonaco();
         const monacoHost = root.querySelector(".template-editor__monaco");
@@ -166,7 +208,87 @@
 
         loadVocabulary(vocabularyUrl).then((vocab) => {
             registerCompletions(monaco, language, vocab);
+            renderImageGallery(root, vocab.images || []);
         });
+
+        async function refreshGallery() {
+            invalidateVocabulary();
+            const vocab = await loadVocabulary(vocabularyUrl);
+            renderImageGallery(root, vocab.images || []);
+        }
+
+        // Insert an ``{image["slug"]}`` token into the currently active
+        // editor (Code, Visual, or — if neither is mounted — straight
+        // into the textarea).
+        function insertImageToken(slug) {
+            const token = `{image["${slug}"]}`;
+            const activeTab = root.querySelector(
+                ".template-editor__tab.is-active"
+            ).dataset.tab;
+            if (activeTab === "visual" && tinymceEditor) {
+                tinymceEditor.execCommand("mceInsertContent", false, token);
+                textarea.value = tinymceEditor.getContent();
+            } else {
+                // Default to the Monaco editor, even when Preview is open
+                // — there's nothing useful to do with an insert in the
+                // preview iframe, so we put it in Code so it sticks.
+                const selection = editor.getSelection();
+                editor.executeEdits("template-editor", [
+                    {
+                        range: selection,
+                        text: token,
+                        forceMoveMarkers: true,
+                    },
+                ]);
+                editor.focus();
+                textarea.value = editor.getValue();
+            }
+        }
+
+        root.addEventListener("click", (event) => {
+            const target = event.target.closest(".template-editor__image");
+            if (!target || !root.contains(target)) return;
+            event.preventDefault();
+            insertImageToken(target.dataset.slug);
+        });
+
+        const uploadInput = root.querySelector(".template-editor__upload-input");
+        if (uploadInput && uploadUrl) {
+            uploadInput.addEventListener("change", async () => {
+                const file = uploadInput.files[0];
+                if (!file) return;
+                setStatus(root, `Lade ${file.name} hoch …`, "pending");
+                const formData = new FormData();
+                formData.append("image", file);
+                formData.append("csrfmiddlewaretoken", csrfToken());
+                try {
+                    const response = await fetch(uploadUrl, {
+                        method: "POST",
+                        body: formData,
+                        credentials: "same-origin",
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        setStatus(
+                            root,
+                            `Fehler: ${payload.error || response.statusText}`,
+                            "error"
+                        );
+                    } else {
+                        setStatus(
+                            root,
+                            `Hochgeladen als „${payload.slug}". Klick zum Einfügen.`,
+                            "success"
+                        );
+                        await refreshGallery();
+                    }
+                } catch (err) {
+                    setStatus(root, `Netzwerkfehler: ${err}`, "error");
+                } finally {
+                    uploadInput.value = "";
+                }
+            });
+        }
 
         let tinymceEditor = null;
         const tinymceHost = root.querySelector(".template-editor__tinymce");

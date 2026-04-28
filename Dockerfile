@@ -67,6 +67,19 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /app/staticfiles /app/media \
     && chown -R disclaimr:disclaimr /app
 
+# Generate the disclaimrwebadmin migrations as part of the image so the
+# ``migrate`` step at boot has something to apply. ``makemigrations``
+# only reads model definitions and writes Python files — no DB needed —
+# but it does need *some* settings to load Django, hence the throwaway
+# secret key and in-memory sqlite below. The generated files become part
+# of the image; nothing is persisted to the build host.
+RUN DJANGO_SECRET_KEY=build-time-only \
+    DJANGO_DEBUG=False \
+    DJANGO_ALLOWED_HOSTS=* \
+    DATABASE_URL=sqlite:///:memory: \
+    python manage.py makemigrations disclaimrwebadmin --noinput \
+    && chown -R disclaimr:disclaimr /app/disclaimrwebadmin/migrations
+
 USER disclaimr
 
 EXPOSE 8000 5000

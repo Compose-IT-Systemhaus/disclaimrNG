@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from . import constants
 
 
-def _signature_image_upload_to(instance: "SignatureImage", filename: str) -> str:
+def _signature_image_upload_to(instance: SignatureImage, filename: str) -> str:
     """Place uploads under ``signatures/<slug>/<filename>``.
 
     Keeping the slug in the path means re-uploading a different file under
@@ -64,7 +64,7 @@ class Tenant(models.Model):
         return self.name
 
     @classmethod
-    def match_sender(cls, sender_address: str) -> "Tenant | None":
+    def match_sender(cls, sender_address: str) -> Tenant | None:
         """Return the tenant whose domain owns ``sender_address``.
 
         Domain match is case-insensitive and exact (no wildcard support
@@ -108,14 +108,14 @@ class TenantDomain(models.Model):
         verbose_name = _("Tenant domain")
         verbose_name_plural = _("Tenant domains")
 
+    def __str__(self) -> str:
+        return self.domain
+
     def save(self, *args, **kwargs):
         # Normalise so case differences don't sneak past the unique constraint.
         if self.domain:
             self.domain = self.domain.strip().lower()
         return super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return self.domain
 
 
 class Rule(models.Model):
@@ -241,13 +241,13 @@ class Requirement(models.Model):
         verbose_name = _("Requirement")
         verbose_name_plural = _("Requirements")
 
-    def get_sender_ip_network(self) -> netaddr.IPNetwork:
-        return netaddr.IPNetwork(f"{self.sender_ip}/{self.sender_ip_cidr}")
-
     def __str__(self) -> str:
         if not self.enabled:
             return f"{self.name} ({_('disabled')})"
         return self.name
+
+    def get_sender_ip_network(self) -> netaddr.IPNetwork:
+        return netaddr.IPNetwork(f"{self.sender_ip}/{self.sender_ip_cidr}")
 
 
 class Disclaimer(models.Model):

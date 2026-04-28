@@ -81,7 +81,22 @@ class RuleAdmin(SortableAdminBase, ModelAdmin):
 class DisclaimerForm(forms.ModelForm):
     class Meta:
         model = Disclaimer
-        fields = "__all__"
+        # Explicit list keeps ruff DJ006/DJ007 happy (no ``exclude``,
+        # no ``"__all__"``). Keep in sync with the Disclaimer model.
+        fields = (
+            "tenant",
+            "name",
+            "description",
+            "text",
+            "text_charset",
+            "text_use_template",
+            "html_use_text",
+            "html",
+            "html_charset",
+            "html_use_template",
+            "template_fail",
+            "use_html_fallback",
+        )
         widgets = {
             "text": TemplateEditorWidget(content_type="text/plain"),
             "html": TemplateEditorWidget(content_type="text/html"),
@@ -149,7 +164,23 @@ class SignatureImageAdmin(ModelAdmin):
 class DirectoryServerForm(forms.ModelForm):
     class Meta:
         model = DirectoryServer
-        fields = "__all__"
+        # Explicit list keeps ruff DJ006/DJ007 happy (no ``exclude``,
+        # no ``"__all__"``). Keep in sync with the DirectoryServer model.
+        fields = (
+            "tenant",
+            "name",
+            "description",
+            "enabled",
+            "flavor",
+            "base_dn",
+            "auth",
+            "userdn",
+            "password",
+            "search_query",
+            "search_attributes",
+            "enable_cache",
+            "cache_timeout",
+        )
         widgets = {"password": PasswordInput(render_value=True)}
 
 

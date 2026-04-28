@@ -9,14 +9,12 @@ Covers the Tenant model's sender-domain matching, the env-bootstrap
 from __future__ import annotations
 
 from io import StringIO
-from unittest.mock import MagicMock
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from disclaimr.milter_helper import MilterHelper
-from disclaimrwebadmin import constants
 from disclaimrwebadmin.models import (
     Action,
     DirectoryServer,

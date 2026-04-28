@@ -280,8 +280,14 @@ class MilterHelper:
         return re.sub("\n", "<br />", text)
 
     @staticmethod
-    def decode_mail(mail: email.message.Message) -> tuple[str, str | bytes]:
-        """Return ``(content_transfer_encoding, decoded_payload)`` for ``mail``."""
+    def decode_mail(mail: email.message.Message) -> tuple[str, str]:
+        """Return ``(content_transfer_encoding, decoded_payload)`` for ``mail``.
+
+        The payload is always returned as ``str``. The Python 3 email
+        machinery happily flips between ``str`` and ``bytes`` for the
+        underlying payload depending on whether ``set_payload`` was last
+        called with bytes — callers (and tests) should not have to care.
+        """
         mail_text = mail.get_payload()
 
         if "Content-Transfer-Encoding" in mail:
@@ -299,7 +305,8 @@ class MilterHelper:
             )
             encoding = "78bit"
 
-        return encoding, mail_text
+        charset = mail.get_content_charset() or "utf-8"
+        return encoding, _to_str(mail_text, charset)
 
     def _directory_servers_for(
         self, action: models.Action, envelope_from: str
@@ -511,7 +518,7 @@ class MilterHelper:
                     value = removetag.groups()[0] + value + removetag.groups()[2]
 
                 disclaimer_text = disclaimer_text.replace(
-                    "{%s}" % replace_key, value
+                    f"{{{replace_key}}}", value
                 )
             else:
                 # No value: drop the whole {rt}…{/rt} block (or just the tag).
@@ -531,7 +538,7 @@ class MilterHelper:
                             disclaimer_text[: remove.start()] + disclaimer_text[remove.end():]
                         )
                 else:
-                    disclaimer_text = disclaimer_text.replace("{%s}" % replace_key, "")
+                    disclaimer_text = disclaimer_text.replace(f"{{{replace_key}}}", "")
 
         del charset  # currently unused; kept for API stability with the old code
         return disclaimer_text

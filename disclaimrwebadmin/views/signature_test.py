@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import binascii
 import email
+import logging
 import re
 from dataclasses import dataclass
 
@@ -29,6 +30,8 @@ from django.views.generic import View
 
 from disclaimr.configuration_helper import build_configuration
 from disclaimr.milter_helper import MilterHelper
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -66,11 +69,15 @@ class _TestOutcome:
         a ü entity. Encoding the whole HTML body as base64 in a data URL
         sidesteps the attribute layer.
         """
-        body_bytes = self.rendered_body.encode("utf-8")
-        return (
-            "data:text/html;charset=utf-8;base64,"
-            + base64.b64encode(body_bytes).decode("ascii")
-        )
+        try:
+            body_bytes = self.rendered_body.encode("utf-8", errors="replace")
+            return (
+                "data:text/html;charset=utf-8;base64,"
+                + base64.b64encode(body_bytes).decode("ascii")
+            )
+        except Exception:  # noqa: BLE001 — never break the result template
+            logger.exception("html_preview_data_url encoding failed")
+            return "about:blank"
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -239,13 +246,26 @@ def _run_pipeline(
             raw_input,
         )
 
-    matched_rules = _matched_rules(helper)
-    rendered_body, rendered_content_type, rendered_full_mail = _decode_result(
-        original_headers=headers,
-        workflow=workflow,
-        fallback_body=body,
-        fallback_content_type=content_type,
-    )
+    try:
+        matched_rules = _matched_rules(helper)
+    except Exception:  # noqa: BLE001 — never block the result panel
+        logger.exception("matched_rules lookup failed")
+        matched_rules = []
+
+    try:
+        rendered_body, rendered_content_type, rendered_full_mail = (
+            _decode_result(
+                original_headers=headers,
+                workflow=workflow,
+                fallback_body=body,
+                fallback_content_type=content_type,
+            )
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("decoding the post-pipeline body failed")
+        rendered_body = workflow.get("repl_body", body)
+        rendered_content_type = content_type
+        rendered_full_mail = repr(workflow)
 
     if matched_rules:
         rule_word = "Regel" if len(matched_rules) == 1 else "Regeln"
@@ -407,33 +427,42 @@ def _extract_text_part(
         ctype = part.get_content_type()
         if ctype not in ("text/plain", "text/html"):
             continue
+        # ``walk()`` yields multipart containers too; their payload is a
+        # list of sub-Messages, never a string. Skip them — we want a
+        # leaf text part.
+        if part.is_multipart():
+            continue
+
         charset = part.get_content_charset() or "utf-8"
         cte = (part.get("Content-Transfer-Encoding") or "").strip().lower()
 
-        if cte in ("quoted-printable", "base64"):
-            payload = part.get_payload(decode=True)
-            if payload is None:
-                continue
-            if isinstance(payload, bytes):
-                try:
-                    text = payload.decode(charset, errors="replace")
-                except (LookupError, UnicodeDecodeError):
-                    text = payload.decode("utf-8", errors="replace")
+        try:
+            if cte in ("quoted-printable", "base64"):
+                payload = part.get_payload(decode=True)
             else:
-                text = str(payload)
+                # 7bit / 8bit / binary / no CTE header — payload was
+                # never encoded; return it as the original string.
+                payload = part.get_payload(decode=False)
+        except Exception:  # noqa: BLE001 — defensive against email-lib quirks
+            logger.exception("get_payload failed for part with ctype=%s", ctype)
+            continue
+
+        if payload is None:
+            continue
+        if isinstance(payload, bytes):
+            try:
+                text = payload.decode(charset, errors="replace")
+            except (LookupError, UnicodeDecodeError):
+                text = payload.decode("utf-8", errors="replace")
+        elif isinstance(payload, str):
+            text = payload
         else:
-            # 7bit, 8bit, binary, or no CTE header at all: the payload
-            # was never encoded — return it as the original string.
-            payload = part.get_payload(decode=False)
-            if payload is None:
-                continue
-            if isinstance(payload, bytes):
-                try:
-                    text = payload.decode(charset, errors="replace")
-                except (LookupError, UnicodeDecodeError):
-                    text = payload.decode("utf-8", errors="replace")
-            else:
-                text = str(payload)
+            # ``list`` (nested multipart), or anything else exotic — skip.
+            logger.warning(
+                "Unexpected payload type %s for part with ctype=%s",
+                type(payload).__name__, ctype,
+            )
+            continue
 
         return _maybe_unbase64(text, charset), ctype
     return "", fallback_content_type

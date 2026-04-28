@@ -361,6 +361,13 @@ class MilterHelper:
                 for url in directory_server.directoryserverurl_set.all():
                     logging.debug("Trying url %s", url.url)
                     conn = ldap.initialize(url.url)
+                    # Bound, network-level timeouts so an unreachable LDAP
+                    # server can never hang the milter (or the synchronous
+                    # signature-test admin view) for more than a few
+                    # seconds. python-ldap's defaults are effectively
+                    # infinite, which used to take down gunicorn workers.
+                    conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
+                    conn.set_option(ldap.OPT_TIMEOUT, 5)
 
                     ldap_user = ""
                     ldap_password = ""
@@ -372,6 +379,11 @@ class MilterHelper:
                         conn.simple_bind_s(ldap_user, ldap_password)
                     except ldap.SERVER_DOWN:
                         syslog.warning("Cannot reach server %s. Skipping.", url)
+                        continue
+                    except ldap.TIMEOUT:
+                        syslog.warning(
+                            "Timeout binding to server %s. Skipping.", url
+                        )
                         continue
                     except (ldap.INVALID_CREDENTIALS, ldap.INVALID_DN_SYNTAX):
                         syslog.warning(
@@ -388,6 +400,11 @@ class MilterHelper:
                         )
                     except ldap.SERVER_DOWN:
                         syslog.warning("Cannot reach server %s. Skipping.", url)
+                        continue
+                    except ldap.TIMEOUT:
+                        syslog.warning(
+                            "Timeout searching server %s. Skipping.", url
+                        )
                         continue
                     except (ldap.INVALID_CREDENTIALS, ldap.NO_SUCH_OBJECT):
                         syslog.warning(

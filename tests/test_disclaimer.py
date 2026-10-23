@@ -103,20 +103,28 @@ class DisclaimerTestCase(TestCase):
 
                 helper.header(key, header[key], {})
 
-            helper.eoh({})
-
         else:
 
             # Add at least one header for proper mail processing
 
             helper.header("From", "nobody", {})
-            helper.eoh({})
 
         if make_mail:
 
             self.test_mail = MIMEText(self.test_text, "plain", "UTF-8")
 
-        helper.body(self.test_mail.as_string(), {})
+        # Like the MTA, hand over the MIME headers and the body separately.
+        # (as_string() first: it picks the multipart boundary.)
+
+        raw_mail = self.test_mail.as_string()
+
+        for key, value in self.test_mail.items():
+
+            helper.header(key, value, {})
+
+        helper.eoh({})
+
+        helper.body(raw_mail.split("\n\n", 1)[1], {})
 
         return helper.eob({})
 

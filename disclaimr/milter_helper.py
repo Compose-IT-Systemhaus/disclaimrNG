@@ -17,12 +17,17 @@ import email.message
 import email.mime.message
 import email.mime.multipart
 import email.mime.text
+import html
 import logging
 import quopri
 import re
+from collections.abc import Callable
 from typing import Any
 
 import ldap
+import ldap.filter
+import netaddr
+from django.db.models import Prefetch
 from lxml import etree
 
 from disclaimr.query_cache import QueryCache
@@ -34,6 +39,23 @@ syslog = logging.getLogger("disclaimr")
 _TEMPLATE_TAG_RE = re.compile(r"\{((?!rt|/rt)[^}]*)\}")
 # Subkey form: key["subkey"].
 _SUBKEY_TAG_RE = re.compile(r'^([^\[]*)\["([^"]*)"\]$')
+# ``{rt}…{/rt}`` wraps a part of a line that only makes sense when its tags
+# have values (``{rt}Phone: {resolver["telephonenumber"]}{/rt}``). The block
+# is dropped — together with the line break before or after it — as soon as
+# one of its tags comes out empty.
+_RT_BLOCK_RE = re.compile(r"(\n)?\{rt\}(.*?)\{/rt\}(\r|<br />)?")
+# ``resolver["attr"]`` references — only these attributes are fetched from LDAP.
+_RESOLVER_REF_RE = re.compile(r'resolver\["([^"]+)"\]', re.IGNORECASE)
+
+_HTML_ESCAPE_TABLE = str.maketrans(
+    {"&": "&amp;", '"': "&quot;", "'": "&apos;", ">": "&gt;", "<": "&lt;"}
+)
+
+# Bound, network-level timeouts so an unreachable LDAP server can never hang
+# the milter (or the synchronous signature-test admin view) for more than a
+# few seconds. python-ldap's defaults are effectively infinite, which used to
+# take down gunicorn workers.
+_LDAP_TIMEOUT = 5
 
 
 def _to_str(value: Any, charset: str = "utf-8") -> str:
@@ -44,6 +66,15 @@ def _to_str(value: Any, charset: str = "utf-8") -> str:
         except (UnicodeDecodeError, LookupError):
             return value.decode("utf-8", errors="replace")
     return value
+
+
+def _identity(text: str) -> str:
+    return text
+
+
+def escape_html_value(value: str) -> str:
+    """Escape a substituted value for an HTML disclaimer (text and attributes)."""
+    return html.escape(value, quote=True)
 
 
 # Matches an image reference of the form ``image["slug"]`` (case-insensitive
@@ -79,9 +110,8 @@ def _build_image_replacements(
             continue
         absolute_url = f"{base}/{image.image.name}"
         if content_type == "text/html":
-            attrs = [f'src="{absolute_url}"']
             alt = image.alt_text or image.name
-            attrs.append(f'alt="{alt}"')
+            attrs = [f'src="{html.escape(absolute_url)}"', f'alt="{html.escape(alt)}"']
             if image.width:
                 attrs.append(f'width="{image.width}"')
             if image.height:
@@ -92,8 +122,110 @@ def _build_image_replacements(
     return rendered
 
 
+def _lookup_tag(token: str, replacements: dict[str, Any]) -> tuple[str, str | None]:
+    """Resolve a tag body (``sender``, ``resolver["cn"]``) against ``replacements``.
+
+    Returns ``(group, value)`` where ``group`` is the lower-cased top-level
+    key and ``value`` is ``None`` if the tag cannot be resolved.
+    """
+    key = token.lower()
+    subkey_match = _SUBKEY_TAG_RE.match(key)
+    if subkey_match:
+        group, subkey = subkey_match.groups()
+        table = replacements.get(group)
+        if isinstance(table, dict) and subkey in table:
+            return group, str(table[subkey])
+        return group, None
+
+    value = replacements.get(key)
+    if value is None or isinstance(value, dict):
+        return key, None
+    return key, str(value)
+
+
+def render_template(
+    template: str,
+    replacements: dict[str, Any],
+    *,
+    template_fail: bool = False,
+    literal: Callable[[str], str] = _identity,
+    escape: Callable[[str], str] = _identity,
+) -> str | None:
+    """Replace ``{key}`` and ``{key["subkey"]}`` tags in ``template``.
+
+    The template is rendered in a single pass: substituted values are never
+    scanned for tags again, so a value that looks like a tag itself (say a
+    subject line of ``{header["subject"]}``) can neither expand recursively
+    nor loop forever.
+
+    ``literal`` is applied to the template text between the tags, ``escape``
+    to every substituted value except ``image`` tags, which are inserted
+    verbatim (they already are rendered markup or a URL).
+
+    Returns ``None`` when ``template_fail`` is set and a tag cannot be
+    resolved; otherwise unresolvable tags render as an empty string.
+    """
+
+    def render(segment: str) -> tuple[str, bool] | None:
+        """Render ``segment``; returns ``(text, had_empty_value)``."""
+        pieces: list[str] = []
+        had_empty = False
+        pos = 0
+        for match in _TEMPLATE_TAG_RE.finditer(segment):
+            pieces.append(literal(segment[pos : match.start()]))
+            pos = match.end()
+
+            group, value = _lookup_tag(match.group(1), replacements)
+            if value is None:
+                if template_fail:
+                    syslog.warning("Cannot resolve key %s. Skipping", group)
+                    return None
+                logging.debug(
+                    "Cannot resolve '%s' for '%s'",
+                    match.group(1),
+                    replacements.get("sender", ""),
+                )
+                value = ""
+
+            if not value:
+                had_empty = True
+            else:
+                pieces.append(value if group == "image" else escape(value))
+
+        pieces.append(literal(segment[pos:]))
+        return "".join(pieces), had_empty
+
+    output: list[str] = []
+    pos = 0
+    for block in _RT_BLOCK_RE.finditer(template):
+        rendered = render(template[pos : block.start()])
+        if rendered is None:
+            return None
+        output.append(rendered[0])
+        pos = block.end()
+
+        inner = render(block.group(2))
+        if inner is None:
+            return None
+        if inner[1]:
+            logging.debug("Removing tag...")
+            continue
+        output.append(literal(block.group(1) or "") + inner[0] + literal(block.group(3) or ""))
+
+    rendered = render(template[pos:])
+    if rendered is None:
+        return None
+    output.append(rendered[0])
+    return "".join(output)
+
+
 class MilterHelper:
-    """Stateful helper that processes a single mail through the milter pipeline."""
+    """Stateful helper that processes mails of one MTA connection.
+
+    The MTA may send several mails over the same connection; :meth:`reset`
+    (called by the milter at every ``MAIL FROM``) clears the per-mail state
+    while keeping what :meth:`connect` learned about the client.
+    """
 
     def __init__(self, configuration: dict[str, Any]) -> None:
         self.configuration = configuration
@@ -108,25 +240,81 @@ class MilterHelper:
         self.actions: list[Any] = []
         self.charsetsmatch = True
 
-    def connect(self, hostname: str, family: int, ip: str, port: int, cmd_dict: dict) -> None:
+        # Requirement ids matched by the client IP — the starting point of
+        # every mail on this connection.
+        self._connection_requirements: list[int] = []
+        # Raw body chunks; joined and decoded once in eob().
+        self._body_chunks: list[bytes] = []
+        # Requirement rows of the current mail, fetched once on first use.
+        self._requirement_rows: dict[int, models.Requirement] | None = None
+        # Per-mail memos so multipart mails don't repeat LDAP / DB lookups
+        # for every text part.
+        self._resolver_cache: dict[int, tuple[bool, dict[str, str]]] = {}
+        self._image_cache: dict[tuple[str, str], dict[str, str]] = {}
+
+    def reset(self) -> None:
+        """Forget everything about the previous mail on this connection."""
+        sender_ip = self.mail_data.get("sender_ip")
+        self.mail_data = {"headers": [], "headers_dict": {}, "body": ""}
+        if sender_ip is not None:
+            self.mail_data["sender_ip"] = sender_ip
+        self.requirements = list(self._connection_requirements)
+        self.enabled = bool(self.requirements)
+        self.rcptmatch = False
+        self.charsetsmatch = True
+        self._body_chunks = []
+        self._requirement_rows = None
+        self._resolver_cache = {}
+        self._image_cache = {}
+
+    def connect(self, hostname: str, family: Any, ip: str, port: int, cmd_dict: dict) -> None:
         """Called when a client connects to the milter."""
         self.mail_data["sender_ip"] = ip
 
-        for sender_ip in self.configuration["sender_ip"]:
-            if ip in sender_ip["ip"]:
-                logging.debug("Found IP in a requirement.")
-                if sender_ip["id"] not in self.requirements:
+        try:
+            address: netaddr.IPAddress | None = netaddr.IPAddress(ip)
+        except (netaddr.AddrFormatError, TypeError, ValueError):
+            logging.debug("Cannot parse client address %r.", ip)
+            address = None
+
+        if address is not None:
+            for sender_ip in self.configuration["sender_ip"]:
+                if address in sender_ip["ip"] and sender_ip["id"] not in self.requirements:
+                    logging.debug("Found IP in a requirement.")
                     self.requirements.append(sender_ip["id"])
+
+        self._connection_requirements = list(self.requirements)
 
         if not self.requirements:
             logging.debug("Couldn't find the IP in any requirement. Skipping.")
             self.enabled = False
 
+    def _active_requirements(self) -> list[models.Requirement]:
+        """Return the Requirement rows still in play for the current mail.
+
+        The rows (with their rule) are loaded once, the first time a stage
+        needs them; the following stages only filter that list instead of
+        querying the database again for every envelope/header/body check.
+        """
+        if self._requirement_rows is None:
+            self._requirement_rows = {
+                req.id: req
+                for req in models.Requirement.objects.filter(
+                    id__in=self.requirements, enabled=True
+                ).select_related("rule")
+            }
+            self.requirements = [r for r in self.requirements if r in self._requirement_rows]
+        return [self._requirement_rows[r] for r in self.requirements]
+
+    def _drop_requirements(self, rejected: set[int]) -> None:
+        if rejected:
+            self.requirements = [r for r in self.requirements if r not in rejected]
+
     def mail_from(self, addr: str, cmd_dict: dict) -> None:
         """Called when the MAIL FROM envelope value has been received."""
-        for req in models.Requirement.objects.filter(id__in=self.requirements):
-            if not re.search(req.sender, addr):
-                self.requirements = [r for r in self.requirements if r != req.id]
+        self._drop_requirements(
+            {req.id for req in self._active_requirements() if not re.search(req.sender, addr)}
+        )
 
         if not self.requirements:
             logging.debug("Couldn't match sender address in any requirement. Skipping.")
@@ -136,9 +324,9 @@ class MilterHelper:
 
     def rcpt(self, recip: str, cmd_dict: dict) -> None:
         """Called when an RCPT TO envelope value has been received."""
-        for req in models.Requirement.objects.filter(id__in=self.requirements):
+        for req in self._active_requirements():
             if not re.search(req.recipient, recip):
-                self.requirements = [r for r in self.requirements if r != req.id]
+                self._drop_requirements({req.id})
                 if not self.requirements:
                     logging.debug(
                         "Couldn't match recipient address in any requirement. Skipping."
@@ -159,21 +347,25 @@ class MilterHelper:
     def eoh(self, cmd_dict: dict) -> None:
         """Called once all headers have been received."""
         joined = "\n".join(self.mail_data["headers"])
-        for req in models.Requirement.objects.filter(id__in=self.requirements):
-            if not re.search(req.header, joined):
-                self.requirements = [r for r in self.requirements if r != req.id]
+        self._drop_requirements(
+            {req.id for req in self._active_requirements() if not re.search(req.header, joined)}
+        )
 
         if not self.requirements:
             logging.debug("Couldn't match header in any requirement. Skipping.")
             self.enabled = False
 
     def body(self, chunk: bytes | str, cmd_dict: dict) -> None:
-        """Called for each body chunk."""
-        # Body chunks come in as bytes from libmilter — normalise to str so the
-        # downstream regex/email machinery has something stable to work with.
-        if isinstance(chunk, bytes):
-            chunk = chunk.decode("utf-8", errors="replace")
-        self.mail_data["body"] += chunk
+        """Called for each body chunk.
+
+        Chunks are only collected here and decoded once in :meth:`eob`:
+        decoding chunk by chunk mangles multi-byte characters that straddle
+        a chunk boundary, and growing one string per chunk is quadratic in
+        the size of the mail.
+        """
+        if isinstance(chunk, str):
+            chunk = chunk.encode("utf-8")
+        self._body_chunks.append(chunk)
 
     def eob(self, cmd_dict: dict) -> dict[str, Any] | None:
         """Called once the entire body has been received.
@@ -181,22 +373,26 @@ class MilterHelper:
         Returns the workflow dictionary that the milter applies to the mail
         (replace body, add/change/delete headers).
         """
-        for req in models.Requirement.objects.filter(id__in=self.requirements):
-            if not re.search(req.body, self.mail_data["body"]):
-                self.requirements = [r for r in self.requirements if r != req.id]
+        body = b"".join(self._body_chunks).decode("utf-8", errors="replace")
+        self._body_chunks = []
+        self.mail_data["body"] = body
+
+        self._drop_requirements(
+            {req.id for req in self._active_requirements() if not re.search(req.body, body)}
+        )
 
         if not self.requirements:
             logging.debug("Couldn't match body in any requirement. Skipping.")
             self.enabled = False
             return None
 
-        rules_blacklist: list[int] = []
+        rules_blacklist: set[int] = set()
         rules: list[int] = []
-        for req in models.Requirement.objects.filter(id__in=self.requirements):
+        for req in self._active_requirements():
             if req.action == constants.REQ_ACTION_DENY:
-                rules_blacklist.append(req.rule.id)
-            if req.rule.id not in rules_blacklist and req.rule.id not in rules:
-                rules.append(req.rule.id)
+                rules_blacklist.add(req.rule_id)
+            if req.rule_id not in rules_blacklist and req.rule_id not in rules:
+                rules.append(req.rule_id)
 
         rules = [r for r in rules if r not in rules_blacklist]
 
@@ -204,15 +400,25 @@ class MilterHelper:
             self.enabled = False
             return None
 
+        # Headers and body arrive separately from the MTA; the blank line
+        # between them has to be put back, otherwise a first body line that
+        # looks like a header ("Note: …") is swallowed into the header block.
+        raw_headers = "\n".join(self.mail_data["headers"])
         mail = email.message_from_string(
-            "{}\n{}".format("\n".join(self.mail_data["headers"]), self.mail_data["body"])
+            f"{raw_headers}\n\n{body}" if raw_headers else f"\n{body}"
         )
-        orig_mail = copy.deepcopy(mail)
+        # do_action() works on copies, so this stays the unmodified original.
+        orig_mail = mail
 
-        for rule in models.Rule.objects.filter(id__in=rules):
+        actions = (
+            models.Action.objects.filter(enabled=True)
+            .select_related("disclaimer")
+            .prefetch_related("directory_servers")
+        )
+        for rule in models.Rule.objects.filter(id__in=rules).prefetch_related(
+            Prefetch("action_set", queryset=actions)
+        ):
             for action in rule.action_set.all():
-                if not action.enabled:
-                    continue
                 syslog.info(
                     "Adding Disclaimer (Action: %s | Rule: %s | Disclaimer: %s)",
                     action.name,
@@ -229,13 +435,13 @@ class MilterHelper:
         workflow: dict[str, Any] = {}
 
         for header in mail.keys():
-            if header not in orig_mail.keys():
-                workflow.setdefault("add_header", {})[header] = orig_mail[header]
+            if header not in orig_mail:
+                workflow.setdefault("add_header", {})[header] = mail[header]
             elif mail[header] != orig_mail[header]:
                 workflow.setdefault("change_header", {})[header] = mail[header]
 
         for header in orig_mail.keys():
-            if header not in mail.keys():
+            if header not in mail:
                 workflow.setdefault("delete_header", []).append(header)
 
         # Strip headers from the rebuilt mail before sending it back to the
@@ -268,16 +474,7 @@ class MilterHelper:
     @staticmethod
     def make_html(text: str) -> str:
         """Escape ``text`` to HTML and convert newlines into ``<br />``."""
-        text = re.sub("\r\n", "\n", text)
-        html_escape_table = {
-            "&": "&amp;",
-            '"': "&quot;",
-            "'": "&apos;",
-            ">": "&gt;",
-            "<": "&lt;",
-        }
-        text = "".join(html_escape_table.get(c, c) for c in text)
-        return re.sub("\n", "<br />", text)
+        return text.replace("\r\n", "\n").translate(_HTML_ESCAPE_TABLE).replace("\n", "<br />")
 
     @staticmethod
     def decode_mail(mail: email.message.Message) -> tuple[str, str]:
@@ -331,15 +528,51 @@ class MilterHelper:
             return []
         return list(tenant.directory_servers.filter(enabled=True))
 
+    @staticmethod
+    def _requested_attributes(action: models.Action) -> list[str] | None:
+        """Return the LDAP attributes the action's disclaimer references.
+
+        Asking for just these keeps bulky attributes (``thumbnailPhoto``,
+        long ``memberOf`` lists, …) off the wire. ``None`` requests all
+        attributes — used when the disclaimer references none, so the lookup
+        only decides whether the sender resolves at all.
+        """
+        disclaimer = action.disclaimer
+        names = {
+            name.lower()
+            for name in _RESOLVER_REF_RE.findall(f"{disclaimer.text}\n{disclaimer.html}")
+        }
+        return sorted(names) or None
+
     def _resolve_sender(
         self, action: models.Action, replacements: dict[str, Any]
     ) -> bool:
         """Populate ``replacements['resolver']`` from configured directory servers.
 
+        The directory lookup runs once per action and mail; the result is
+        reused for every further MIME part the action is applied to.
+
         Returns whether at least one directory server delivered a result.
         """
+        cached = self._resolver_cache.get(action.pk)
+        if cached is None:
+            cached = self._lookup_sender(action)
+            self._resolver_cache[action.pk] = cached
+
+        resolved_successfully, attributes = cached
+        replacements["resolver"].update(attributes)
+        return resolved_successfully
+
+    def _lookup_sender(self, action: models.Action) -> tuple[bool, dict[str, str]]:
+        """Query the directory servers for the envelope sender.
+
+        Returns ``(resolved_successfully, attributes)`` with lower-cased
+        attribute names.
+        """
         resolved_successfully = False
+        attributes: dict[str, str] = {}
         envelope_from = self.mail_data["envelope_from"]
+        attrlist = self._requested_attributes(action)
 
         for directory_server in self._directory_servers_for(action, envelope_from):
             if not directory_server.enabled:
@@ -349,77 +582,31 @@ class MilterHelper:
                 continue
 
             logging.debug("Connecting to directory server %s", directory_server.name)
-            query = directory_server.search_query % (envelope_from,)
+            query = directory_server.search_query % (
+                ldap.filter.escape_filter_chars(envelope_from),
+            )
+            cache_key = f"{query}|{','.join(attrlist) if attrlist else '*'}"
             result = None
 
             if directory_server.enable_cache:
-                result = QueryCache.get(directory_server, query)
+                result = QueryCache.get(directory_server, cache_key)
                 if result is not None:
                     resolved_successfully = True
 
             if result is None:
                 for url in directory_server.directoryserverurl_set.all():
                     logging.debug("Trying url %s", url.url)
-                    conn = ldap.initialize(url.url)
-                    # Bound, network-level timeouts so an unreachable LDAP
-                    # server can never hang the milter (or the synchronous
-                    # signature-test admin view) for more than a few
-                    # seconds. python-ldap's defaults are effectively
-                    # infinite, which used to take down gunicorn workers.
-                    conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
-                    conn.set_option(ldap.OPT_TIMEOUT, 5)
-
-                    ldap_user = ""
-                    ldap_password = ""
-                    if directory_server.auth == constants.DIR_AUTH_SIMPLE:
-                        ldap_user = directory_server.userdn
-                        ldap_password = directory_server.password
-
-                    try:
-                        conn.simple_bind_s(ldap_user, ldap_password)
-                    except ldap.SERVER_DOWN:
-                        syslog.warning("Cannot reach server %s. Skipping.", url)
+                    outcome = self._search_url(directory_server, url, query, attrlist)
+                    if outcome is None:
                         continue
-                    except ldap.TIMEOUT:
-                        syslog.warning(
-                            "Timeout binding to server %s. Skipping.", url
-                        )
-                        continue
-                    except (ldap.INVALID_CREDENTIALS, ldap.INVALID_DN_SYNTAX):
-                        syslog.warning(
-                            "Cannot authenticate to directory server %s with dn %s. "
-                            "Skipping.",
-                            url,
-                            directory_server.userdn,
-                        )
-                        continue
-
-                    try:
-                        result = conn.search_s(
-                            directory_server.base_dn, ldap.SCOPE_SUBTREE, query
-                        )
-                    except ldap.SERVER_DOWN:
-                        syslog.warning("Cannot reach server %s. Skipping.", url)
-                        continue
-                    except ldap.TIMEOUT:
-                        syslog.warning(
-                            "Timeout searching server %s. Skipping.", url
-                        )
-                        continue
-                    except (ldap.INVALID_CREDENTIALS, ldap.NO_SUCH_OBJECT):
-                        syslog.warning(
-                            "Cannot authenticate to directory server %s as guest or "
-                            "cannot query. Skipping.",
-                            url,
-                        )
-                        continue
+                    result = outcome
 
                     if not result:
                         if action.resolve_sender_fail:
                             syslog.warning(
                                 "Cannot resolve email %s. Skipping", envelope_from
                             )
-                            return False
+                            return False, attributes
                         syslog.warning("Cannot resolve email %s", envelope_from)
                         continue
 
@@ -432,12 +619,12 @@ class MilterHelper:
                                 "Cannot reliably resolve email %s. Skipping",
                                 envelope_from,
                             )
-                            return False
+                            return False, attributes
 
                     logging.debug("Found entry %s", result[0][0])
 
                     if directory_server.enable_cache:
-                        QueryCache.set(directory_server, query, result)
+                        QueryCache.set(directory_server, cache_key, result)
 
                     resolved_successfully = True
                     break
@@ -445,133 +632,133 @@ class MilterHelper:
             if result is not None and len(result) == 1:
                 # Flatten the LDAP result into the replacement dict. python-ldap
                 # returns attribute values as bytes; decode them before use.
-                attrs = result[0][1]
-                for key in attrs.keys():
-                    raw_values = attrs[key]
+                for key, raw_values in result[0][1].items():
                     try:
-                        joined = ",".join(_to_str(v) for v in raw_values)
-                        replacements["resolver"][key.lower()] = joined
+                        attributes[key.lower()] = ",".join(_to_str(v) for v in raw_values)
                     except UnicodeDecodeError:
                         # Binary attribute (e.g. thumbnailPhoto) — base64-encode it.
-                        joined_bytes = b"".join(raw_values)
-                        replacements["resolver"][key.lower()] = base64.b64encode(
-                            joined_bytes
+                        attributes[key.lower()] = base64.b64encode(
+                            b"".join(raw_values)
                         ).decode("ascii")
 
-        return resolved_successfully
+        return resolved_successfully, attributes
+
+    @staticmethod
+    def _search_url(
+        directory_server: models.DirectoryServer,
+        url: models.DirectoryServerURL,
+        query: str,
+        attrlist: list[str] | None,
+    ) -> list | None:
+        """Bind to ``url`` and run ``query``; ``None`` if the server is unusable."""
+        conn = ldap.initialize(url.url)
+        conn.set_option(ldap.OPT_NETWORK_TIMEOUT, _LDAP_TIMEOUT)
+        conn.set_option(ldap.OPT_TIMEOUT, _LDAP_TIMEOUT)
+        # Active Directory answers subtree searches on the domain root with
+        # referrals; chasing them (anonymously) only costs time.
+        conn.set_option(ldap.OPT_REFERRALS, 0)
+
+        ldap_user = ""
+        ldap_password = ""
+        if directory_server.auth == constants.DIR_AUTH_SIMPLE:
+            ldap_user = directory_server.userdn
+            ldap_password = directory_server.password
+
+        try:
+            try:
+                conn.simple_bind_s(ldap_user, ldap_password)
+            except ldap.SERVER_DOWN:
+                syslog.warning("Cannot reach server %s. Skipping.", url)
+                return None
+            except ldap.TIMEOUT:
+                syslog.warning("Timeout binding to server %s. Skipping.", url)
+                return None
+            except (ldap.INVALID_CREDENTIALS, ldap.INVALID_DN_SYNTAX):
+                syslog.warning(
+                    "Cannot authenticate to directory server %s with dn %s. Skipping.",
+                    url,
+                    directory_server.userdn,
+                )
+                return None
+
+            try:
+                return conn.search_s(
+                    directory_server.base_dn, ldap.SCOPE_SUBTREE, query, attrlist
+                )
+            except ldap.SERVER_DOWN:
+                syslog.warning("Cannot reach server %s. Skipping.", url)
+            except ldap.TIMEOUT:
+                syslog.warning("Timeout searching server %s. Skipping.", url)
+            except (ldap.INVALID_CREDENTIALS, ldap.NO_SUCH_OBJECT):
+                syslog.warning(
+                    "Cannot authenticate to directory server %s as guest or "
+                    "cannot query. Skipping.",
+                    url,
+                )
+            return None
+        finally:
+            try:
+                conn.unbind_s()
+            except ldap.LDAPError:
+                pass
+
+    def _image_replacements(self, disclaimer_text: str, content_type: str) -> dict[str, str]:
+        """Memoised :func:`_build_image_replacements` (one query per mail)."""
+        key = (disclaimer_text, content_type)
+        if key not in self._image_cache:
+            self._image_cache[key] = _build_image_replacements(disclaimer_text, content_type)
+        return self._image_cache[key]
 
     def _replace_template_tags(
         self,
         action: models.Action,
         disclaimer_text: str,
         replacements: dict[str, Any],
-        charset: str,
+        charset: str | None = None,
+        *,
+        literal: Callable[[str], str] = _identity,
+        escape: Callable[[str], str] = _identity,
     ) -> str | None:
         """Replace ``{key}`` and ``{key["subkey"]}`` tags in ``disclaimer_text``.
 
         Returns the substituted string, or ``None`` if the action should be
-        skipped (template_fail and an unresolvable tag).
+        skipped (template_fail and an unresolvable tag). See
+        :func:`render_template` for the details.
         """
-        while True:
-            match = _TEMPLATE_TAG_RE.search(disclaimer_text)
-            if not match:
-                break
-
-            key = match.groups()[0].lower()
-            replace_key = match.groups()[0]
-            logging.debug("Replacing key %s", key)
-
-            dictmatch = _SUBKEY_TAG_RE.search(key)
-            subkey: str | None = None
-            value: str = ""
-
-            if dictmatch:
-                key = dictmatch.groups()[0].lower()
-                subkey = dictmatch.groups()[1].lower()
-
-                if key in replacements and subkey in replacements[key]:
-                    value = replacements[key][subkey]
-                elif action.disclaimer.template_fail:
-                    syslog.warning("Cannot resolve key %s. Skipping", key)
-                    return None
-                else:
-                    logging.debug(
-                        "Cannot resolve '%s' for '%s'",
-                        subkey,
-                        self.mail_data["envelope_from"],
-                    )
-            else:
-                if key in replacements:
-                    value = replacements[key]
-                elif action.disclaimer.template_fail:
-                    syslog.warning("Cannot resolve key %s. Skipping", key)
-                    return None
-                else:
-                    logging.debug(
-                        "Cannot resolve '%s' for '%s'",
-                        key,
-                        self.mail_data["envelope_from"],
-                    )
-
-            if len(value) > 0:
-                # If the disclaimer wraps the resolver tag in {rt}…{/rt}, keep
-                # the surrounding text and just drop the marker.
-                removetag = None
-                if subkey:
-                    removetag = re.search(
-                        r'{rt}(.*)({resolver\["' + subkey + r'"\]})(.*){/rt}',
-                        disclaimer_text,
-                        re.IGNORECASE,
-                    )
-                if removetag:
-                    logging.debug("Cleaning tag up...")
-                    replace_key = (
-                        "rt}"
-                        + removetag.groups()[0]
-                        + removetag.groups()[1]
-                        + removetag.groups()[2]
-                        + "{/rt"
-                    )
-                    value = removetag.groups()[0] + value + removetag.groups()[2]
-
-                disclaimer_text = disclaimer_text.replace(
-                    f"{{{replace_key}}}", value
-                )
-            else:
-                # No value: drop the whole {rt}…{/rt} block (or just the tag).
-                if subkey:
-                    remove = re.search(
-                        r'(\n)?{rt}.*{resolver\["'
-                        + subkey
-                        + r'"\]}.*{/rt}(\r|<br />)?|{resolver\["'
-                        + subkey
-                        + r'"\]}',
-                        disclaimer_text,
-                        re.IGNORECASE,
-                    )
-                    if remove:
-                        logging.debug("Removing tag...")
-                        disclaimer_text = (
-                            disclaimer_text[: remove.start()] + disclaimer_text[remove.end():]
-                        )
-                else:
-                    disclaimer_text = disclaimer_text.replace(f"{{{replace_key}}}", "")
-
         del charset  # currently unused; kept for API stability with the old code
-        return disclaimer_text
+        return render_template(
+            disclaimer_text,
+            replacements,
+            template_fail=action.disclaimer.template_fail,
+            literal=literal,
+            escape=escape,
+        )
 
     def do_action(
         self, mail_parameter: email.message.Message, action: models.Action
     ) -> email.message.Message | None:
-        """Apply ``action`` to ``mail_parameter`` (recursing into MIME parts)."""
-        mail = copy.deepcopy(mail_parameter)
+        """Apply ``action`` to a copy of ``mail_parameter`` (recursing into MIME parts).
 
+        Returns the modified copy, or ``None`` if the action was skipped.
+        """
+        return self._apply_action(copy.deepcopy(mail_parameter), action)
+
+    def _apply_action(
+        self, mail: email.message.Message, action: models.Action
+    ) -> email.message.Message | None:
+        """Apply ``action`` to ``mail`` in place.
+
+        ``None`` means the action was skipped for this (part of the) mail,
+        which is then left untouched.
+        """
         if mail.is_multipart():
             new_payloads = []
             for payload in mail.get_payload():
-                returned_mail = self.do_action(payload, action)
-                if returned_mail is not None:
-                    new_payloads.append(returned_mail)
+                returned_mail = self._apply_action(payload, action)
+                # A part the action skipped (unresolvable template, failed
+                # sender resolution, …) stays as it was — it must not vanish
+                # from the mail.
+                new_payloads.append(payload if returned_mail is None else returned_mail)
             mail.set_payload(new_payloads)
             return mail
 
@@ -611,6 +798,9 @@ class MilterHelper:
             disclaimer_charset = action.disclaimer.html_charset
             do_replace = action.disclaimer.html_use_template
 
+        # The plaintext disclaimer is turned into HTML for an HTML part.
+        text_as_html = content_type == "text/html" and action.disclaimer.html_use_text
+
         charset = mail.get_content_charset() or disclaimer_charset
         logging.debug("Message charset is: %s", charset)
         logging.debug("Disclaimer charset is: %s", disclaimer_charset)
@@ -630,7 +820,7 @@ class MilterHelper:
                 "recipient": self.mail_data["envelope_rcpt"],
                 "header": self.mail_data["headers_dict"],
                 "resolver": {},
-                "image": _build_image_replacements(disclaimer_text, content_type),
+                "image": self._image_replacements(disclaimer_text, content_type),
             }
 
             if action.resolve_sender:
@@ -642,14 +832,29 @@ class MilterHelper:
                     )
                     return None
 
-            replaced = self._replace_template_tags(
-                action, disclaimer_text, replacements, charset
-            )
+            if text_as_html:
+                # Escape the template text and the values separately so
+                # image tags survive as real <img> markup.
+                replaced = self._replace_template_tags(
+                    action,
+                    disclaimer_text.replace("\r\n", "\n"),
+                    replacements,
+                    charset,
+                    literal=self.make_html,
+                    escape=self.make_html,
+                )
+            elif content_type == "text/html":
+                replaced = self._replace_template_tags(
+                    action, disclaimer_text, replacements, charset, escape=escape_html_value
+                )
+            else:
+                replaced = self._replace_template_tags(
+                    action, disclaimer_text, replacements, charset
+                )
             if replaced is None:
                 return None
             disclaimer_text = replaced
-
-        if content_type == "text/html" and action.disclaimer.html_use_text:
+        elif text_as_html:
             disclaimer_text = self.make_html(disclaimer_text)
 
         logging.debug(
@@ -681,11 +886,8 @@ class MilterHelper:
                 disclaimer_part = etree.HTML(disclaimer_text)
                 disclaimer_body = disclaimer_part.xpath("body")[0]
 
-                target = (
-                    html_part.xpath("body")[0]
-                    if html_part.xpath("body")
-                    else html_part
-                )
+                bodies = html_part.xpath("body")
+                target = bodies[0] if bodies else html_part
                 # Copy any leading text that lxml stuffed onto body.text
                 # (rare for our wrapped-in-<p> case but cheap insurance).
                 if disclaimer_body.text:

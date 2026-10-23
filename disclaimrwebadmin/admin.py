@@ -53,9 +53,13 @@ class TenantAdmin(ModelAdmin):
         (None, {"fields": ("name", "slug", "description", "enabled")}),
     )
 
+    def get_queryset(self, request):
+        # One query for all domains of the page instead of one per row.
+        return super().get_queryset(request).prefetch_related("domains")
+
     @admin.display(description="Domains")
     def domain_summary(self, obj: Tenant) -> str:
-        domains = list(obj.domains.values_list("domain", flat=True))
+        domains = [d.domain for d in obj.domains.all()]
         if not domains:
             return "—"
         if len(domains) <= 3:

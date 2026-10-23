@@ -17,9 +17,11 @@ class queueFilter(logging.Filter):
 
     def __init__(self, queue_id: str = "") -> None:
         super().__init__()
-        if queue_id:
-            queue_id = f"{queue_id}: "
-        self.queue = queue_id
+        self.queue = ""
+        self.set_queue_id(queue_id)
+
+    def set_queue_id(self, queue_id: str) -> None:
+        self.queue = f"{queue_id}: " if queue_id else ""
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.queueid = self.queue
@@ -28,7 +30,18 @@ class queueFilter(logging.Filter):
 
 syslog = logging.getLogger("disclaimr")
 syslog.propagate = False
-syslog.addFilter(queueFilter())
+
+# One filter for the lifetime of the process; the milter only swaps the
+# queue id when a new mail starts (instead of stacking a new filter onto the
+# logger for every header line).
+_queue_filter = queueFilter()
+syslog.addFilter(_queue_filter)
+
+
+def set_queue_id(queue_id: str) -> None:
+    """Tag all following ``disclaimr`` log records with ``queue_id``."""
+    _queue_filter.set_queue_id(queue_id)
+
 
 formatter = logging.Formatter("%(name)s[%(process)d]: %(queueid)s%(message)s")
 

@@ -9,6 +9,7 @@ import logging
 import os
 import signal
 import sys
+import time
 import traceback
 
 import django
@@ -20,10 +21,10 @@ from disclaimr.query_cache import QueryCache  # noqa: F401  -- re-exported
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "disclaimrweb.settings")
 django.setup()
 
-from django.db import connection  # noqa: E402  -- after django.setup()
+from django.db import connections  # noqa: E402  -- after django.setup()
 
 from disclaimr.configuration_helper import build_configuration  # noqa: E402
-from disclaimr.logging_helper import queueFilter  # noqa: E402
+from disclaimr.logging_helper import set_queue_id  # noqa: E402
 from disclaimr.milter_helper import MilterHelper  # noqa: E402
 
 syslog = logging.getLogger("disclaimr")
@@ -40,8 +41,77 @@ except ImportError:
     HAS_SYSTEMD_PYTHON = False
 
 
+# How long (seconds) the sender-IP prefilter is reused before it is rebuilt
+# from the database, so new or changed requirements apply without a restart.
+CONFIG_TTL = float(os.environ.get("MILTER_CONFIG_TTL", "60"))
+
 configuration: dict = {}
+_configuration_built_at = 0.0
 options: argparse.Namespace
+
+
+def refresh_configuration(force: bool = False) -> None:
+    """(Re)build the sender-IP prefilter once :data:`CONFIG_TTL` has expired.
+
+    Runs in the accepting parent process. Its database connection is closed
+    right afterwards: the per-connection children are forked from this
+    process and must not share (and corrupt) the parent's socket — each child
+    opens a connection of its own on first use.
+    """
+    global configuration, _configuration_built_at
+
+    now = time.monotonic()
+    if not force and now - _configuration_built_at < CONFIG_TTL:
+        return
+
+    try:
+        configuration = build_configuration()
+    except Exception:
+        if force:
+            raise
+        syslog.exception("Cannot refresh the configuration, keeping the previous one")
+    finally:
+        _configuration_built_at = now
+        connections.close_all()
+
+
+# python-libmilter hands every protocol value (addresses, header names and
+# values, body chunks, macro names) over as bytes and expects bytes back.
+
+
+def _text(value: bytes | str | None) -> str:
+    """Decode a protocol value received from libmilter."""
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def _raw(value: bytes | str) -> bytes:
+    """Encode a value for libmilter's reply methods."""
+    if isinstance(value, bytes):
+        return value
+    return str(value).encode("utf-8", errors="surrogateescape")
+
+
+def _macros(cmd_dict: dict | None) -> dict[str, str]:
+    """Return the MTA macros (``i``, ``mail_addr``, …) with str keys and values."""
+    return {_text(key): _text(value) for key, value in (cmd_dict or {}).items()}
+
+
+def _address(value: bytes | str, macros: dict[str, str], macro: str) -> str:
+    """Return the bare envelope address of a MAIL FROM / RCPT TO command.
+
+    Prefers the MTA's parsed ``{mail_addr}`` / ``{rcpt_addr}`` macro; the raw
+    command argument carries angle brackets and possibly ESMTP parameters.
+    """
+    if macros.get(macro):
+        return macros[macro]
+    address = _text(value).split("\0", 1)[0].strip()
+    if address.startswith("<") and address.endswith(">"):
+        address = address[1:-1]
+    return address
 
 
 class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
@@ -55,18 +125,20 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         lm.MilterProtocol.__init__(self, opts, protos)
         lm.ForkMixin.__init__(self)
 
+        # Instantiated in the accepting parent right before the fork.
+        refresh_configuration()
         self.helper = MilterHelper(configuration)
         logging.debug("Initialising Milter Fork")
 
-        # Recycle stale Django DB connections (each fork inherits one).
-        if connection.connection and not connection.is_usable():
-            logging.debug("Found dead database connection, closing it now...")
-            connection.close()
+    def _track_queue_id(self, macros: dict[str, str]) -> None:
+        if macros.get("i"):
+            set_queue_id(macros["i"])
 
     @lm.noReply
     def connect(self, hostname, family, ip, port, cmd_dict):
+        hostname, ip = _text(hostname), _text(ip)
         logging.debug("CONNECT: %s, %s, %s, %s", hostname, family, ip, port)
-        self.helper.connect(hostname, family, ip, port, cmd_dict)
+        self.helper.connect(hostname, family, ip, port, _macros(cmd_dict))
         return lm.CONTINUE
 
     @lm.noReply
@@ -74,16 +146,22 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         if not self.helper.enabled:
             logging.debug("Ignoring HELO since CONNECT didn't match...")
             return lm.CONTINUE
-        logging.debug("HELO: %s", heloname)
+        logging.debug("HELO: %s", _text(heloname))
         return lm.CONTINUE
 
     @lm.noReply
     def mailFrom(self, addr, cmd_dict):
+        # A new mail starts — possibly not the first one on this connection.
+        self.helper.reset()
+        macros = _macros(cmd_dict)
+        set_queue_id(macros.get("i", ""))
+
         if not self.helper.enabled:
             logging.debug("Ignoring MAIL-FROM since a previous rule didn't match...")
             return lm.CONTINUE
+        addr = _address(addr, macros, "mail_addr")
         logging.debug("MAILFROM: %s", addr)
-        self.helper.mail_from(addr, cmd_dict)
+        self.helper.mail_from(addr, macros)
         return lm.CONTINUE
 
     @lm.noReply
@@ -93,8 +171,11 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
                 "We already have a positive recipient match, skipping further RCPT checks."
             )
             return lm.CONTINUE
+        macros = _macros(cmd_dict)
+        self._track_queue_id(macros)
+        recip = _address(recip, macros, "rcpt_addr")
         logging.debug("RCPT: %s", recip)
-        self.helper.rcpt(recip, cmd_dict)
+        self.helper.rcpt(recip, macros)
         return lm.CONTINUE
 
     @lm.noReply
@@ -102,9 +183,11 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         if not self.helper.enabled:
             logging.debug("Ignoring HEADER since a previous rule didn't match...")
             return lm.CONTINUE
+        macros = _macros(cmd_dict)
+        self._track_queue_id(macros)
+        key, val = _text(key), _text(val)
         logging.debug("HEADER: %s: %s", key, val)
-        syslog.addFilter(queueFilter(cmd_dict["i"]))
-        self.helper.header(key, val, cmd_dict)
+        self.helper.header(key, val, macros)
         return lm.CONTINUE
 
     @lm.noReply
@@ -112,7 +195,9 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         if not self.helper.enabled:
             logging.debug("Ignoring END-OF-HEADER since a previous rule didn't match...")
             return lm.CONTINUE
-        self.helper.eoh(cmd_dict)
+        macros = _macros(cmd_dict)
+        self._track_queue_id(macros)
+        self.helper.eoh(macros)
         return lm.CONTINUE
 
     @lm.noReply
@@ -120,41 +205,50 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         if not self.helper.enabled:
             logging.debug("Ignoring BODY since a previous rule didn't match...")
             return lm.CONTINUE
-        logging.debug("BODY: (chunk) %s", chunk)
+        logging.debug("BODY: chunk of %d bytes", len(chunk))
         self.helper.body(chunk, cmd_dict)
         return lm.CONTINUE
 
     def eob(self, cmd_dict):
         if not self.helper.enabled:
             logging.debug("Ignoring END-OF-BODY since a previous rule didn't match...")
+            self._qid = None
             return lm.CONTINUE
 
         logging.debug("ENDOFBODY: Processing actions...")
-        tasks = self.helper.eob(cmd_dict) or {}
+        macros = _macros(cmd_dict)
+        self._track_queue_id(macros)
+        tasks = self.helper.eob(macros) or {}
 
         if "repl_body" in tasks:
-            self.replBody(tasks["repl_body"])
+            self.replBody(_raw(tasks["repl_body"]))
 
         for header, value in tasks.get("add_header", {}).items():
-            self.addHeader(header, value)
+            self.addHeader(_raw(header), _raw(value))
 
         for header, value in tasks.get("change_header", {}).items():
-            self.chgHeader(header, value)
+            self.chgHeader(_raw(header), _raw(value))
 
         for header in tasks.get("delete_header", []):
-            self.chgHeader(header, "")
+            self.chgHeader(_raw(header), b"")
 
+        # Done with this mail — close() only reports mails that got stuck.
+        self._qid = None
         return lm.CONTINUE
+
+    def abort(self):
+        logging.debug("ABORT: resetting the mail state")
+        self.helper.reset()
 
     def close(self):
         logging.debug("Close called. QID: %s", self._qid)
         if self._qid:
             syslog.error(
-                "Message could not be processed! Traceback follows... If you found a "
-                "bug, please report it at "
-                "https://github.com/Compose-IT-Systemhaus/disclaimrNG"
+                "Message %s could not be processed! If you found a bug, please "
+                "report it at https://github.com/Compose-IT-Systemhaus/disclaimrNG",
+                _text(self._qid),
             )
-            traceback.print_exc()
+        connections.close_all()
 
 
 def run_disclaimr_milter() -> None:
@@ -190,7 +284,7 @@ def run_disclaimr_milter() -> None:
 
 
 def main() -> None:
-    global options, configuration
+    global options
 
     parser = argparse.ArgumentParser(
         description=(
@@ -248,7 +342,7 @@ def main() -> None:
         ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
     logging.debug("Generating basic configuration")
-    configuration = build_configuration()
+    refresh_configuration(force=True)
 
     run_disclaimr_milter()
 

@@ -1,7 +1,7 @@
-"""App config for ``disclaimrwebadmin`` — sets the verbose name and
-patches the admin index so the dashboard's app list mirrors the
-sidebar's *Signaturen* / *Einstellungen* groups instead of dumping
-every model under a single ``Disclaimrwebadmin`` heading.
+"""App config for ``disclaimrwebadmin`` — sets the verbose name, points
+the admin at our dashboard and login templates, and patches the app list
+so it mirrors the sidebar's *Signaturen* / *Einstellungen* groups instead
+of dumping every model under a single ``Disclaimrwebadmin`` heading.
 """
 
 from __future__ import annotations
@@ -22,6 +22,13 @@ class DisclaimrwebadminConfig(AppConfig):
 
     def ready(self) -> None:
         from django.contrib import admin
+
+        # unfold sits first in INSTALLED_APPS, so its admin/index.html and
+        # admin/login.html shadow same-named templates of this app. Ours
+        # therefore have their own names (and extend unfold's).
+        admin.site.index_template = "disclaimrwebadmin/admin/index.html"
+        admin.site.login_template = "disclaimrwebadmin/admin/login.html"
+        admin.site.index_title = _("Dashboard")
 
         original_get_app_list = admin.site.get_app_list
 

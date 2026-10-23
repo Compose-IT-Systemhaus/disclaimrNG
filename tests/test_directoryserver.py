@@ -154,8 +154,15 @@ class DirectoryServerTestCase(TestCase):
         helper.mail_from(address, {})
         helper.rcpt(address, {})
         helper.header("From", "nobody", {})
+
+        # Like the MTA, hand over the MIME headers and the body separately.
+
+        test_mail = MIMEText(self.test_text)
+        raw_mail = test_mail.as_string()
+        for key, value in test_mail.items():
+            helper.header(key, value, {})
         helper.eoh({})
-        helper.body(MIMEText(self.test_text).as_string(), {})
+        helper.body(raw_mail.split("\n\n", 1)[1], {})
         return helper.eob({})
 
     def test_disabled_directoryserver(self):
@@ -246,19 +253,19 @@ class DirectoryServerTestCase(TestCase):
 
         self.assertIn(
             self.directory_server.id,
-            QueryCache.cache,
+            QueryCache._cache,
             "Directory server wasn't cached at all!"
         )
 
         self.assertGreater(
-            len(QueryCache.cache[self.directory_server.id]),
+            len(QueryCache._cache[self.directory_server.id]),
             1,
             "Item seemingly wasn't cached."
         )
 
         # Clean the cache for other tests
 
-        QueryCache.cache = {}
+        QueryCache._cache = {}
 
     def test_caching_timeout(self):
 
@@ -287,7 +294,7 @@ class DirectoryServerTestCase(TestCase):
 
         # Clean the cache for other tests
 
-        QueryCache.cache = {}
+        QueryCache._cache = {}
 
     def test_caching_flush(self):
 
@@ -313,11 +320,11 @@ class DirectoryServerTestCase(TestCase):
 
         # The cache should be empty now
 
-        self.assertEqual(len(QueryCache.cache), 0, "The cache wasn't flushed.")
+        self.assertEqual(len(QueryCache._cache), 0, "The cache wasn't flushed.")
 
         # Clean the cache for other tests
 
-        QueryCache.cache = {}
+        QueryCache._cache = {}
 
     def test_unreachable(self):
 

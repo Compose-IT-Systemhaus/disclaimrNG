@@ -40,6 +40,7 @@ existieren.
 | ``DJANGO_LOG_LEVEL`` | Default ``INFO``; ``DEBUG`` falls Milter-Entscheidungen nachverfolgt werden müssen. |
 | ``DJANGO_TIME_ZONE`` | Alle Zeitstempel und Date-Picker im Admin nutzen das. Default ``Europe/Berlin``. |
 | ``DJANGO_LANGUAGE_CODE`` | Default-UI-Sprache; Admins können über die Topbar-Flagge umschalten. |
+| ``MILTER_CONFIG_TTL`` | Sekunden, nach denen der Milter den Sender-IP-Vorfilter neu aus der DB lädt (Default ``60``). Neue oder geänderte Requirements greifen so ohne Neustart. |
 
 ## Static Files
 

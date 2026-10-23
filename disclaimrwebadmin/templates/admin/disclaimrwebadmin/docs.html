@@ -9,30 +9,31 @@
 {% endblock %}
 
 {% block content %}
-<div class="docs-page">
-    <h1 class="docs-page__title">
-        {% translate "Documentation" %}
-        <span class="docs-page__chevron">›</span>
-        {{ docs_active_title }}
-    </h1>
+<div class="dz-page docs-page">
+    <header class="dz-page-header">
+        <div>
+            <p class="dz-eyebrow">{% translate "Documentation" %}</p>
+            <h1 class="dz-title">{{ docs_active_title }}</h1>
+        </div>
+    </header>
 
     <div class="docs-page__layout">
-        <aside class="docs-page__sidebar">
+        <nav class="docs-page__sidebar" aria-label="{% translate 'Sections' %}">
             <div class="docs-page__sidebar-title">{% translate "Sections" %}</div>
             <ul class="docs-page__nav">
                 {% for entry in docs_sidebar %}
                 <li>
                     <a href="{{ entry.url }}"
-                       class="docs-page__nav-link
-                              {% if entry.is_active %}docs-page__nav-link--active{% endif %}">
+                       class="docs-page__nav-link{% if entry.is_active %} docs-page__nav-link--active{% endif %}"
+                       {% if entry.is_active %}aria-current="page"{% endif %}>
                         {{ entry.title }}
                     </a>
                 </li>
                 {% endfor %}
             </ul>
-        </aside>
+        </nav>
 
-        <article class="docs-page__article">
+        <article class="dz-card docs-page__article">
             {{ docs_body|safe }}
         </article>
     </div>

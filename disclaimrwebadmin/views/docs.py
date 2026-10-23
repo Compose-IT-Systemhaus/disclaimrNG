@@ -118,6 +118,7 @@ class DocsView(View):
         context = admin.site.each_context(request)
         context.update(
             {
+                "title": _("Documentation"),
                 "docs_body": body_html,
                 "docs_sidebar": sidebar,
                 "docs_active_slug": active_slug,

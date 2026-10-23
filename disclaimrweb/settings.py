@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "adminsortable2",
     "disclaimrwebadmin.apps.DisclaimrwebadminConfig",
 ]
@@ -127,55 +128,60 @@ TEMPLATES = [
 UNFOLD = {
     "SITE_TITLE": "disclaimrNG",
     "SITE_HEADER": "disclaimrNG",
-    "SITE_URL": "/",
-    # Logo as a lazy callable — django-unfold resolves it at request time so
-    # the static finder is fully wired before static() runs. Transparent
-    # PNGs so the chrome shows through cleanly in both themes.
-    "SITE_LOGO": {
-        "light": lambda request: static("disclaimrwebadmin/img/logo_light_mode.png"),
-        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark_mode.png"),
-    },
-    "SITE_ICON": {
-        "light": lambda request: static("disclaimrwebadmin/img/logo_light_mode.png"),
-        "dark": lambda request: static("disclaimrwebadmin/img/logo_dark_mode.png"),
-    },
+    # The admin *is* the site — no "Return to site" / "View site" links.
+    "SITE_URL": None,
+    "SITE_SUBHEADER": _("Mail signature server"),
+    # Square brand mark next to the site name in the sidebar (the wide
+    # wordmark logo is used on the login page). Lazy callables — unfold
+    # resolves them at request time, once the static finder is wired up.
+    "SITE_ICON": lambda request: static("disclaimrwebadmin/img/mark.svg"),
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "type": "image/svg+xml",
+            "href": lambda request: static("disclaimrwebadmin/img/mark.svg"),
+        },
+    ],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
-    # Calm steel-blue accent on a near-neutral slate base. Primary is the
-    # accent (used for buttons, links, focus rings); base is the chrome
-    # (sidebar, cards, dividers). Both palettes use the Tailwind 50–950
-    # ramp django-unfold expects, expressed as space-separated R G B so
-    # the same definition works in light and dark mode.
+    "BORDER_RADIUS": "8px",
+    # Dashboard figures, setup checklist and recent changes on the index.
+    "DASHBOARD_CALLBACK": "disclaimrwebadmin.dashboard.dashboard_callback",
+    "LOGIN": {
+        "image": lambda request: static("disclaimrwebadmin/img/login_panel.svg"),
+    },
+    # Neutral zinc chrome with the navy of the logo as the only accent.
+    # Primary drives buttons, links and focus rings; base the sidebar,
+    # cards and dividers. Tailwind 50–950 ramps as django-unfold expects.
     "COLORS": {
         "base": {
-            "50": "248 250 252",
-            "100": "241 245 249",
-            "200": "226 232 240",
-            "300": "203 213 225",
-            "400": "148 163 184",
-            "500": "100 116 139",
-            "600": "71 85 105",
-            "700": "51 65 85",
-            "800": "30 41 59",
-            "900": "15 23 42",
-            "950": "2 6 23",
+            "50": "#fafafa",
+            "100": "#f4f4f5",
+            "200": "#e4e4e7",
+            "300": "#d4d4d8",
+            "400": "#a1a1aa",
+            "500": "#71717a",
+            "600": "#52525b",
+            "700": "#3f3f46",
+            "800": "#27272a",
+            "900": "#18181b",
+            "950": "#09090b",
         },
         "primary": {
-            "50": "239 246 255",
-            "100": "219 234 254",
-            "200": "191 219 254",
-            "300": "147 197 253",
-            "400": "96 165 250",
-            "500": "59 130 246",
-            "600": "37 99 235",
-            "700": "29 78 216",
-            "800": "30 64 175",
-            "900": "30 58 138",
-            "950": "23 37 84",
+            "50": "#f1f5fa",
+            "100": "#e2eaf4",
+            "200": "#c5d5e9",
+            "300": "#9bb6d8",
+            "400": "#6a90c1",
+            "500": "#4772a8",
+            "600": "#345a8c",
+            "700": "#2b4a72",
+            "800": "#263f5f",
+            "900": "#22354f",
+            "950": "#162235",
         },
     },
-    # A pinch of bespoke CSS to lighten visual weight: thinner borders,
-    # softer shadows, slightly more breathing room around form rows.
+    # Shared design tokens plus the bits of chrome unfold doesn't cover.
     "STYLES": [
         lambda request: static("disclaimrwebadmin/css/admin_chrome.css"),
         lambda request: static("disclaimrwebadmin/css/language_switcher.css"),

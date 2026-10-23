@@ -1,63 +1,317 @@
 /*
- * disclaimrNG admin chrome polish.
+ * disclaimrNG admin chrome — shared design tokens + light polish.
  *
- * django-unfold already gives us a clean Tailwind base; this stylesheet
- * trims a few rough edges to match the brand: hairline borders, softer
- * shadows, more whitespace around form rows, and slightly larger headings.
+ * unfold renders ``--color-base-*`` / ``--color-primary-*`` as complete
+ * colours (``rgb(…)``), so they are used directly — never wrapped in
+ * another ``rgb()`` — and mixed with ``color-mix()`` where an alpha is
+ * needed. unfold's own utilities live in cascade layers, which means
+ * everything in here wins over them: keep selectors narrow.
+ *
+ * The ``--dz-*`` tokens are what the custom pages (dashboard, signature
+ * test, docs, editor, directory server tools) build on, so light and
+ * dark mode only have to be decided once.
  */
 
 :root {
-    --disclaimr-radius: 0.625rem;
-    --disclaimr-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04),
-                        0 1px 3px 0 rgb(15 23 42 / 0.06);
+    --dz-radius: 12px;
+    --dz-radius-sm: 8px;
+    --dz-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --dz-bg: var(--color-base-50, #fafafa);
+    --dz-surface: #fff;
+    --dz-surface-muted: var(--color-base-50, #fafafa);
+    --dz-border: var(--color-base-200, #e4e4e7);
+    --dz-border-strong: var(--color-base-300, #d4d4d8);
+    --dz-text: var(--color-base-900, #18181b);
+    --dz-text-body: var(--color-base-700, #3f3f46);
+    --dz-text-muted: var(--color-base-500, #71717a);
+
+    --dz-accent: var(--color-primary-600, #345a8c);
+    --dz-accent-hover: var(--color-primary-700, #2b4a72);
+    --dz-accent-text: var(--color-primary-700, #2b4a72);
+    --dz-accent-soft: var(--color-primary-50, #f1f5fa);
+    --dz-accent-border: var(--color-primary-200, #c5d5e9);
+    --dz-ring: color-mix(in srgb, var(--color-primary-500, #4772a8) 35%, transparent);
+
+    --dz-success: #15803d;
+    --dz-success-soft: #f0fdf4;
+    --dz-success-border: #bbf7d0;
+    --dz-warning: #a16207;
+    --dz-warning-soft: #fefce8;
+    --dz-warning-border: #fde68a;
+    --dz-danger: #b91c1c;
+    --dz-danger-soft: #fef2f2;
+    --dz-danger-border: #fecaca;
+
+    --dz-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+    --dz-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.12);
 }
 
-/* Cards / panels — calmer borders, softer shadow, rounder corners. */
-.dark .border-base-200,
-.border-base-200 {
-    border-color: rgb(var(--color-base-200) / 0.8);
-}
-.shadow-sm,
-.shadow {
-    box-shadow: var(--disclaimr-shadow) !important;
-}
-.rounded,
-.rounded-md {
-    border-radius: var(--disclaimr-radius);
+.dark {
+    --dz-bg: var(--color-base-900, #18181b);
+    --dz-surface: color-mix(in srgb, var(--color-base-800, #27272a) 45%, var(--color-base-900, #18181b));
+    --dz-surface-muted: var(--color-base-900, #18181b);
+    --dz-border: var(--color-base-800, #27272a);
+    --dz-border-strong: var(--color-base-700, #3f3f46);
+    --dz-text: var(--color-base-50, #fafafa);
+    --dz-text-body: var(--color-base-300, #d4d4d8);
+    --dz-text-muted: var(--color-base-400, #a1a1aa);
+
+    --dz-accent: var(--color-primary-500, #4772a8);
+    --dz-accent-hover: var(--color-primary-400, #6a90c1);
+    --dz-accent-text: var(--color-primary-300, #9bb6d8);
+    --dz-accent-soft: color-mix(in srgb, var(--color-primary-500, #4772a8) 16%, transparent);
+    --dz-accent-border: color-mix(in srgb, var(--color-primary-400, #6a90c1) 40%, transparent);
+
+    --dz-success: #4ade80;
+    --dz-success-soft: color-mix(in srgb, #22c55e 12%, transparent);
+    --dz-success-border: color-mix(in srgb, #22c55e 35%, transparent);
+    --dz-warning: #facc15;
+    --dz-warning-soft: color-mix(in srgb, #eab308 12%, transparent);
+    --dz-warning-border: color-mix(in srgb, #eab308 35%, transparent);
+    --dz-danger: #f87171;
+    --dz-danger-soft: color-mix(in srgb, #ef4444 12%, transparent);
+    --dz-danger-border: color-mix(in srgb, #ef4444 35%, transparent);
+
+    --dz-shadow: none;
+    --dz-shadow-raised: 0 8px 24px -12px rgb(0 0 0 / 0.6);
 }
 
-/* Page heading: a touch more presence. */
-h1.text-font-important-light,
-.dark h1.text-font-important-dark {
+/* Inter's modern alternates (single-storey a, flat-top digits). */
+body {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: color-mix(in srgb, var(--color-primary-500, #4772a8) 22%, transparent);
+}
+
+/* Slim, unobtrusive scrollbars. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dz-border-strong) transparent;
+}
+
+/* Page headings: a touch tighter. */
+#content h1,
+#content h2 {
+    letter-spacing: -0.015em;
+}
+
+/* Numbers line up in change lists. */
+#result_list td,
+#result_list th {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Material Symbols in our own components inherit size and colour. */
+.dz-icon {
+    font-family: "Material Symbols Outlined";
+    font-size: 1.25em;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------
+ * Shared building blocks for the custom pages
+ * ------------------------------------------------------------------- */
+
+.dz-page {
+    color: var(--dz-text-body);
+    max-width: 1120px;
+}
+
+.dz-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-bottom: 1.75rem;
+}
+
+.dz-eyebrow {
+    margin: 0 0 0.375rem;
+    color: var(--dz-accent-text);
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
-/* Form rows — give labels and fields room to breathe. */
-.form-row {
-    padding-block: 0.875rem;
-}
-.form-row + .form-row {
-    border-top: 1px solid rgb(var(--color-base-100));
-}
-
-/* Sidebar — sharpen the hover state without the default heavy fill. */
-.sidebar a:hover {
-    background-color: rgb(var(--color-base-100) / 0.6);
-}
-.dark .sidebar a:hover {
-    background-color: rgb(var(--color-base-800) / 0.5);
+.dz-title {
+    margin: 0;
+    color: var(--dz-text);
+    font-size: 1.625rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
-/* Buttons — primary buttons use the accent solid; secondary stays neutral. */
-.button.default,
-input[type="submit"].default,
-.submit-row input.default {
-    background-color: rgb(var(--color-primary-600));
-    border-color: rgb(var(--color-primary-600));
+.dz-lead {
+    margin: 0.5rem 0 0;
+    max-width: 60ch;
+    color: var(--dz-text-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
 }
-.button.default:hover,
-input[type="submit"].default:hover {
-    background-color: rgb(var(--color-primary-700));
-    border-color: rgb(var(--color-primary-700));
+
+.dz-card {
+    background: var(--dz-surface);
+    border: 1px solid var(--dz-border);
+    border-radius: var(--dz-radius);
+    box-shadow: var(--dz-shadow);
+}
+
+.dz-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--dz-border);
+}
+
+.dz-card__title {
+    margin: 0;
+    color: var(--dz-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.dz-card__body {
+    padding: 1.25rem;
+}
+
+.dz-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.375rem;
+    padding: 0 1rem;
+    border: 1px solid var(--dz-border);
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-surface);
+    color: var(--dz-text);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.dz-btn:hover {
+    border-color: var(--dz-border-strong);
+    background: var(--dz-surface-muted);
+}
+
+.dz-btn--primary {
+    border-color: var(--dz-accent);
+    background: var(--dz-accent);
+    color: #fff;
+}
+
+.dz-btn--primary:hover {
+    border-color: var(--dz-accent-hover);
+    background: var(--dz-accent-hover);
+    color: #fff;
+}
+
+.dz-btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.dz-btn:focus-visible,
+.dz-focus:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
+}
+
+.dz-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--dz-border);
+    border-radius: 999px;
+    color: var(--dz-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.dz-badge--accent {
+    border-color: var(--dz-accent-border);
+    background: var(--dz-accent-soft);
+    color: var(--dz-accent-text);
+}
+
+/* Form controls on the custom pages (unfold styles its own widgets). */
+.dz-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+}
+
+.dz-field label {
+    color: var(--dz-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.dz-input {
+    width: 100%;
+    min-height: 2.375rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--dz-border-strong);
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-surface);
+    color: var(--dz-text);
+    font: inherit;
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.dz-input:focus {
+    outline: none;
+    border-color: var(--dz-accent);
+    box-shadow: 0 0 0 3px var(--dz-ring);
+}
+
+textarea.dz-input {
+    min-height: 12rem;
+    font-family: var(--dz-font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.dz-pre {
+    margin: 0;
+    padding: 1rem;
+    overflow: auto;
+    border: 1px solid var(--dz-border);
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-surface-muted);
+    color: var(--dz-text-body);
+    font-family: var(--dz-font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
 }

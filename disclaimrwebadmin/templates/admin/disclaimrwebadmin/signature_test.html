@@ -9,147 +9,163 @@
 {% endblock %}
 
 {% block content %}
-<div class="signature-test">
-    <h1 class="signature-test__title">{% translate "Signature test" %}</h1>
-    <p class="signature-test__intro">
-        {% blocktranslate %}
-        Enter a sample mail. The real milter pipeline runs against the
-        currently configured rules and shows the result below — i.e. the
-        mail with the appended signature.
-        {% endblocktranslate %}
-    </p>
-
-    <form method="post" class="signature-test__card" novalidate>
-        {% csrf_token %}
-
-        <div class="signature-test__grid">
-            <div class="signature-test__field">
-                <label for="id_sender">{% translate "Sender" %}</label>
-                <input type="email" id="id_sender" name="sender"
-                       value="{{ defaults.sender }}" required>
-            </div>
-            <div class="signature-test__field">
-                <label for="id_recipient">{% translate "Recipient" %}</label>
-                <input type="email" id="id_recipient" name="recipient"
-                       value="{{ defaults.recipient }}" required>
-            </div>
-            <div class="signature-test__field">
-                <label for="id_subject">{% translate "Subject" %}</label>
-                <input type="text" id="id_subject" name="subject"
-                       value="{{ defaults.subject }}">
-            </div>
-            <div class="signature-test__field">
-                <label for="id_sender_ip">{% translate "Sender IP" %}</label>
-                <input type="text" id="id_sender_ip" name="sender_ip"
-                       value="{{ defaults.sender_ip }}"
-                       placeholder="127.0.0.1">
-            </div>
-            <div class="signature-test__field">
-                <label for="id_content_type">{% translate "Content type" %}</label>
-                <select id="id_content_type" name="content_type">
-                    <option value="text/plain"
-                        {% if defaults.content_type == "text/plain" %}selected{% endif %}>
-                        text/plain
-                    </option>
-                    <option value="text/html"
-                        {% if defaults.content_type == "text/html" %}selected{% endif %}>
-                        text/html
-                    </option>
-                </select>
-            </div>
+<div class="dz-page signature-test">
+    <header class="dz-page-header">
+        <div>
+            <p class="dz-eyebrow">{% translate "Signatures" %}</p>
+            <h1 class="dz-title">{% translate "Signature test" %}</h1>
+            <p class="dz-lead">
+                {% blocktranslate trimmed %}
+                Enter a sample mail. The real milter pipeline runs against the
+                currently configured rules and shows the result below — i.e. the
+                mail with the appended signature.
+                {% endblocktranslate %}
+            </p>
         </div>
+    </header>
 
-        <div class="signature-test__field signature-test__field--wide">
-            <label for="id_body">{% translate "Mail body" %}</label>
-            <textarea id="id_body" name="body" rows="10">{{ defaults.body }}</textarea>
-        </div>
+    <div class="signature-test__layout">
+        <form method="post" class="dz-card signature-test__form" novalidate>
+            {% csrf_token %}
+            <header class="dz-card__header">
+                <h2 class="dz-card__title">{% translate "Test mail" %}</h2>
+            </header>
 
-        <button type="submit" class="signature-test__submit">
-            {% translate "Run test" %}
-        </button>
-    </form>
+            <div class="dz-card__body">
+                <div class="signature-test__grid">
+                    <div class="dz-field">
+                        <label for="id_sender">{% translate "Sender" %}</label>
+                        <input class="dz-input" type="email" id="id_sender" name="sender"
+                               value="{{ defaults.sender }}" required>
+                    </div>
+                    <div class="dz-field">
+                        <label for="id_recipient">{% translate "Recipient" %}</label>
+                        <input class="dz-input" type="email" id="id_recipient" name="recipient"
+                               value="{{ defaults.recipient }}" required>
+                    </div>
+                    <div class="dz-field signature-test__span">
+                        <label for="id_subject">{% translate "Subject" %}</label>
+                        <input class="dz-input" type="text" id="id_subject" name="subject"
+                               value="{{ defaults.subject }}">
+                    </div>
+                    <div class="dz-field">
+                        <label for="id_sender_ip">{% translate "Sender IP" %}</label>
+                        <input class="dz-input" type="text" id="id_sender_ip" name="sender_ip"
+                               value="{{ defaults.sender_ip }}" placeholder="127.0.0.1">
+                    </div>
+                    <div class="dz-field">
+                        <label for="id_content_type">{% translate "Content type" %}</label>
+                        <select class="dz-input" id="id_content_type" name="content_type">
+                            <option value="text/plain" {% if defaults.content_type == "text/plain" %}selected{% endif %}>text/plain</option>
+                            <option value="text/html" {% if defaults.content_type == "text/html" %}selected{% endif %}>text/html</option>
+                        </select>
+                    </div>
+                    <div class="dz-field signature-test__span">
+                        <label for="id_body">{% translate "Mail body" %}</label>
+                        <textarea class="dz-input" id="id_body" name="body" rows="10">{{ defaults.body }}</textarea>
+                    </div>
+                </div>
+            </div>
 
-    {% if outcome %}
-    <section class="signature-test__card signature-test__result">
-        <h2>{% translate "Result" %}</h2>
+            <footer class="signature-test__actions">
+                <button type="submit" class="dz-btn dz-btn--primary">
+                    <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
+                    {% translate "Run test" %}
+                </button>
+            </footer>
+        </form>
 
-        {% if outcome.error %}
-        <p class="signature-test__banner signature-test__banner--error">
-            {{ outcome.error }}
-        </p>
-        {% else %}
-        <p class="signature-test__banner
-                  {% if outcome.matched %}signature-test__banner--match{% else %}signature-test__banner--passthrough{% endif %}">
-            {{ outcome.summary }}
-        </p>
-        {% endif %}
-
-        {% if outcome.matched and not outcome.error %}
-        {% if outcome.matched_rules %}
-        <h3>{% translate "Matched rules" %}</h3>
-        <ul class="signature-test__rule-list">
-            {% for rule in outcome.matched_rules %}
-            <li>
-                <a href="{% url 'admin:disclaimrwebadmin_rule_change' rule.pk %}"
-                   class="signature-test__rule-link">{{ rule.name }}</a>
-                {% if rule.description %}
-                <span class="signature-test__rule-desc">— {{ rule.description }}</span>
+        <section class="dz-card signature-test__result" aria-live="polite">
+            <header class="dz-card__header">
+                <h2 class="dz-card__title">{% translate "Result" %}</h2>
+                {% if outcome %}
+                    {% if outcome.error %}
+                    <span class="dz-badge signature-test__state signature-test__state--error">{% translate "Error" %}</span>
+                    {% elif outcome.matched %}
+                    <span class="dz-badge signature-test__state signature-test__state--match">{% translate "Signature added" %}</span>
+                    {% else %}
+                    <span class="dz-badge signature-test__state">{% translate "Unchanged" %}</span>
+                    {% endif %}
                 {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-        {% endif %}
+            </header>
 
-        {% if outcome.rendered_content_type == "text/html" %}
-        <h3>{% translate "Preview (rendered HTML)" %}</h3>
-        <iframe class="signature-test__html-preview"
-                sandbox="allow-same-origin"
-                src="{{ outcome.html_preview_data_url }}"></iframe>
-        <details>
-            <summary>{% translate "Show HTML source" %}</summary>
-            <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
-        </details>
-        {% else %}
-        <h3>{% translate "Modified mail body" %}</h3>
-        <pre class="signature-test__pre">{{ outcome.rendered_body }}</pre>
-        {% endif %}
+            {% if not outcome %}
+            <div class="signature-test__placeholder">
+                <span class="material-symbols-outlined" aria-hidden="true">mark_email_read</span>
+                <p>{% translate "Run a test to see the mail as recipients will get it." %}</p>
+            </div>
+            {% else %}
+            <div class="dz-card__body signature-test__result-body">
+                {% if outcome.error %}
+                <p class="signature-test__banner signature-test__banner--error">
+                    <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                    <span>{{ outcome.error }}</span>
+                </p>
+                {% else %}
+                <p class="signature-test__banner {% if outcome.matched %}signature-test__banner--match{% else %}signature-test__banner--passthrough{% endif %}">
+                    <span class="material-symbols-outlined" aria-hidden="true">{% if outcome.matched %}check_circle{% else %}info{% endif %}</span>
+                    <span>{{ outcome.summary }}</span>
+                </p>
+                {% endif %}
 
-        {% if outcome.add_headers %}
-        <h3>{% translate "Added headers" %}</h3>
-        <ul class="signature-test__list">
-            {% for key, value in outcome.add_headers.items %}
-            <li><code>{{ key }}</code>: {{ value }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
+                {% if outcome.matched and not outcome.error %}
+                {% if outcome.matched_rules %}
+                <h3 class="signature-test__heading">{% translate "Matched rules" %}</h3>
+                <ul class="signature-test__rules">
+                    {% for rule in outcome.matched_rules %}
+                    <li>
+                        <a href="{% url 'admin:disclaimrwebadmin_rule_change' rule.pk %}" class="signature-test__rule-link">
+                            <span class="material-symbols-outlined" aria-hidden="true">rule</span>{{ rule.name }}
+                        </a>
+                        {% if rule.description %}<span class="signature-test__rule-desc">{{ rule.description }}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
 
-        {% if outcome.change_headers %}
-        <h3>{% translate "Changed headers" %}</h3>
-        <ul class="signature-test__list">
-            {% for key, value in outcome.change_headers.items %}
-            <li><code>{{ key }}</code>: {{ value }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
+                {% if outcome.rendered_content_type == "text/html" %}
+                <h3 class="signature-test__heading">{% translate "Preview (rendered HTML)" %}</h3>
+                <iframe class="signature-test__html-preview"
+                        sandbox="allow-same-origin"
+                        title="{% translate 'Preview (rendered HTML)' %}"
+                        src="{{ outcome.html_preview_data_url }}"></iframe>
+                <details class="signature-test__details">
+                    <summary>{% translate "Show HTML source" %}</summary>
+                    <pre class="dz-pre">{{ outcome.rendered_body }}</pre>
+                </details>
+                {% else %}
+                <h3 class="signature-test__heading">{% translate "Modified mail body" %}</h3>
+                <pre class="dz-pre">{{ outcome.rendered_body }}</pre>
+                {% endif %}
 
-        {% if outcome.delete_headers %}
-        <h3>{% translate "Removed headers" %}</h3>
-        <ul class="signature-test__list">
-            {% for key in outcome.delete_headers %}
-            <li><code>{{ key }}</code></li>
-            {% endfor %}
-        </ul>
-        {% endif %}
+                {% if outcome.add_headers or outcome.change_headers or outcome.delete_headers %}
+                <h3 class="signature-test__heading">{% translate "Header changes" %}</h3>
+                <ul class="signature-test__headers">
+                    {% for key, value in outcome.add_headers.items %}
+                    <li><span class="dz-badge signature-test__op--add">{% translate "Added" %}</span><code>{{ key }}</code><span class="signature-test__header-value">{{ value }}</span></li>
+                    {% endfor %}
+                    {% for key, value in outcome.change_headers.items %}
+                    <li><span class="dz-badge signature-test__op--change">{% translate "Changed" %}</span><code>{{ key }}</code><span class="signature-test__header-value">{{ value }}</span></li>
+                    {% endfor %}
+                    {% for key in outcome.delete_headers %}
+                    <li><span class="dz-badge signature-test__op--delete">{% translate "Removed" %}</span><code>{{ key }}</code></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
 
-        <h3>{% translate "Full mail after pipeline" %}</h3>
-        <pre class="signature-test__pre">{{ outcome.rendered_full_mail }}</pre>
-        {% endif %}
+                <details class="signature-test__details">
+                    <summary>{% translate "Full mail after pipeline" %}</summary>
+                    <pre class="dz-pre">{{ outcome.rendered_full_mail }}</pre>
+                </details>
+                {% endif %}
 
-        <details>
-            <summary>{% translate "Input mail (before pipeline)" %}</summary>
-            <pre class="signature-test__pre">{{ raw_input }}</pre>
-        </details>
-    </section>
-    {% endif %}
+                <details class="signature-test__details">
+                    <summary>{% translate "Input mail (before pipeline)" %}</summary>
+                    <pre class="dz-pre">{{ raw_input }}</pre>
+                </details>
+            </div>
+            {% endif %}
+        </section>
+    </div>
 </div>
 {% endblock %}

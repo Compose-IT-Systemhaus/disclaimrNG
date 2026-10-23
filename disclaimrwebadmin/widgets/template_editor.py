@@ -34,6 +34,22 @@ _COMMON_FIELDS = [
     (_("Address"), 'resolver["streetAddress"]'),
 ]
 
+# Texts rendered by template_editor.js. ``{name}`` style parameters are
+# filled in client-side.
+_JS_TEXTS = {
+    "envelope": _("Envelope"),
+    "header": _("Header"),
+    "common_fields": _("Common fields"),
+    "directory_attributes": _("Directory attributes"),
+    "no_directory": _("No directory server configured or no attributes discovered yet."),
+    "no_images": _("No images uploaded yet."),
+    "insert_image": _("Click to insert — slug: {slug}"),
+    "uploading": _("Uploading {name} …"),
+    "upload_error": _("Error: {error}"),
+    "network_error": _("Network error: {error}"),
+    "uploaded": _("Uploaded as “{slug}”. Click it to insert."),
+}
+
 
 class TemplateEditorWidget(forms.Textarea):
     """Editor widget rendered as Code/Visual/Preview tabs."""
@@ -75,5 +91,9 @@ class TemplateEditorWidget(forms.Textarea):
         # the active language.
         context["widget"]["common_fields_json"] = json.dumps(
             [{"label": str(label), "token": token} for label, token in _COMMON_FIELDS]
+        )
+        # Same for the texts the JS renders itself.
+        context["widget"]["i18n_json"] = json.dumps(
+            {key: str(text) for key, text in _JS_TEXTS.items()}
         )
         return context

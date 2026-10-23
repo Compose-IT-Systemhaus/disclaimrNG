@@ -1,28 +1,49 @@
+/*
+ * Template editor widget (Code / Visual / Preview + placeholder chips and
+ * image gallery). Builds on the --dz-* tokens from admin_chrome.css, so it
+ * follows unfold's light and dark mode.
+ */
+
 .template-editor {
-    border: 1px solid var(--unfold-border-base, #e5e7eb);
-    border-radius: 6px;
     overflow: hidden;
-    background: #fff;
+    border: 1px solid var(--dz-border);
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-surface);
 }
 
 .template-editor__tabs {
     display: flex;
-    background: #f3f4f6;
-    border-bottom: 1px solid var(--unfold-border-base, #e5e7eb);
+    gap: 0.25rem;
+    padding: 0.375rem;
+    border-bottom: 1px solid var(--dz-border);
+    background: var(--dz-surface-muted);
 }
 
 .template-editor__tab {
-    padding: 0.5rem 1rem;
-    background: transparent;
+    padding: 0.375rem 0.875rem;
     border: 0;
-    border-right: 1px solid var(--unfold-border-base, #e5e7eb);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.template-editor__tab:hover {
+    color: var(--dz-text);
 }
 
 .template-editor__tab.is-active {
-    background: #fff;
-    color: var(--unfold-primary-600, #0284c7);
+    background: var(--dz-surface);
+    box-shadow: 0 0 0 1px var(--dz-border), 0 1px 2px rgb(0 0 0 / 0.05);
+    color: var(--dz-text);
+}
+
+.template-editor__tab:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
 }
 
 .template-editor__panes {
@@ -47,6 +68,11 @@
     border: 0;
 }
 
+/* The preview shows the mail as a client would: always on white. */
+.template-editor__preview {
+    background: #fff;
+}
+
 .template-editor__source {
     /* The canonical textarea is hidden — Monaco/TinyMCE write into it. */
     position: absolute;
@@ -56,96 +82,16 @@
     opacity: 0;
 }
 
-/* --- Placeholder chip strip --------------------------------------------- */
+/* --- Placeholder chips -------------------------------------------------- */
 
-.template-editor__chips {
-    border-top: 1px solid var(--unfold-border-base, #e5e7eb);
-    background: #f9fafb;
-    padding: 0.75rem 1rem;
-}
-
-.template-editor__chips-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.template-editor__chips-title {
-    font-weight: 600;
-    color: rgb(51 65 85);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.75rem;
-}
-
-.template-editor__chips-hint {
-    font-size: 0.75rem;
-    color: rgb(100 116 139);
-    font-style: italic;
-}
-
-.template-editor__chip-group + .template-editor__chip-group {
-    margin-top: 0.625rem;
-}
-
-.template-editor__chip-group-title {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: rgb(100 116 139);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.25rem;
-}
-
-.template-editor__chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-}
-
-.template-editor__chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.125rem 0.625rem;
-    background: #fff;
-    border: 1px solid var(--unfold-border-base, #cbd5e1);
-    border-radius: 999px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.75rem;
-    color: rgb(51 65 85);
-    cursor: pointer;
-    transition: border-color 0.1s, color 0.1s, background 0.1s;
-}
-
-.template-editor__chip[data-kind="envelope"] { color: rgb(2 132 199); }
-.template-editor__chip[data-kind="header"]   { color: rgb(120 53 15); }
-.template-editor__chip[data-kind="resolver"] { color: rgb(22 101 52); }
-
-.template-editor__chip:hover {
-    border-color: rgb(59 130 246);
-    background: rgb(239 246 255);
-}
-
-.template-editor__chip:active {
-    transform: translateY(1px);
-}
-
-.template-editor__chips-empty {
-    color: rgb(100 116 139);
-    font-style: italic;
-    font-size: 0.8125rem;
-    padding: 0.25rem 0;
-}
-
-/* --- Image picker gallery ------------------------------------------------ */
-
+.template-editor__chips,
 .template-editor__images {
-    border-top: 1px solid var(--unfold-border-base, #e5e7eb);
-    background: #f9fafb;
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
+    border-top: 1px solid var(--dz-border);
+    background: var(--dz-surface-muted);
 }
 
+.template-editor__chips-header,
 .template-editor__images-header {
     display: flex;
     align-items: center;
@@ -153,13 +99,91 @@
     margin-bottom: 0.625rem;
 }
 
+.template-editor__chips-title,
 .template-editor__images-title {
+    color: var(--dz-text);
+    font-size: 0.75rem;
     font-weight: 600;
-    color: rgb(51 65 85);
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+}
+
+.template-editor__chips-hint {
+    color: var(--dz-text-muted);
     font-size: 0.75rem;
 }
+
+.template-editor__chip-group + .template-editor__chip-group {
+    margin-top: 0.75rem;
+}
+
+.template-editor__chip-group-title {
+    margin-bottom: 0.375rem;
+    color: var(--dz-text-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.template-editor__chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.template-editor__chip {
+    --chip-dot: var(--dz-text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.625rem;
+    border: 1px solid var(--dz-border);
+    border-radius: 999px;
+    background: var(--dz-surface);
+    color: var(--dz-text-body);
+    font-family: var(--dz-font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+
+/* A coloured dot tells the placeholder groups apart. */
+.template-editor__chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--chip-dot);
+}
+
+.template-editor__chip[data-kind="envelope"] { --chip-dot: #0ea5e9; }
+.template-editor__chip[data-kind="header"]   { --chip-dot: #f59e0b; }
+.template-editor__chip[data-kind="resolver"] { --chip-dot: #22c55e; }
+.template-editor__chip[data-kind="image"]    { --chip-dot: #a855f7; }
+
+.template-editor__chip:hover {
+    border-color: var(--dz-accent-border);
+    background: var(--dz-accent-soft);
+    color: var(--dz-accent-text);
+}
+
+.template-editor__chip:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
+}
+
+.template-editor__chip:active {
+    transform: translateY(1px);
+}
+
+.template-editor__chips-empty,
+.template-editor__images-empty {
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
+}
+
+/* --- Image gallery ------------------------------------------------------ */
 
 .template-editor__images-upload {
     cursor: pointer;
@@ -175,18 +199,28 @@
 }
 
 .template-editor__upload-button {
-    display: inline-block;
-    padding: 0.25rem 0.625rem;
-    background: rgb(37 99 235);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 6px;
+    background: var(--dz-accent);
     color: #fff;
-    border-radius: 4px;
     font-size: 0.8125rem;
     font-weight: 500;
+    transition: background-color 0.15s;
 }
 
-.template-editor__upload-input:focus + .template-editor__upload-button {
-    outline: 2px solid rgb(96 165 250);
-    outline-offset: 2px;
+.template-editor__upload-button .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.template-editor__images-upload:hover .template-editor__upload-button {
+    background: var(--dz-accent-hover);
+}
+
+.template-editor__upload-input:focus-visible + .template-editor__upload-button {
+    box-shadow: 0 0 0 3px var(--dz-ring);
 }
 
 .template-editor__images-grid {
@@ -197,31 +231,34 @@
 
 .template-editor__images-empty {
     grid-column: 1 / -1;
-    color: rgb(100 116 139);
-    font-style: italic;
-    font-size: 0.875rem;
-    padding: 0.5rem 0;
+    padding: 0.25rem 0;
 }
 
 .template-editor__image {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    background: #fff;
-    border: 1px solid var(--unfold-border-base, #e5e7eb);
-    border-radius: 4px;
-    padding: 0.375rem;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    border: 1px solid var(--dz-border);
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-surface);
     cursor: pointer;
-    transition: border-color 0.1s, transform 0.05s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .template-editor__image:hover {
-    border-color: rgb(59 130 246);
+    border-color: var(--dz-accent-border);
+    box-shadow: var(--dz-shadow-raised);
+}
+
+.template-editor__image:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
 }
 
 .template-editor__image:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
 }
 
 .template-editor__image img {
@@ -231,28 +268,28 @@
 }
 
 .template-editor__image-slug {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--dz-text-muted);
+    font-family: var(--dz-font-mono);
     font-size: 0.75rem;
-    color: rgb(71 85 105);
-    word-break: break-all;
-    text-align: center;
     line-height: 1.2;
+    text-align: center;
+    word-break: break-all;
 }
 
 .template-editor__images-status {
+    min-height: 1.2em;
     margin-top: 0.5rem;
     font-size: 0.8125rem;
-    min-height: 1.2em;
 }
 
 .template-editor__images-status[data-kind="error"] {
-    color: rgb(220 38 38);
+    color: var(--dz-danger);
 }
 
 .template-editor__images-status[data-kind="success"] {
-    color: rgb(22 163 74);
+    color: var(--dz-success);
 }
 
 .template-editor__images-status[data-kind="pending"] {
-    color: rgb(100 116 139);
+    color: var(--dz-text-muted);
 }

@@ -1,19 +1,20 @@
-{% load static %}
+{% load i18n static %}
 <div class="template-editor"
      data-content-type="{{ widget.content_type }}"
      data-preview-url="{{ widget.preview_url }}"
      data-vocabulary-url="{{ widget.vocabulary_url }}"
      data-upload-url="{{ widget.upload_url }}"
-     data-common-fields="{{ widget.common_fields_json }}">
+     data-common-fields="{{ widget.common_fields_json }}"
+     data-i18n="{{ widget.i18n_json }}">
     <div class="template-editor__tabs" role="tablist">
         <button type="button" class="template-editor__tab is-active"
-                data-tab="code" role="tab" aria-selected="true">Code</button>
+                data-tab="code" role="tab" aria-selected="true">{% translate "Code" %}</button>
         {% if widget.content_type == "text/html" %}
         <button type="button" class="template-editor__tab"
-                data-tab="visual" role="tab" aria-selected="false">Visual</button>
+                data-tab="visual" role="tab" aria-selected="false">{% translate "Visual" %}</button>
         {% endif %}
         <button type="button" class="template-editor__tab"
-                data-tab="preview" role="tab" aria-selected="false">Preview</button>
+                data-tab="preview" role="tab" aria-selected="false">{% translate "Preview" %}</button>
     </div>
 
     <div class="template-editor__panes">
@@ -26,31 +27,32 @@
         </div>
         {% endif %}
         <div class="template-editor__pane" data-pane="preview">
-            <iframe class="template-editor__preview" sandbox="allow-same-origin"></iframe>
+            <iframe class="template-editor__preview" sandbox="allow-same-origin" title="{% translate 'Preview' %}"></iframe>
         </div>
     </div>
 
     <div class="template-editor__chips">
         <div class="template-editor__chips-header">
-            <span class="template-editor__chips-title">Platzhalter</span>
-            <span class="template-editor__chips-hint">
-                Klicken zum Einfügen
-            </span>
+            <span class="template-editor__chips-title">{% translate "Placeholders" %}</span>
+            <span class="template-editor__chips-hint">{% translate "Click to insert" %}</span>
         </div>
         <div class="template-editor__chips-grid"></div>
     </div>
 
     <div class="template-editor__images">
         <div class="template-editor__images-header">
-            <span class="template-editor__images-title">Bilder</span>
+            <span class="template-editor__images-title">{% translate "Images" %}</span>
             <label class="template-editor__images-upload">
                 <input type="file" accept="image/*" class="template-editor__upload-input">
-                <span class="template-editor__upload-button">+ Hochladen</span>
+                <span class="template-editor__upload-button">
+                    <span class="material-symbols-outlined" aria-hidden="true">upload</span>
+                    {% translate "Upload" %}
+                </span>
             </label>
         </div>
         <div class="template-editor__images-grid">
             <div class="template-editor__images-empty">
-                Noch keine Bilder hochgeladen.
+                {% translate "No images uploaded yet." %}
             </div>
         </div>
         <div class="template-editor__images-status" aria-live="polite"></div>

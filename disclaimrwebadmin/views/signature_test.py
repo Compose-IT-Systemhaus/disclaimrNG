@@ -96,8 +96,11 @@ class SignatureTestView(View):
         ``<style id="unfold-theme-colors">`` block. Without it, the
         custom view runs but loses the sidebar AND every CSS variable
         we use for borders / button colours / dark-mode contrast.
+        ``title`` is what the topbar shows.
         """
-        return admin.site.each_context(request)
+        context = admin.site.each_context(request)
+        context["title"] = _("Signature test")
+        return context
 
     def get(self, request: HttpRequest) -> HttpResponse:
         context = self._admin_context(request)

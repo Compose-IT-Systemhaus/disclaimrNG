@@ -1,0 +1,117 @@
+{% extends "admin/index.html" %}
+{% load humanize i18n static %}
+
+{# Admin dashboard. Data comes from disclaimrwebadmin.dashboard.dashboard_callback; #}
+{# without it (callback not configured) unfold's default dashboard is shown.        #}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'disclaimrwebadmin/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+{% if not dashboard %}
+    {{ block.super }}
+{% else %}
+<div class="dz-page dz-dashboard">
+    <header class="dz-page-header">
+        <div>
+            <p class="dz-eyebrow">{% translate "Dashboard" %}</p>
+            <h1 class="dz-title">{{ dashboard.greeting }}</h1>
+            <p class="dz-lead">{% translate "Signatures, rules and directory servers at a glance." %}</p>
+        </div>
+        <a class="dz-btn dz-btn--primary" href="{{ dashboard.signature_test_url }}">
+            <span class="material-symbols-outlined" aria-hidden="true">science</span>
+            {% translate "Run signature test" %}
+        </a>
+    </header>
+
+    <section class="dz-stats" aria-label="{% translate 'Overview' %}">
+        {% for card in dashboard.cards %}
+        <{% if card.url %}a href="{{ card.url }}"{% else %}div{% endif %} class="dz-card dz-stat">
+            <span class="dz-stat__icon material-symbols-outlined" aria-hidden="true">{{ card.icon }}</span>
+            <span class="dz-stat__label">{{ card.label }}</span>
+            <span class="dz-stat__value">{{ card.value }}</span>
+            <span class="dz-stat__detail">{{ card.detail }}</span>
+        </{% if card.url %}a{% else %}div{% endif %}>
+        {% endfor %}
+    </section>
+
+    <div class="dz-dashboard__grid">
+        <div class="dz-dashboard__main">
+            {% if dashboard.setup_open %}
+            <section class="dz-card">
+                <header class="dz-card__header">
+                    <h2 class="dz-card__title">{% translate "Getting started" %}</h2>
+                    <span class="dz-badge dz-badge--accent">{{ dashboard.setup_done }} / {{ dashboard.setup_total }}</span>
+                </header>
+                <ol class="dz-steps">
+                    {% for step in dashboard.steps %}
+                    <li class="dz-step{% if step.done %} is-done{% endif %}">
+                        <span class="dz-step__marker" aria-hidden="true">
+                            {% if step.done %}<span class="material-symbols-outlined">check</span>{% else %}{{ forloop.counter }}{% endif %}
+                        </span>
+                        <div class="dz-step__body">
+                            {% if step.url and not step.done %}
+                            <a class="dz-step__title" href="{{ step.url }}">{{ step.title }}</a>
+                            {% else %}
+                            <span class="dz-step__title">{{ step.title }}</span>
+                            {% endif %}
+                            <p class="dz-step__text">{{ step.text }}</p>
+                        </div>
+                        {% if step.done %}<span class="dz-badge">{% translate "Done" %}</span>{% elif step.optional %}<span class="dz-badge">{% translate "Optional" %}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ol>
+            </section>
+            {% endif %}
+
+            <section class="dz-card">
+                <header class="dz-card__header">
+                    <h2 class="dz-card__title">{% translate "Your recent changes" %}</h2>
+                </header>
+                {% if dashboard.recent %}
+                <ul class="dz-activity">
+                    {% for entry in dashboard.recent %}
+                    <li class="dz-activity__item">
+                        <span class="dz-activity__icon dz-activity__icon--{% if entry.is_addition %}add{% elif entry.is_deletion %}delete{% else %}change{% endif %} material-symbols-outlined" aria-hidden="true">{% if entry.is_addition %}add{% elif entry.is_deletion %}delete{% else %}edit{% endif %}</span>
+                        <div class="dz-activity__body">
+                            {% if entry.is_deletion or not entry.get_admin_url %}
+                            <span class="dz-activity__title">{{ entry.object_repr }}</span>
+                            {% else %}
+                            <a class="dz-activity__title" href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                            {% endif %}
+                            <span class="dz-activity__meta">{% if entry.content_type %}{{ entry.content_type.name|capfirst }}{% else %}{% translate "Unknown content" %}{% endif %}</span>
+                        </div>
+                        <time class="dz-activity__time" datetime="{{ entry.action_time|date:'c' }}" title="{{ entry.action_time }}">{{ entry.action_time|naturaltime }}</time>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="dz-empty">{% translate "Nothing changed yet — your edits will show up here." %}</p>
+                {% endif %}
+            </section>
+        </div>
+
+        <aside class="dz-dashboard__side">
+            <section class="dz-card">
+                <header class="dz-card__header">
+                    <h2 class="dz-card__title">{% translate "Quick actions" %}</h2>
+                </header>
+                <ul class="dz-links">
+                    {% for link in dashboard.quick_links %}
+                    <li>
+                        <a class="dz-links__item" href="{{ link.url }}">
+                            <span class="dz-links__icon material-symbols-outlined" aria-hidden="true">{{ link.icon }}</span>
+                            <span class="dz-links__label">{{ link.label }}</span>
+                            <span class="dz-links__chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </aside>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

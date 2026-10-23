@@ -1,7 +1,6 @@
 /**
- * Inject a "?" help button into unfold's topbar that links to the
- * bundled docs at ``/admin/disclaimr/docs/``. Lives next to the
- * language switcher.
+ * Inject a help button into unfold's topbar that links to the bundled
+ * docs at ``/admin/disclaimr/docs/``. Sits next to the language toggle.
  *
  * The docs URL is read from a ``data-docs-url`` attribute on
  * ``<body>`` so we don't have to hard-code Django's URL routing here.
@@ -17,39 +16,23 @@
     }
 
     function buildButton() {
+        const label = document.documentElement.lang === "de" ? "Dokumentation" : "Documentation";
         const a = document.createElement("a");
         a.className = "help-button";
         a.href = findDocsUrl();
-        a.title = "Documentation";
-        a.setAttribute("aria-label", "Documentation");
+        a.title = label;
+        a.setAttribute("aria-label", label);
         a.innerHTML =
-            '<span class="help-button__mark" aria-hidden="true">?</span>';
+            '<span class="material-symbols-outlined" aria-hidden="true">help</span>';
         return a;
     }
 
     function insertButton() {
         if (document.querySelector(".help-button")) return;
-
-        const candidates = [
-            ".language-switcher",            // sit right next to the flag toggle
-            "header [data-active-link]",
-            "header form#logout-form",
-            "header [data-target='theme']",
-            "header nav",
-            "header",
-            "body",
-        ];
-        for (const sel of candidates) {
-            const host = document.querySelector(sel);
-            if (!host) continue;
-            const button = buildButton();
-            if (host.parentNode && host.tagName !== "BODY") {
-                host.parentNode.insertBefore(button, host);
-            } else {
-                host.appendChild(button);
-            }
-            return;
-        }
+        // Only in the authenticated topbar — the docs need a login anyway.
+        const toolbar = document.querySelector("#header-inner .ml-auto");
+        if (!toolbar) return;
+        toolbar.appendChild(buildButton());
     }
 
     if (document.readyState === "loading") {

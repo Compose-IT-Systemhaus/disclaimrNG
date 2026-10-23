@@ -99,23 +99,66 @@
         return node ? node.value : "";
     }
 
+    // unfold toggles a ``dark`` class on <html>.
+    function isDarkMode() {
+        return document.documentElement.classList.contains("dark");
+    }
+
+    let themeObserver = null;
+    function followThemeChanges(monaco) {
+        if (themeObserver) return; // one observer for all editors on the page
+        themeObserver = new MutationObserver(() => {
+            monaco.editor.setTheme(isDarkMode() ? "vs-dark" : "vs");
+        });
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (c) => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        })[c]);
+    }
+
+    /**
+     * Translated UI text from the widget's ``data-i18n`` JSON (see
+     * TemplateEditorWidget), with ``{name}`` parameters filled in.
+     */
+    function t(root, key, fallback, params) {
+        if (!root._i18n) {
+            try {
+                root._i18n = JSON.parse(root.dataset.i18n || "{}");
+            } catch (e) {
+                root._i18n = {};
+            }
+        }
+        let text = root._i18n[key] || fallback;
+        for (const [name, value] of Object.entries(params || {})) {
+            text = text.replace(`{${name}}`, value);
+        }
+        return text;
+    }
+
     function renderImageGallery(root, images) {
         const grid = root.querySelector(".template-editor__images-grid");
         if (!grid) return;
         if (!images.length) {
             grid.innerHTML =
                 '<div class="template-editor__images-empty">' +
-                "Noch keine Bilder hochgeladen.</div>";
+                escapeHtml(t(root, "no_images", "No images uploaded yet.")) +
+                "</div>";
             return;
         }
         grid.innerHTML = images
             .map(
                 (img) => `
                 <button type="button" class="template-editor__image"
-                        data-slug="${img.slug}"
-                        title="Klicken zum Einfügen — Slug: ${img.slug}">
-                    <img src="${img.url}" alt="${img.alt_text || img.name}">
-                    <span class="template-editor__image-slug">${img.slug}</span>
+                        data-slug="${escapeHtml(img.slug)}"
+                        title="${escapeHtml(t(root, "insert_image", "Click to insert — slug: {slug}", { slug: img.slug }))}">
+                    <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt_text || img.name)}">
+                    <span class="template-editor__image-slug">${escapeHtml(img.slug)}</span>
                 </button>
             `
             )
@@ -152,7 +195,7 @@
         // Envelope (sender / recipient)
         sections.push(
             `<div class="template-editor__chip-group">
-                <div class="template-editor__chip-group-title">Umschlag</div>
+                <div class="template-editor__chip-group-title">${escapeHtml(t(root, "envelope", "Envelope"))}</div>
                 <div class="template-editor__chip-row">${
                     fixed.map((k) => chip(`{${k}}`, "envelope", k)).join("")
                 }</div>
@@ -162,7 +205,7 @@
         // Mail headers
         sections.push(
             `<div class="template-editor__chip-group">
-                <div class="template-editor__chip-group-title">Header</div>
+                <div class="template-editor__chip-group-title">${escapeHtml(t(root, "header", "Header"))}</div>
                 <div class="template-editor__chip-row">${
                     headers
                         .map((k) =>
@@ -181,7 +224,7 @@
             sections.push(
                 `<div class="template-editor__chip-group">
                     <div class="template-editor__chip-group-title">
-                        Common fields
+                        ${escapeHtml(t(root, "common_fields", "Common fields"))}
                     </div>
                     <div class="template-editor__chip-row">${
                         commonFields
@@ -195,11 +238,14 @@
         }
 
         // LDAP / directory attributes (raw, advertised by the server)
+        const directoryTitle = escapeHtml(
+            t(root, "directory_attributes", "Directory attributes")
+        );
         if (attributes.length) {
             sections.push(
                 `<div class="template-editor__chip-group">
                     <div class="template-editor__chip-group-title">
-                        Verzeichnis-Attribute
+                        ${directoryTitle}
                     </div>
                     <div class="template-editor__chip-row">${
                         attributes
@@ -219,11 +265,10 @@
             sections.push(
                 `<div class="template-editor__chip-group">
                     <div class="template-editor__chip-group-title">
-                        Verzeichnis-Attribute
+                        ${directoryTitle}
                     </div>
                     <div class="template-editor__chips-empty">
-                        Kein Verzeichnis-Server konfiguriert oder noch keine
-                        Attribute entdeckt.
+                        ${escapeHtml(t(root, "no_directory", "No directory server configured or no attributes discovered yet."))}
                     </div>
                 </div>`
             );
@@ -311,7 +356,15 @@
             automaticLayout: true,
             minimap: { enabled: false },
             wordWrap: "on",
+            theme: isDarkMode() ? "vs-dark" : "vs",
+            fontSize: 13,
+            lineNumbersMinChars: 3,
+            padding: { top: 12, bottom: 12 },
+            scrollBeyondLastLine: false,
+            renderLineHighlight: "none",
+            overviewRulerLanes: 0,
         });
+        followThemeChanges(monaco);
         editor.onDidChangeModelContent(() => {
             textarea.value = editor.getValue();
         });
@@ -377,7 +430,11 @@
             uploadInput.addEventListener("change", async () => {
                 const file = uploadInput.files[0];
                 if (!file) return;
-                setStatus(root, `Lade ${file.name} hoch …`, "pending");
+                setStatus(
+                    root,
+                    t(root, "uploading", "Uploading {name} …", { name: file.name }),
+                    "pending"
+                );
                 const formData = new FormData();
                 formData.append("image", file);
                 formData.append("csrfmiddlewaretoken", csrfToken());
@@ -391,19 +448,27 @@
                     if (!response.ok) {
                         setStatus(
                             root,
-                            `Fehler: ${payload.error || response.statusText}`,
+                            t(root, "upload_error", "Error: {error}", {
+                                error: payload.error || response.statusText,
+                            }),
                             "error"
                         );
                     } else {
                         setStatus(
                             root,
-                            `Hochgeladen als „${payload.slug}". Klick zum Einfügen.`,
+                            t(root, "uploaded", "Uploaded as “{slug}”. Click it to insert.", {
+                                slug: payload.slug,
+                            }),
                             "success"
                         );
                         await refreshGallery();
                     }
                 } catch (err) {
-                    setStatus(root, `Netzwerkfehler: ${err}`, "error");
+                    setStatus(
+                        root,
+                        t(root, "network_error", "Network error: {error}", { error: err }),
+                        "error"
+                    );
                 } finally {
                     uploadInput.value = "";
                 }
@@ -428,6 +493,8 @@
                     "link unlink | alignleft aligncenter alignright | code",
                 plugins: ["link", "lists", "code"],
                 height: 320,
+                skin: isDarkMode() ? "oxide-dark" : "oxide",
+                content_css: isDarkMode() ? "dark" : "default",
                 setup: (ed) => {
                     ed.on("Change KeyUp Undo Redo", () => {
                         textarea.value = ed.getContent();

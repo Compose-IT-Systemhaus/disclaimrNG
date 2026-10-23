@@ -1,0 +1,310 @@
+/*
+ * Admin dashboard — builds on the --dz-* tokens from admin_chrome.css.
+ */
+
+.dz-dashboard {
+    margin-inline: auto;
+}
+
+/* --- Key figures -------------------------------------------------------- */
+
+.dz-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dz-stat {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "label icon"
+        "value icon"
+        "detail detail";
+    gap: 0.25rem 1rem;
+    padding: 1.125rem 1.25rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+a.dz-stat:hover {
+    border-color: var(--dz-accent-border);
+    box-shadow: var(--dz-shadow-raised);
+}
+
+a.dz-stat:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
+}
+
+.dz-stat__label {
+    grid-area: label;
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.dz-stat__value {
+    grid-area: value;
+    color: var(--dz-text);
+    font-size: 1.875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.dz-stat__detail {
+    grid-area: detail;
+    margin-top: 0.25rem;
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
+}
+
+.dz-stat__icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--dz-radius-sm);
+    background: var(--dz-accent-soft);
+    color: var(--dz-accent-text);
+    font-size: 1.25rem;
+}
+
+/* --- Two-column layout -------------------------------------------------- */
+
+.dz-dashboard__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.dz-dashboard__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+@media (max-width: 1023px) {
+    .dz-dashboard__grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* --- Setup checklist ---------------------------------------------------- */
+
+.dz-steps {
+    margin: 0;
+    padding: 0.5rem 0;
+    list-style: none;
+}
+
+.dz-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 0.75rem 1.25rem;
+}
+
+.dz-step + .dz-step {
+    border-top: 1px solid var(--dz-border);
+}
+
+.dz-step__marker {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--dz-border-strong);
+    border-radius: 999px;
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.dz-step__marker .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.dz-step.is-done .dz-step__marker {
+    border-color: var(--dz-accent);
+    background: var(--dz-accent);
+    color: #fff;
+}
+
+.dz-step__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dz-step__title {
+    color: var(--dz-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+a.dz-step__title:hover {
+    color: var(--dz-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.dz-step.is-done .dz-step__title {
+    color: var(--dz-text-muted);
+}
+
+.dz-step__text {
+    margin: 0.125rem 0 0;
+    color: var(--dz-text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+/* --- Recent changes ----------------------------------------------------- */
+
+.dz-activity {
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+}
+
+.dz-activity__item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.625rem 1.25rem;
+}
+
+.dz-activity__item + .dz-activity__item {
+    border-top: 1px solid var(--dz-border);
+}
+
+.dz-activity__icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--dz-radius-sm);
+    font-size: 1rem;
+}
+
+.dz-activity__icon--add {
+    background: var(--dz-success-soft);
+    color: var(--dz-success);
+}
+
+.dz-activity__icon--change {
+    background: var(--dz-accent-soft);
+    color: var(--dz-accent-text);
+}
+
+.dz-activity__icon--delete {
+    background: var(--dz-danger-soft);
+    color: var(--dz-danger);
+}
+
+.dz-activity__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.dz-activity__title {
+    overflow: hidden;
+    color: var(--dz-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+a.dz-activity__title:hover {
+    color: var(--dz-accent-text);
+}
+
+.dz-activity__meta,
+.dz-activity__time {
+    color: var(--dz-text-muted);
+    font-size: 0.75rem;
+}
+
+.dz-activity__time {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.dz-empty {
+    margin: 0;
+    padding: 1.5rem 1.25rem;
+    color: var(--dz-text-muted);
+    font-size: 0.875rem;
+}
+
+/* --- Quick actions ------------------------------------------------------ */
+
+.dz-links {
+    margin: 0;
+    padding: 0.375rem;
+    list-style: none;
+}
+
+.dz-links__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--dz-radius-sm);
+    color: var(--dz-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.dz-links__item:hover {
+    background: var(--dz-surface-muted);
+}
+
+.dark .dz-links__item:hover {
+    background: color-mix(in srgb, var(--color-base-700, #3f3f46) 35%, transparent);
+}
+
+.dz-links__item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
+}
+
+.dz-links__icon {
+    color: var(--dz-text-muted);
+    font-size: 1.25rem;
+}
+
+.dz-links__item:hover .dz-links__icon {
+    color: var(--dz-accent-text);
+}
+
+.dz-links__label {
+    flex: 1;
+}
+
+.dz-links__chevron {
+    color: var(--dz-border-strong);
+    font-size: 1.125rem;
+    transition: transform 0.15s, color 0.15s;
+}
+
+.dz-links__item:hover .dz-links__chevron {
+    color: var(--dz-text-muted);
+    transform: translateX(2px);
+}

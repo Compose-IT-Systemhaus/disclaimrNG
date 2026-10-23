@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block field_sets %}
     <div class="directory-server-actions"
@@ -8,24 +8,35 @@
          data-attributes-url-template="{% url 'disclaimrwebadmin:directoryserver-attributes' 0 %}"
          data-flavor-defaults="{{ flavor_defaults }}">
         {% if original.pk %}
+            <div class="directory-server-actions__intro">
+                <span class="directory-server-actions__icon material-symbols-outlined" aria-hidden="true">lan</span>
+                <div>
+                    <p class="directory-server-actions__title">{% translate "Connection tools" %}</p>
+                    <p class="directory-server-actions__hint">{% translate "Check the configured URLs or fill the attribute vocabulary from the directory." %}</p>
+                </div>
+            </div>
             <div class="directory-server-actions__buttons">
                 <button type="button"
-                        class="button directory-server-actions__test"
+                        class="dz-btn directory-server-actions__test"
                         data-action="test">
-                    Test connection
+                    <span class="material-symbols-outlined" aria-hidden="true">network_check</span>
+                    {% translate "Test connection" %}
                 </button>
                 <button type="button"
-                        class="button directory-server-actions__discover"
+                        class="dz-btn directory-server-actions__discover"
                         data-action="discover">
-                    Discover attributes
+                    <span class="material-symbols-outlined" aria-hidden="true">travel_explore</span>
+                    {% translate "Discover attributes" %}
                 </button>
             </div>
             <div class="directory-server-actions__output" hidden></div>
         {% else %}
-            <p class="directory-server-actions__hint">
-                Save this directory server first to enable connection test and
-                attribute discovery.
-            </p>
+            <div class="directory-server-actions__intro">
+                <span class="directory-server-actions__icon material-symbols-outlined" aria-hidden="true">info</span>
+                <p class="directory-server-actions__hint">
+                    {% translate "Save this directory server first to enable connection test and attribute discovery." %}
+                </p>
+            </div>
         {% endif %}
     </div>
     {{ block.super }}

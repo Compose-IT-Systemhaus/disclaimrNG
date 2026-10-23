@@ -98,7 +98,11 @@ Projektkontext für Claude Code. Stand: 2026-10-23 (letzter gemergter PR: #25).
 - Die von Upstream geerbten Tests (`test_disclaimer.py`, `test_directoryserver.py`, `test_performance.py`, `test_requirements.py`) haben per-file-ignores in `pyproject.toml`; Live-LDAP-/Perf-Tests skippen ohne Konfiguration.
 - GHCR-Imagepfad muss lowercase sein: `ghcr.io/compose-it-systemhaus/disclaimrng` (Tag `dev` bei Push auf master, Semver bei Tags `v*`).
 - Unfold-Sidebar ist handkuratiert (`UNFOLD["SIDEBAR"]["navigation"]` in `settings.py`) — neue Admin-Modelle tauchen dort nicht automatisch auf.
-- Neue CSS/JS für das Admin-Chrome über `UNFOLD["STYLES"]`/`["SCRIPTS"]` einhängen; Topbar-Elemente (Sprachumschalter, „?“-Button) werden per DOM-Injection eingefügt.
+- Neue CSS/JS für das Admin-Chrome über `UNFOLD["STYLES"]`/`["SCRIPTS"]` einhängen; Topbar-Elemente (Sprachumschalter, Hilfe-Button) werden per DOM-Injection in `#header-inner .ml-auto` eingefügt (Login: `body.login #page .absolute .ml-auto`). unfold 0.110 hat **kein** `<header>`-Element mehr.
+- **unfold-Farbvariablen sind komplette Farben** (`--color-primary-600: rgb(52, 90, 140)`), nie in `rgb(var(…))` wickeln (ergibt ungültiges CSS → randlose Felder, unsichtbare Buttons). Alpha per `color-mix()`. Eigene Seiten bauen auf den `--dz-*`-Tokens und `.dz-*`-Bausteinen aus `admin_chrome.css` auf (Light/Dark dort zentral).
+- unfold liefert Tailwind v4 in `@layer`s → unser ungelayertes CSS gewinnt immer gegen unfold-Utilities; Selektoren deshalb eng halten.
+- unfold steht vor unserer App in `INSTALLED_APPS`, seine `admin/index.html`/`admin/login.html` überdecken gleichnamige Templates. Unsere heißen `disclaimrwebadmin/admin/{index,login}.html` und werden in `apps.ready()` gesetzt; Dashboard-Daten kommen aus `disclaimrwebadmin/dashboard.py` (`DASHBOARD_CALLBACK`).
+- Die Logo-PNGs haben das Transparenz-Schachbrett eingebacken; im UI wird `img/mark.svg` + Text-Wortmarke verwendet.
 
 ## Kommandos (vom User im Container auszuführen)
 

@@ -335,3 +335,223 @@ msgstr[0] ""
 msgstr[1] ""
 "%(count)d Regeln haben gegriffen — die Mail würde wie unten gezeigt "
 "verändert werden."
+
+msgid ""
+"Enter a sample mail. The real milter pipeline runs against the currently "
+"configured rules and shows the result below — i.e. the mail with the "
+"appended signature."
+msgstr ""
+"Geben Sie eine Beispiel-Mail ein. Die echte Milter-Pipeline läuft mit den "
+"aktuell hinterlegten Regeln und zeigt das Ergebnis — also die Mail mit "
+"angehängter Signatur."
+
+msgid "Error"
+msgstr "Fehler"
+
+msgid "Signature added"
+msgstr "Signatur angehängt"
+
+msgid "Unchanged"
+msgstr "Unverändert"
+
+msgid "Run a test to see the mail as recipients will get it."
+msgstr "Starten Sie einen Test, um die Mail so zu sehen, wie Empfänger sie erhalten."
+
+msgid "Header changes"
+msgstr "Header-Änderungen"
+
+msgid "Added"
+msgstr "Hinzugefügt"
+
+msgid "Changed"
+msgstr "Geändert"
+
+msgid "Removed"
+msgstr "Entfernt"
+
+# --- Branding / login ------------------------------------------------------
+msgid "Mail signature server"
+msgstr "Mail-Signaturserver"
+
+msgid "Sign in"
+msgstr "Anmelden"
+
+msgid "Manage signatures, rules and directory servers."
+msgstr "Signaturen, Regeln und Verzeichnisserver verwalten."
+
+msgid "Open-source mail signature server"
+msgstr "Open-Source-Mail-Signaturserver"
+
+# --- Dashboard ---------------------------------------------------------------
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Welcome back, %(name)s"
+msgstr "Willkommen zurück, %(name)s"
+
+msgid "Signatures, rules and directory servers at a glance."
+msgstr "Signaturen, Regeln und Verzeichnisserver auf einen Blick."
+
+msgid "Run signature test"
+msgstr "Signaturtest starten"
+
+msgid "Overview"
+msgstr "Übersicht"
+
+msgid "%(count)d image"
+msgid_plural "%(count)d images"
+msgstr[0] "%(count)d Bild"
+msgstr[1] "%(count)d Bilder"
+
+msgid "%(count)d active"
+msgstr "%(count)d aktiv"
+
+msgid "%(count)d domain"
+msgid_plural "%(count)d domains"
+msgstr[0] "%(count)d Domain"
+msgstr[1] "%(count)d Domains"
+
+msgid "%(count)d enabled"
+msgstr "%(count)d aktiviert"
+
+msgid "Getting started"
+msgstr "Erste Schritte"
+
+msgid "Create a signature"
+msgstr "Signatur anlegen"
+
+msgid "Plain text and HTML version, with placeholders for name, phone and more."
+msgstr "Text- und HTML-Version, mit Platzhaltern für Name, Telefon und mehr."
+
+msgid "Add a rule with an action"
+msgstr "Regel mit Aktion anlegen"
+
+msgid "Decides which mails get which signature."
+msgstr "Legt fest, welche Mails welche Signatur bekommen."
+
+msgid "Connect a directory server"
+msgstr "Verzeichnisserver verbinden"
+
+msgid "Optional — fills the placeholders from LDAP or Active Directory."
+msgstr "Optional — füllt die Platzhalter aus LDAP oder Active Directory."
+
+msgid "Done"
+msgstr "Erledigt"
+
+msgid "Optional"
+msgstr "Optional"
+
+msgid "Your recent changes"
+msgstr "Ihre letzten Änderungen"
+
+msgid "Unknown content"
+msgstr "Unbekannter Inhalt"
+
+msgid "Nothing changed yet — your edits will show up here."
+msgstr "Noch keine Änderungen — Ihre Bearbeitungen erscheinen hier."
+
+msgid "Quick actions"
+msgstr "Schnellzugriff"
+
+msgid "New signature"
+msgstr "Neue Signatur"
+
+msgid "New rule"
+msgstr "Neue Regel"
+
+msgid "Upload image"
+msgstr "Bild hochladen"
+
+# --- Documentation -----------------------------------------------------------
+msgid "Documentation"
+msgstr "Dokumentation"
+
+msgid "Sections"
+msgstr "Abschnitte"
+
+msgid "Installation"
+msgstr "Installation"
+
+msgid "Configuration"
+msgstr "Konfiguration"
+
+msgid "Signatures & rules"
+msgstr "Signaturen & Regeln"
+
+msgid "Walkthrough — domain signature"
+msgstr "Schritt für Schritt — Domain-Signatur"
+
+msgid "Troubleshooting"
+msgstr "Fehlersuche"
+
+# --- Template editor ---------------------------------------------------------
+msgid "Code"
+msgstr "Code"
+
+msgid "Visual"
+msgstr "Visuell"
+
+msgid "Preview"
+msgstr "Vorschau"
+
+msgid "Placeholders"
+msgstr "Platzhalter"
+
+msgid "Click to insert"
+msgstr "Klicken zum Einfügen"
+
+msgid "Upload"
+msgstr "Hochladen"
+
+msgid "No images uploaded yet."
+msgstr "Noch keine Bilder hochgeladen."
+
+msgid "Envelope"
+msgstr "Umschlag"
+
+msgid "Header"
+msgstr "Header"
+
+msgid "Common fields"
+msgstr "Häufige Felder"
+
+msgid "Directory attributes"
+msgstr "Verzeichnis-Attribute"
+
+msgid "No directory server configured or no attributes discovered yet."
+msgstr "Kein Verzeichnisserver konfiguriert oder noch keine Attribute entdeckt."
+
+msgid "Click to insert — slug: {slug}"
+msgstr "Klicken zum Einfügen — Slug: {slug}"
+
+msgid "Uploading {name} …"
+msgstr "Lade {name} hoch …"
+
+msgid "Error: {error}"
+msgstr "Fehler: {error}"
+
+msgid "Network error: {error}"
+msgstr "Netzwerkfehler: {error}"
+
+msgid "Uploaded as “{slug}”. Click it to insert."
+msgstr "Hochgeladen als „{slug}“. Zum Einfügen anklicken."
+
+# --- Directory server tools --------------------------------------------------
+msgid "Connection tools"
+msgstr "Verbindungswerkzeuge"
+
+msgid "Check the configured URLs or fill the attribute vocabulary from the directory."
+msgstr "Prüft die konfigurierten URLs oder füllt das Attribut-Vokabular aus dem Verzeichnis."
+
+msgid "Test connection"
+msgstr "Verbindung testen"
+
+msgid "Discover attributes"
+msgstr "Attribute ermitteln"
+
+msgid ""
+"Save this directory server first to enable connection test and attribute "
+"discovery."
+msgstr ""
+"Speichern Sie den Verzeichnisserver zuerst, um Verbindungstest und "
+"Attribut-Ermittlung zu nutzen."

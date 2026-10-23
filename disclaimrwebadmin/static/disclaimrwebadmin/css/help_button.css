@@ -1,43 +1,28 @@
 /*
- * Help (?) button — circular pill in the topbar.
+ * Help button — icon button in the topbar, styled like unfold's own.
  */
 
 .help-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    margin: 0 0.5rem 0 0;
-    border: 1px solid rgb(var(--color-base-300, 203 213 225));
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
     border-radius: 999px;
-    color: rgb(var(--color-base-700, 51 65 85));
+    color: var(--dz-text-muted);
     text-decoration: none;
-    font-weight: 700;
-    font-size: 0.95rem;
-    line-height: 1;
-    background: transparent;
-    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.help-button .material-symbols-outlined {
+    font-size: 1.25rem;
 }
 
 .help-button:hover {
-    border-color: rgb(var(--color-primary-500, 59 130 246));
-    color: rgb(var(--color-primary-600, 37 99 235));
-    background: rgb(var(--color-primary-50, 239 246 255));
+    background: var(--dz-accent-soft);
+    color: var(--dz-accent-text);
 }
 
-.dark .help-button {
-    border-color: rgb(var(--color-base-700, 51 65 85));
-    color: rgb(var(--color-base-300, 203 213 225));
-}
-
-.dark .help-button:hover {
-    border-color: rgb(var(--color-primary-400, 96 165 250));
-    color: rgb(var(--color-primary-300, 147 197 253));
-    background: rgb(var(--color-primary-900, 30 58 138) / 0.4);
-}
-
-.help-button__mark {
-    display: inline-block;
-    transform: translateY(-1px);
+.help-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dz-ring);
 }

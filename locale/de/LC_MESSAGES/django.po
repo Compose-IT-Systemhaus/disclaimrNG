@@ -466,6 +466,9 @@ msgstr "Bild hochladen"
 msgid "Documentation"
 msgstr "Dokumentation"
 
+msgid "Language"
+msgstr "Sprache"
+
 msgid "Sections"
 msgstr "Abschnitte"
 

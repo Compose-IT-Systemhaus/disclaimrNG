@@ -77,6 +77,9 @@ def dashboard_callback(request: HttpRequest, context: dict[str, Any]) -> dict[st
         },
     ]
 
+    # Cards without a link are ones the user may not view — don't leak counts.
+    cards = [card for card in cards if card["url"]]
+
     signature_test_url = reverse(f"{_APP}:signature-test")
     steps = [
         {

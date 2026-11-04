@@ -131,9 +131,9 @@ UNFOLD = {
     # The admin *is* the site — no "Return to site" / "View site" links.
     "SITE_URL": None,
     "SITE_SUBHEADER": _("Mail signature server"),
-    # Square brand mark next to the site name in the sidebar (the wide
-    # wordmark logo is used on the login page). Lazy callables — unfold
-    # resolves them at request time, once the static finder is wired up.
+    # Square brand mark next to the site name in the sidebar and on the login
+    # page. Lazy callables — unfold resolves them at request time, once the
+    # static finder is wired up.
     "SITE_ICON": lambda request: static("disclaimrwebadmin/img/mark.svg"),
     "SITE_FAVICONS": [
         {
@@ -188,6 +188,7 @@ UNFOLD = {
         lambda request: static("disclaimrwebadmin/css/help_button.css"),
     ],
     "SCRIPTS": [
+        lambda request: reverse_lazy("jsi18n"),
         lambda request: static("disclaimrwebadmin/js/language_switcher.js"),
         lambda request: static("disclaimrwebadmin/js/help_button.js"),
     ],

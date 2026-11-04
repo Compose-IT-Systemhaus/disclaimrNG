@@ -42,7 +42,7 @@
         const wrap = document.createElement("div");
         wrap.className = "language-switcher";
         wrap.setAttribute("role", "group");
-        wrap.setAttribute("aria-label", "Language");
+        wrap.setAttribute("aria-label", gettext("Language")); // catalog: /i18n/js/
         for (const language of LANGUAGES) {
             const form = document.createElement("form");
             form.method = "post";

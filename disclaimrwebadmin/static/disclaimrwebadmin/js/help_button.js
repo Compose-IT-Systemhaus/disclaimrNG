@@ -16,7 +16,7 @@
     }
 
     function buildButton() {
-        const label = document.documentElement.lang === "de" ? "Dokumentation" : "Documentation";
+        const label = gettext("Documentation"); // catalog: /i18n/js/
         const a = document.createElement("a");
         a.className = "help-button";
         a.href = findDocsUrl();

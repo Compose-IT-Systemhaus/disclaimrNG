@@ -67,7 +67,15 @@ def test_dashboard_renders_for_staff_without_model_permissions(db):
 
     response = client.get(reverse("admin:index"))
     assert response.status_code == 200
-    assert reverse("admin:disclaimrwebadmin_disclaimer_add") not in response.content.decode()
+    content = response.content.decode()
+    assert reverse("admin:disclaimrwebadmin_disclaimer_add") not in content
+    assert "dz-stat__value" not in content  # no counts for models the user may not view
+
+
+def test_js_catalog_is_public_and_wired_into_unfold(client, db):
+    # The topbar scripts call gettext(); login page needs the catalog too.
+    assert client.get(reverse("jsi18n")).status_code == 200
+    assert reverse("jsi18n") in client.get(reverse("admin:login")).content.decode()
 
 
 def test_login_page_keeps_redirect_target(client, db):

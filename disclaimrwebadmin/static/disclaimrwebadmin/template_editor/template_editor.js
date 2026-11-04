@@ -136,7 +136,7 @@
         }
         let text = root._i18n[key] || fallback;
         for (const [name, value] of Object.entries(params || {})) {
-            text = text.replace(`{${name}}`, value);
+            text = text.replace(`{${name}}`, () => value); // fn: "$&" in value stays literal
         }
         return text;
     }

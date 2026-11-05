@@ -24,7 +24,9 @@ Active Directory zieht.
 6. **[Schritt-für-Schritt — Domain-Signatur](walkthrough/)** —
    Komplett-Beispiel: „Signatur für ``@example.com`` einrichten, die
    Name und Telefon des Absenders aus AD zieht."
-7. **[Troubleshooting](troubleshooting/)** — typische Fehler und wie
+7. **[Runbook — Stalwart & Active Directory](stalwart-active-directory/)** —
+   disclaimrNG neben einem Stalwart-1.0-Container, mit Active Directory.
+8. **[Troubleshooting](troubleshooting/)** — typische Fehler und wie
    man die Logs liest.
 
 ## Schnell-Links

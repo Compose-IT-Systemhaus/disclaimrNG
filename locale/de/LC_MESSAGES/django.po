@@ -463,6 +463,9 @@ msgid "Upload image"
 msgstr "Bild hochladen"
 
 # --- Documentation -----------------------------------------------------------
+msgid "Runbook — Stalwart & Active Directory"
+msgstr "Runbook — Stalwart & Active Directory"
+
 msgid "Documentation"
 msgstr "Dokumentation"
 

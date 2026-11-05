@@ -376,3 +376,71 @@ def test_callback_errors_are_logged_with_a_traceback(db, daemon, caplog):
         with pytest.raises(RuntimeError):
             milter.dataReceived(b"")
     assert "Unhandled error" in caplog.text and "RuntimeError: boom" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Stalwart as the MTA: one connection per mail, no queue-id macro
+# ---------------------------------------------------------------------------
+
+
+def test_milter_session_as_stalwart_sends_it(db, daemon, caplog):
+    """Stalwart replays connect, EHLO, MAIL, RCPT, DATA, headers and body in one
+    connection and sends no ``i`` (queue id) macro at the DATA stage."""
+    _setup_rule()
+    daemon.refresh_configuration(force=True)
+    milter = daemon.DisclaimrMilter()
+    milter.replBody = MagicMock()
+    milter.addHeader = MagicMock()
+    milter.chgHeader = MagicMock()
+
+    milter.connect(b"client.example.com", b"4", b"192.0.2.10", 51234, {b"{client_addr}": b"192.0.2.10"})
+    milter.helo(b"client.example.com")
+    milter.mailFrom(
+        b"<alice@example.com>",
+        {b"{mail_addr}": b"alice@example.com", b"{auth_authen}": b"alice@example.com"},
+    )
+    milter.rcpt(b"<bob@example.org>", {b"{rcpt_addr}": b"bob@example.org"})
+    for key, value in _PLAIN_8BIT:
+        milter.header(key.encode(), value.encode(), {})
+    milter.eoh({})
+    milter.body(b"Hello\r\nworld\r\n", {})
+    milter.eob({})
+    milter.close()
+
+    body = milter.replBody.call_args.args[0]
+    assert b"Hello" in body and b"Signature" in body
+    assert "could not be processed" not in caplog.text
+
+
+def test_active_directory_default_query_has_two_placeholders_and_still_resolves(db):
+    """``(|(mail=%s)(userPrincipalName=%s))`` used to raise "not enough arguments"."""
+    server = models.DirectoryServer.objects.create(
+        name="AD",
+        flavor=constants.DIR_FLAVOR_AD,
+        base_dn="dc=example,dc=com",
+        search_query=constants.DIR_FLAVOR_DEFAULT_QUERY[constants.DIR_FLAVOR_AD],
+        auth=constants.DIR_AUTH_NONE,
+        enable_cache=False,
+    )
+    models.DirectoryServerURL.objects.create(directory_server=server, url="ldaps://dc1", position=0)
+    _setup_rule(text='{resolver["displayname"]}')
+    action = models.Action.objects.get()
+    action.directory_servers.add(server)
+    action.resolve_sender = True
+    action.save()
+
+    helper = _connected_helper()
+    helper.mail_from("alice@example.com", {})
+    seen = []
+
+    def fake_search(directory_server, url, query, attrlist):
+        seen.append(query)
+        return [("CN=Alice", {"displayName": [b"Alice Example"]})]
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(MilterHelper, "_search_url", staticmethod(fake_search))
+        resolved, attributes = helper._lookup_sender(action)
+
+    assert resolved
+    assert attributes["displayname"] == "Alice Example"
+    assert seen == ["(|(mail=alice@example.com)(userPrincipalName=alice@example.com))"]

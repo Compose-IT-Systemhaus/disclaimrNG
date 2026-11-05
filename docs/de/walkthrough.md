@@ -49,7 +49,7 @@ Sender-Adresse gehört.
    - **Benutzer-DN**: ``CN=disclaimr,OU=Service,DC=example,DC=com``
    - **Passwort**: (Service-Account-Passwort)
 4. Anfrage-Block — AD-Defaults lassen
-   (``(userPrincipalName=%s)``).
+   (``(|(mail=%s)(userPrincipalName=%s))``).
 5. URL-Inline:
    - **URL**: ``ldaps://dc1.example.com``
    - Zweite URL für Failover: ``ldaps://dc2.example.com``

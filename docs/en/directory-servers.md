@@ -25,7 +25,7 @@ The form has four sections:
 - **Query**
   - **Search query** — a parameterised filter; ``%s`` is replaced
     with the sender's email at lookup time. AD default:
-    ``(userPrincipalName=%s)``. LDAP default: ``mail=%s``.
+    ``(|(mail=%s)(userPrincipalName=%s))``. LDAP default: ``mail=%s``.
   - **Attribute vocabulary** — comma- or newline-separated list of
     attribute names exposed in the template editor's autocomplete
     (``cn, mail, telephoneNumber, …``). Leave empty to use the

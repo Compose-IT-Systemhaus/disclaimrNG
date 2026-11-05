@@ -23,7 +23,9 @@ Active Directory.
 6. **[Walkthrough — domain signature](walkthrough/)** — step-by-step:
    "Configure a signature for ``@example.com`` that pulls the sender's
    name and phone from AD."
-7. **[Troubleshooting](troubleshooting/)** — common errors and how to
+7. **[Runbook — Stalwart & Active Directory](stalwart-active-directory/)** —
+   disclaimrNG next to a Stalwart 1.0 container, with Active Directory.
+8. **[Troubleshooting](troubleshooting/)** — common errors and how to
    read the logs.
 
 ## Quick links

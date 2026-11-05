@@ -45,12 +45,29 @@ class AttributeDiscoveryResult:
     detail: str = ""
 
 
+# Bound, network-level timeouts so an unreachable LDAP server can never hang the milter
+# (or a synchronous admin view) for more than a few seconds; python-ldap's default is
+# no limit, which used to take down gunicorn workers.
+LDAP_TIMEOUT = 5
+
+
+def open_connection(url: str):
+    """Return an unbound connection to ``url`` with the project's options.
+
+    The CA for ``ldaps://`` comes from ``LDAPTLS_CACERT`` (set by the entrypoint).
+    Active Directory answers subtree searches on the domain root with referrals;
+    chasing them (anonymously) only costs time.
+    """
+    conn = ldap.initialize(url)
+    conn.set_option(ldap.OPT_NETWORK_TIMEOUT, LDAP_TIMEOUT)
+    conn.set_option(ldap.OPT_TIMEOUT, LDAP_TIMEOUT)
+    conn.set_option(ldap.OPT_REFERRALS, 0)
+    return conn
+
+
 def _bind(directory_server: DirectoryServer, url: str):
     """Open a connection to ``url`` and bind using the server's credentials."""
-    conn = ldap.initialize(url)
-    conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
-    conn.set_option(ldap.OPT_TIMEOUT, 5)
-    conn.set_option(ldap.OPT_REFERRALS, 0)
+    conn = open_connection(url)
 
     bind_dn = ""
     bind_pw = ""

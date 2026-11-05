@@ -39,7 +39,9 @@ case "$ROLE" in
             python manage.py sync_directory_servers ${LDAP_SYNC_PRUNE:+--prune}
         fi
         echo "[entrypoint] starting gunicorn"
-        exec gunicorn disclaimrweb.wsgi:application \
+        # --worker-tmp-dir: the heartbeat file belongs in tmpfs, on a disk-backed
+        # container filesystem it can block a worker (gunicorn docs).
+        exec gunicorn disclaimrweb.wsgi:application             --worker-tmp-dir /dev/shm \
             --bind "0.0.0.0:8000" \
             --workers "${GUNICORN_WORKERS:-3}" \
             --access-logfile - \

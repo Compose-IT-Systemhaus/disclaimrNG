@@ -113,9 +113,9 @@ services:
     env_file: .env
     # Postfix talks libmilter on this port directly — Traefik does not
     # proxy it. If your MTA runs on a different host, expose this port
-    # on a private interface only.
+    # on a private interface only (MILTER_BIND in .env, default 127.0.0.1).
     ports:
-      - "5000:5000"
+      - "${MILTER_BIND:-127.0.0.1}:5000:5000"
     volumes:
       - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]

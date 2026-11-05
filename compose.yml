@@ -58,7 +58,7 @@ services:
         condition: service_started
     env_file: .env
     ports:
-      - "5000:5000"
+      - "${MILTER_BIND:-127.0.0.1}:5000:5000"
     volumes:
       - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]

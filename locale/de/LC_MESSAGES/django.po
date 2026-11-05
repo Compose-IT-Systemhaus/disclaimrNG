@@ -558,3 +558,7 @@ msgid ""
 msgstr ""
 "Speichern Sie den Verzeichnisserver zuerst, um Verbindungstest und "
 "Attribut-Ermittlung zu nutzen."
+
+# --- Validation --------------------------------------------------------------
+msgid "Invalid regular expression: %(error)s"
+msgstr "Ungültiger regulärer Ausdruck: %(error)s"

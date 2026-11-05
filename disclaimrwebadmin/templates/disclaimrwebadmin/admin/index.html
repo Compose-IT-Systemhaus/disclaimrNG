@@ -20,10 +20,10 @@
             <h1 class="dz-title">{{ dashboard.greeting }}</h1>
             <p class="dz-lead">{% translate "Signatures, rules and directory servers at a glance." %}</p>
         </div>
-        <a class="dz-btn dz-btn--primary" href="{{ dashboard.signature_test_url }}">
+        {% if dashboard.signature_test_url %}<a class="dz-btn dz-btn--primary" href="{{ dashboard.signature_test_url }}">
             <span class="material-symbols-outlined" aria-hidden="true">science</span>
             {% translate "Run signature test" %}
-        </a>
+        </a>{% endif %}
     </header>
 
     <section class="dz-stats" aria-label="{% translate 'Overview' %}">

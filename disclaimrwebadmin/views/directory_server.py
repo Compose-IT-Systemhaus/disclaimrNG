@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -22,9 +21,10 @@ from django.views.generic import View
 from disclaimr.ldap_helper import discover_attributes, test_connection
 
 from ..models import DirectoryServer, SignatureImage
+from .permissions import staff_with_perm
 
 
-@method_decorator(staff_member_required, name="dispatch")
+@method_decorator(staff_with_perm("change_directoryserver"), name="dispatch")
 class DirectoryServerTestView(View):
     """Bind to every configured URL and return per-URL status."""
 
@@ -40,7 +40,7 @@ class DirectoryServerTestView(View):
         )
 
 
-@method_decorator(staff_member_required, name="dispatch")
+@method_decorator(staff_with_perm("change_directoryserver"), name="dispatch")
 class DirectoryServerAttributesView(View):
     """Discover available attributes from a directory server."""
 
@@ -57,7 +57,7 @@ class DirectoryServerAttributesView(View):
         )
 
 
-@method_decorator(staff_member_required, name="dispatch")
+@method_decorator(staff_with_perm("add_disclaimer", "change_disclaimer"), name="dispatch")
 class DirectoryServerVocabularyView(View):
     """Return the curated autocomplete vocabulary for all enabled servers.
 

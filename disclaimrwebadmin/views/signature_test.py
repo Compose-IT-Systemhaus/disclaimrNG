@@ -22,7 +22,6 @@ import re
 from dataclasses import dataclass
 
 from django.contrib import admin
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
@@ -31,6 +30,8 @@ from django.views.generic import View
 
 from disclaimr.configuration_helper import build_configuration
 from disclaimr.milter_helper import MilterHelper
+
+from .permissions import staff_with_perm
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class _TestOutcome:
             return "about:blank"
 
 
-@method_decorator(staff_member_required, name="dispatch")
+@method_decorator(staff_with_perm("view_rule", "change_rule"), name="dispatch")
 class SignatureTestView(View):
     """Render the test form on GET, run the pipeline on POST."""
 

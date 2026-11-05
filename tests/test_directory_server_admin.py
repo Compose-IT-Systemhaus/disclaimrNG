@@ -16,9 +16,7 @@ from disclaimrwebadmin.models import DirectoryServer, DirectoryServerURL
 
 @pytest.fixture
 def staff_client(db) -> Client:
-    user = get_user_model().objects.create_user(
-        username="bob", password="pw", is_staff=True
-    )
+    user = get_user_model().objects.create_superuser(username="bob", password="pw")
     client = Client()
     client.force_login(user)
     return client

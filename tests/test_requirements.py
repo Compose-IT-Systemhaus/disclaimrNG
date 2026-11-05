@@ -172,6 +172,7 @@ class RequirementsTestCase(TestCase):
 
         helper.connect("", "", "1.1.1.1", "", {})
         helper.rcpt("def", {})
+        helper.eoh({})  # recipients are judged once all of them are known
 
         self.assertFalse(
             helper.enabled,
@@ -196,6 +197,7 @@ class RequirementsTestCase(TestCase):
 
         helper.connect("", "", "1.1.1.1", "", {})
         helper.header("Test", "Test", {})
+        helper.rcpt("test@company.com", {})  # eoh judges the recipients seen so far
         helper.eoh({})
 
         self.assertTrue(
@@ -208,6 +210,7 @@ class RequirementsTestCase(TestCase):
         helper = self.tool_get_helper()
 
         helper.connect("", "", "1.1.1.1", "", {})
+        helper.rcpt("test@company.com", {})  # eoh judges the recipients seen so far
         helper.eoh({})
 
         self.assertFalse(
@@ -233,6 +236,7 @@ class RequirementsTestCase(TestCase):
         # Don't send a header and expect that to work
 
         helper.connect("", "", "1.1.1.1", "", {})
+        helper.rcpt("test@company.com", {})  # eoh judges the recipients seen so far
         helper.eoh({})
 
         self.assertTrue(

@@ -61,9 +61,10 @@ Two likely causes:
 Error response from daemon: pull access denied for ghcr.io/...
 ```
 
-The published image isn't public yet (or you're on an air-gapped
-host). The compose files use ``pull_policy: build`` so a fresh
-checkout builds locally — just run:
+The published image isn't public (or you're on an air-gapped host)
+and ``DISCLAIMR_IMAGE`` / ``DISCLAIMR_PULL_POLICY`` in ``.env`` ask for it.
+By default the compose files build locally (``pull_policy: build``) —
+remove those two lines and run:
 
 ```bash
 docker compose up -d --build

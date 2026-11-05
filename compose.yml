@@ -20,24 +20,26 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
-    # Build from the local repo if the image isn't in the registry yet.
-    # Once CI publishes the image to GHCR you can switch this to
-    # ``pull_policy: missing`` (or remove it) to prefer the registry.
-    pull_policy: build
+    # Built from this checkout by default. To run a published release instead,
+    # set DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.1.0 and
+    # DISCLAIMR_PULL_POLICY=missing in .env (see .env.example).
+    image: ${DISCLAIMR_IMAGE:-ghcr.io/compose-it-systemhaus/disclaimrng:dev}
+    pull_policy: ${DISCLAIMR_PULL_POLICY:-build}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     env_file: .env
+    # Plain HTTP with the admin login: on a shared network put it behind a TLS
+    # proxy (compose.traefik.yml) or bind it to a private address via WEB_BIND.
     ports:
-      - "8000:8000"
+      - "${WEB_BIND:-0.0.0.0}:8000:8000"
     volumes:
       - staticfiles:/app/staticfiles
-      # Uploaded signature images live here; the milter container needs
-      # read access so it can resolve image URLs at send time. Override the
-      # bind path with MEDIA_HOST_PATH if you'd rather use a host directory
-      # (handy for backups/rsync from the host).
+      # Uploaded signature images live here (served at /media/ by the web
+      # container; the milter only builds their URLs and never reads the files).
+      # Override the bind path with MEDIA_HOST_PATH if you'd rather use a host
+      # directory (handy for backups/rsync from the host).
       - ${MEDIA_HOST_PATH:-media}:/app/media
     command: ["web"]
     healthcheck:
@@ -50,13 +52,12 @@ services:
 
   milter:
     # Same image as web — the build is cached so this doesn't double the
-    # build time, and pull_policy: build keeps Compose from trying to
-    # fetch from GHCR.
+    # build time.
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
-    pull_policy: build
+    image: ${DISCLAIMR_IMAGE:-ghcr.io/compose-it-systemhaus/disclaimrng:dev}
+    pull_policy: ${DISCLAIMR_PULL_POLICY:-build}
     restart: unless-stopped
     depends_on:
       db:
@@ -66,8 +67,6 @@ services:
     env_file: .env
     ports:
       - "${MILTER_BIND:-127.0.0.1}:5000:5000"
-    volumes:
-      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

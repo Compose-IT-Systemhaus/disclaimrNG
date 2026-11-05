@@ -17,11 +17,10 @@ git clone https://github.com/Compose-IT-Systemhaus/disclaimrNG.git
 cd disclaimrNG
 cp .env.example .env
 docker compose -f compose.yml -f compose.dev.yml up -d
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py createsuperuser
+docker compose logs web | grep -A3 -i password   # generated admin password
 ```
 
-The dev compose file mounts the source tree into the container and runs Django with auto-reload, so edits in your editor are picked up live.
+The dev compose file mounts the source tree into the container and runs Django with auto-reload, so edits in your editor are picked up live. On start it applies the migrations, compiles the translations and creates the `admin` user, like the production `web` role. The editor libraries come from the CDN here (the source mount hides the copy inside the image).
 
 ### Running tests
 

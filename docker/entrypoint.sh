@@ -39,6 +39,7 @@ case "$ROLE" in
             --error-logfile -
         ;;
     milter)
+        MILTER_SOCKET="${MILTER_SOCKET:-inet:0.0.0.0:5000}"
         echo "[entrypoint] starting milter daemon on ${MILTER_SOCKET}"
         exec python disclaimr.py --socket "${MILTER_SOCKET}"
         ;;

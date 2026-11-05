@@ -4,7 +4,7 @@
 services:
   db:
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   web:
     build:
@@ -13,10 +13,18 @@ services:
       DJANGO_DEBUG: "True"
     volumes:
       - .:/app
+    # Same first-boot steps as the web role (migrations, admin user), plus the
+    # translations (the source mount hides the ones compiled into the image).
+    # The healthcheck only passes once runserver is up, so the milter waits for
+    # the migrations.
     command:
-      - manage
-      - runserver
-      - 0.0.0.0:8000
+      - bash
+      - -c
+      - |
+        python manage.py migrate --noinput &&
+        python manage.py compilemessages -v0 &&
+        python manage.py bootstrap_admin &&
+        exec python manage.py runserver 0.0.0.0:8000
 
   milter:
     volumes:

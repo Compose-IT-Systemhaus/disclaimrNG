@@ -152,6 +152,8 @@ CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite), `d
 
 Erstes Release `v0.1.0`: Version in `pyproject.toml` (`0.1.0`) und `disclaimr.py` (`v0.1.0`) anheben, CHANGELOG ergänzen, nach dem Merge Tag setzen (`git tag v0.1.0 && git push origin v0.1.0`). Der Tag löst den Image-Build mit Semver-Tags (CI) und das GitHub Release (`.github/workflows/release.yml`) aus; der Workflow bricht ab, wenn Tag und `pyproject.toml`-Version nicht übereinstimmen.
 
+Spiegelt man das Repo nach GitLab, baut `.gitlab-ci.yml` bei einem Tag `vX.Y.Z` (oder `vX.Y.Z-rc1`) dasselbe Image und pusht es nach ghcr.io (`X.Y.Z`, `X.Y`, `latest`; Pre-Release nur der exakte Tag). Braucht die CI/CD-Variablen `GHCR_USER` und `GHCR_TOKEN` (PAT mit `write:packages`), ggf. geschützte Tags `v*`, und einen Runner mit Docker-in-Docker. Läuft parallel zur GitHub-CI — nicht beide auf demselben Tag aktiv lassen, sonst überschreiben sie sich gegenseitig.
+
 ## Offene Punkte (beobachtet, nicht vom User priorisiert)
 
 - Lokale Branches sind alle gemergt; vor neuer Arbeit `git fetch` und von `origin/master` abzweigen.

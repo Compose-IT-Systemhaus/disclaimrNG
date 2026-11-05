@@ -16,8 +16,6 @@ import django
 import ldap
 import libmilter as lm
 
-from disclaimr.query_cache import QueryCache  # noqa: F401  -- re-exported
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "disclaimrweb.settings")
 django.setup()
 

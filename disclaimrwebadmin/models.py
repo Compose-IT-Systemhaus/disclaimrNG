@@ -554,7 +554,7 @@ class SignatureImage(models.Model):
     image = models.ImageField(
         _("image"),
         upload_to=_signature_image_upload_to,
-        help_text=_("PNG/JPG/SVG file. Keep it small — every recipient will load it."),
+        help_text=_("PNG or JPG file. Keep it small — every recipient will load it."),
     )
     alt_text = models.CharField(
         _("alt text"),

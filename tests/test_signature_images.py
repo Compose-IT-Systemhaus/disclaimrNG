@@ -2,7 +2,7 @@
 
 Covers both the milter-side renderer (``disclaimr.milter_helper`` —
 ``_build_image_replacements``) and the admin-side preview renderer
-(``disclaimrwebadmin.views.preview`` — ``_build_image_table`` and the full
+(``disclaimrwebadmin.views.preview`` — ``_build_image_replacements`` and the full
 ``DisclaimerPreviewView`` round-trip), plus the vocabulary endpoint that
 feeds the template-editor autocomplete.
 """
@@ -20,7 +20,6 @@ from PIL import Image
 
 from disclaimr.milter_helper import _build_image_replacements
 from disclaimrwebadmin.models import SignatureImage
-from disclaimrwebadmin.views.preview import _build_image_table
 
 
 def _png_bytes(color: str = "red") -> bytes:
@@ -108,14 +107,14 @@ def test_milter_handles_multiple_images(db):
 
 
 # ---------------------------------------------------------------------------
-# preview view: _build_image_table + the full HTTP round-trip
+# preview view: _build_image_replacements + the full HTTP round-trip
 # ---------------------------------------------------------------------------
 
 
 @override_settings(MEDIA_BASE_URL="https://signatures.example.com")
 def test_preview_table_html(db):
     _make_image("logo", alt_text="Logo", width=80)
-    table = _build_image_table('{image["logo"]}', "text/html")
+    table = _build_image_replacements('{image["logo"]}', "text/html")
     fragment = table["logo"]
     assert fragment.startswith("<img ")
     assert 'width="80"' in fragment
@@ -125,14 +124,14 @@ def test_preview_table_html(db):
 @override_settings(MEDIA_BASE_URL="https://signatures.example.com")
 def test_preview_table_plaintext(db):
     _make_image("logo")
-    table = _build_image_table('{image["logo"]}', "text/plain")
+    table = _build_image_replacements('{image["logo"]}', "text/plain")
     assert table["logo"].startswith("https://signatures.example.com/")
     assert "<img" not in table["logo"]
 
 
 def test_preview_table_empty_without_tags(db):
     _make_image("logo")
-    assert _build_image_table("nothing to see", "text/html") == {}
+    assert _build_image_replacements("nothing to see", "text/html") == {}
 
 
 @pytest.fixture

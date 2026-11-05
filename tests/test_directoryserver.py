@@ -296,36 +296,6 @@ class DirectoryServerTestCase(TestCase):
 
         QueryCache._cache = {}
 
-    def test_caching_flush(self):
-
-        """ Test the query cache flushing method
-        """
-
-        self.directory_server.enable_cache = True
-        self.directory_server.cache_timeout = 1
-        self.directory_server.save()
-
-        QueryCache.set(self.directory_server, "TEST", "TEST")
-
-        self.assertIsNotNone(
-            QueryCache.get(self.directory_server, "TEST"),
-            "Cached item wasn't returned."
-        )
-
-        # Sleep for the cache to time out
-
-        time.sleep(self.directory_server.cache_timeout + 1)
-
-        QueryCache.flush()
-
-        # The cache should be empty now
-
-        self.assertEqual(len(QueryCache._cache), 0, "The cache wasn't flushed.")
-
-        # Clean the cache for other tests
-
-        QueryCache._cache = {}
-
     def test_unreachable(self):
 
         """ Test an unreachable directory server

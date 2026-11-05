@@ -8,7 +8,7 @@
 
 It hooks into the SMTP mail flow of any milter-capable MTA (Postfix, Sendmail), pulls per-user data (name, title, phone, mail address, …) from an LDAP server or Active Directory, and lets non-technical staff manage signature templates through a modern web interface.
 
-> **Status:** first release (0.1.0). The port of the original Python 2 / Django 1.7 code to Python 3.12 / Django 5 is complete — see the [CHANGELOG](CHANGELOG.md) for what is included.
+> **Status:** release 0.1.x. The port of the original Python 2 / Django 1.7 code to Python 3.12 / Django 5 is complete — see the [CHANGELOG](CHANGELOG.md) for what is included.
 
 ## Features
 
@@ -42,7 +42,7 @@ milter_default_action = accept
 
 The milter protocol has no authentication, so Docker publishes port `5000` on `127.0.0.1` only. If your MTA runs on another host, set `MILTER_BIND` in `.env` to this host's private IP (never a public address).
 
-The web UI on port `8000` is plain HTTP. On a shared network put it behind TLS (`compose.traefik.yml`) or bind it to a private address with `WEB_BIND`. To run a published image instead of building from source, set `DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.1.0` and `DISCLAIMR_PULL_POLICY=missing` in `.env`.
+The web UI on port `8000` is plain HTTP. On a shared network put it behind TLS (`compose.traefik.yml`) or bind it to a private address with `WEB_BIND`. To run a published image instead of building from source, set `DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.1.1` and `DISCLAIMR_PULL_POLICY=missing` in `.env`.
 
 ## Architecture
 

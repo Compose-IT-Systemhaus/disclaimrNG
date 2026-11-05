@@ -633,13 +633,7 @@ class MilterHelper:
                 # Flatten the LDAP result into the replacement dict. python-ldap
                 # returns attribute values as bytes; decode them before use.
                 for key, raw_values in result[0][1].items():
-                    try:
-                        attributes[key.lower()] = ",".join(_to_str(v) for v in raw_values)
-                    except UnicodeDecodeError:
-                        # Binary attribute (e.g. thumbnailPhoto) — base64-encode it.
-                        attributes[key.lower()] = base64.b64encode(
-                            b"".join(raw_values)
-                        ).decode("ascii")
+                    attributes[key.lower()] = ",".join(_to_str(v) for v in raw_values)
 
         return resolved_successfully, attributes
 
@@ -721,7 +715,6 @@ class MilterHelper:
         action: models.Action,
         disclaimer_text: str,
         replacements: dict[str, Any],
-        charset: str | None = None,
         *,
         literal: Callable[[str], str] = _identity,
         escape: Callable[[str], str] = _identity,
@@ -732,7 +725,6 @@ class MilterHelper:
         skipped (template_fail and an unresolvable tag). See
         :func:`render_template` for the details.
         """
-        del charset  # currently unused; kept for API stability with the old code
         return render_template(
             disclaimer_text,
             replacements,
@@ -846,18 +838,15 @@ class MilterHelper:
                     action,
                     disclaimer_text.replace("\r\n", "\n"),
                     replacements,
-                    charset,
                     literal=self.make_html,
                     escape=self.make_html,
                 )
             elif content_type == "text/html":
                 replaced = self._replace_template_tags(
-                    action, disclaimer_text, replacements, charset, escape=escape_html_value
+                    action, disclaimer_text, replacements, escape=escape_html_value
                 )
             else:
-                replaced = self._replace_template_tags(
-                    action, disclaimer_text, replacements, charset
-                )
+                replaced = self._replace_template_tags(action, disclaimer_text, replacements)
             if replaced is None:
                 return None
             disclaimer_text = replaced

@@ -78,6 +78,9 @@ services:
       db:
         condition: service_healthy
     env_file: .env
+    environment:
+      # TLS ends at Traefik: Secure cookies + trust X-Forwarded-Proto.
+      DJANGO_SECURE_COOKIES: "true"
     # No host port mapping — Traefik reaches the container on the
     # ``proxy`` network at port 8000.
     expose:

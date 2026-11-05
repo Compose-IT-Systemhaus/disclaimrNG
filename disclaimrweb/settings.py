@@ -17,6 +17,7 @@ env = environ.Env(
     DJANGO_TIME_ZONE=(str, "UTC"),
     DJANGO_LANGUAGE_CODE=(str, "en-us"),
     DJANGO_CSRF_TRUSTED_ORIGINS=(list, []),
+    DJANGO_SECURE_COOKIES=(bool, False),
     MEDIA_BASE_URL=(str, ""),
 )
 
@@ -28,6 +29,14 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+# Behind a TLS-terminating proxy (compose.traefik.yml sets this): cookies only
+# over HTTPS, and trust the proxy's X-Forwarded-Proto. Off by default so the
+# plain-HTTP compose.yml login keeps working.
+if env("DJANGO_SECURE_COOKIES"):
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     # django-unfold must precede django.contrib.admin so its templates win.

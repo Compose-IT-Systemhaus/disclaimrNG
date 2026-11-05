@@ -48,14 +48,9 @@ _SAMPLE_DATA: dict[str, Any] = {
 }
 
 
-def _build_image_table(content: str, content_type: str) -> dict[str, str]:
-    """Render ``image["slug"]`` references against the SignatureImage table."""
-    return _build_image_replacements(content, content_type)
-
-
 def _render(content: str, content_type: str) -> str:
     """Substitute ``{key}`` and ``{key["subkey"]}`` tags with sample values."""
-    replacements = {**_SAMPLE_DATA, "image": _build_image_table(content, content_type)}
+    replacements = {**_SAMPLE_DATA, "image": _build_image_replacements(content, content_type)}
     rendered = render_template(
         content,
         replacements,

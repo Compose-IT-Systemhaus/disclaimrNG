@@ -65,8 +65,7 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Compose-IT-Systemhaus/disclaimrNG"
 Repository = "https://github.com/Compose-IT-Systemhaus/disclaimrNG"
-Issues = "https://github.com/Compose-IT-Systemhaus/disclaimrNG/issues"
-Changelog = "https://github.com/Compose-IT-Systemhaus/disclaimrNG/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/Compose-IT-Systemhaus/disclaimrNG/blob/master/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["disclaimr", "disclaimrweb", "disclaimrwebadmin"]

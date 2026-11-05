@@ -57,9 +57,9 @@ class TemplateEditorWidget(forms.Textarea):
     template_name = "disclaimrwebadmin/widgets/template_editor.html"
 
     class Media:
-        # Vendored assets are fetched at Docker build time; in dev they live
-        # under STATICFILES via collectstatic. CDN fallback for local dev is
-        # handled in the template.
+        # Monaco and TinyMCE are fetched at Docker build time into
+        # static/disclaimrwebadmin/vendor/ (see template_editor.js; it falls back
+        # to the CDN where that folder is missing).
         css = {
             "all": [
                 "disclaimrwebadmin/template_editor/template_editor.css",

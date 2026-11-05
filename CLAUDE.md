@@ -41,7 +41,7 @@ Projektkontext für Claude Code. Stand: 2026-10-23 (letzter gemergter PR: #25).
 - LDAP: **`python-ldap`** (C-Binding, braucht `libldap2-dev`/`libsasl2-dev` zum Bauen)
 - Milter: **`python-libmilter`** (`import libmilter as lm`), Einstiegspunkt `disclaimr.py`
 - Static Files via **WhiteNoise** aus gunicorn (`CompressedStaticFilesStorage`, bewusst *nicht* Manifest — der Editor referenziert `/static/…` hart aus JS)
-- Template-Editor: **Monaco + TinyMCE 7 von jsdelivr-CDN** (nicht vendored)
+- Template-Editor: **Monaco + TinyMCE 7**, beim Docker-Build per `docker/fetch_editor_assets.py` von der npm-Registry geladen (sha512-geprüft, nicht im Git) nach `static/disclaimrwebadmin/vendor/`; `template_editor.js` fällt auf die jsdelivr-CDN zurück, wo der Ordner fehlt (z. B. Dev-Mount). Versionen in Script **und** JS gemeinsam anheben. TinyMCE 7 ist GPL-2.0-or-later (`license_key: "gpl"`).
 - Docs-Rendering: `markdown` + `Pygments`
 - Build: `pyproject.toml` (hatchling), Lint `ruff` (Regeln E,F,W,I,B,UP,DJ; line-length 100), `mypy` mit django-stubs (nicht strict), `pytest-django`
 

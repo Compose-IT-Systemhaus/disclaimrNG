@@ -33,14 +33,14 @@ docker compose exec web mypy disclaimr disclaimrwebadmin
 
 ## How to contribute
 
-1. **Open an issue first** for non-trivial changes so we can align on scope.
-2. **Fork** the repository and create a topic branch off `main`:
+1. **Talk to us first** for non-trivial changes so we can align on scope (GitHub Issues are disabled in this repository — open a draft pull request or contact the maintainers).
+2. **Fork** the repository and create a topic branch off `master`:
    ```bash
-   git checkout -b feature/short-description
+   git checkout -b feat/short-description
    ```
-3. **Make focused commits** — one logical change per commit, present-tense imperative subject (`add`, `fix`, `refactor`).
-4. **Run tests and linters** locally before pushing.
-5. **Open a pull request** against `main` and reference the issue (`Closes #123`).
+3. **Make focused commits** — one logical change per commit, English, imperative subject (`Add …`, `Fix …`).
+4. **Run tests and linters** locally before pushing. After a model change, create and commit the migration: `python manage.py makemigrations disclaimrwebadmin` (CI fails on `makemigrations --check` otherwise).
+5. **Open a pull request** against `master` with a `Summary` and a `Test plan`.
 
 ## Code style
 

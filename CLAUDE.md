@@ -1,6 +1,6 @@
 # CLAUDE.md — disclaimrNG
 
-Projektkontext für Claude Code. Stand: 2026-10-23 (letzter gemergter PR: #25).
+Projektkontext für Claude Code. Stand: 2026-11-05 (letzter gemergter PR: #31).
 
 ## User & Arbeitsweise
 
@@ -104,6 +104,12 @@ Projektkontext für Claude Code. Stand: 2026-10-23 (letzter gemergter PR: #25).
 - unfold liefert Tailwind v4 in `@layer`s → unser ungelayertes CSS gewinnt immer gegen unfold-Utilities; Selektoren deshalb eng halten.
 - unfold steht vor unserer App in `INSTALLED_APPS`, seine `admin/index.html`/`admin/login.html` überdecken gleichnamige Templates. Unsere heißen `disclaimrwebadmin/admin/{index,login}.html` und werden in `apps.ready()` gesetzt; Dashboard-Daten kommen aus `disclaimrwebadmin/dashboard.py` (`DASHBOARD_CALLBACK`).
 - Die Logo-PNGs haben das Transparenz-Schachbrett eingebacken; im UI wird `img/mark.svg` + Text-Wortmarke verwendet.
+- **Requirement-Empfänger:** Die `recipient`-Regex muss **mindestens einen** Empfänger treffen. `rcpt()` merkt sich nur Treffer (`_rcpt_matched`), `eoh()` entscheidet — Tests, die `eoh()` ohne vorheriges `rcpt()` aufrufen, verlieren sonst alle Requirements. `{recipient}` ist der erste passende Empfänger.
+- **Fehler im Milter-Callback** lässt `python-libmilter` still schlucken (`log()` ist leer): Verbindung weg, MTA stellt die Mail zurück. Deshalb loggt `DisclaimrMilter.dataReceived` den Traceback; Regexe werden beim Speichern validiert (`validate_regex`), LDAP-Fehler (`ldap.LDAPError`) überspringen nur den Server.
+- **Eigene Admin-Views** (`directory_server`, `preview`, `signature_test`) prüfen Modellrechte über `views/permissions.py::staff_with_perm`, nicht nur `is_staff`; `signature_image` prüft `add_signatureimage` und validiert die Datei als Bild. Tests dafür brauchen einen Superuser oder gezielte Rechte.
+- **`/media/` wird immer von Django ausgeliefert** (`disclaimrweb/urls.py`, `serve`), auch ohne `DEBUG` — die Bilder gehen per Mail an Empfänger ohne Login. Bei viel Bild-Traffic einen Proxy davor setzen.
+- Der Milter-Port wird nur auf `${MILTER_BIND:-127.0.0.1}` veröffentlicht (kein Auth im Protokoll, ein Fork pro Verbindung). `DJANGO_SECURE_COOKIES=true` (in `compose.traefik.yml` gesetzt) schaltet Secure-Cookies und `X-Forwarded-Proto` ein.
+- **Lokal testen geht doch:** `uv venv --system-certs --python 3.12 C:/dz-venv`, alle Abhängigkeiten außer `python-ldap` installieren und ein Stub-Paket `ldap` (jede Großbuchstaben-Konstante als `LDAPError`-Unterklasse, `ldap.filter.escape_filter_chars`) per `PYTHONPATH` einhängen; dazu `DJANGO_SECRET_KEY=x DATABASE_URL=sqlite:///:memory:`. Damit läuft die ganze Suite (144 Tests) in etwa 15 s.
 
 ## Kommandos (vom User im Container auszuführen)
 
@@ -130,9 +136,19 @@ CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite), `d
 - #23 Platzhalter-Chips, Dashboard-Regruppierung, DE/EN-i18n mit Flaggen-Toggle
 - #24 Common-field-Chips (Name/Phone/Email/Address)
 - #25 In-Admin-Doku `/admin/disclaimr/docs/` + „?“-Button
+- #26 CLAUDE.md
+- #27 Milter: bytes-API von python-libmilter, schnellere Pipeline
+- #28 UI-Refresh: minimales Theme, Dashboard, Login, eigene Seiten
+- #29 Topbar-Labels über gettext, Aufräumen nach #28
+- #30 Audit-Must-Fixes: Regex-Validierung, LDAP-Fehler, Log bei Callback-Fehlern, `/media/`, Upload-Prüfung, Milter-Port
+- #31 Audit-Should-Fixes: „mindestens ein Empfänger passt“, `7bit`-Fallback, Rechte auf Admin-Views
+- #32 Toten Code entfernt, `DJANGO_SECURE_COOKIES`, `.mo` nicht mehr im Repo
+- #33 Initiale Migration eingecheckt, CI-Check `makemigrations --check`
+
+## Releases
+
+Erstes Release `v0.1.0`: Version in `pyproject.toml` (`0.1.0`) und `disclaimr.py` (`v0.1.0`) anheben, CHANGELOG ergänzen, nach dem Merge Tag setzen (`git tag v0.1.0 && git push origin v0.1.0`). Der Tag löst den Image-Build mit Semver-Tags (CI) und das GitHub Release (`.github/workflows/release.yml`) aus; der Workflow bricht ab, wenn Tag und `pyproject.toml`-Version nicht übereinstimmen.
 
 ## Offene Punkte (beobachtet, nicht vom User priorisiert)
 
-- Migrationen einchecken (siehe Stolperfallen).
-- CHANGELOG.md ist veraltet (listet Erledigtes noch unter „Planned“), README-Status-Satz und `/admin/`-URL ebenso; CONTRIBUTING.md nennt `main` statt `master`.
 - Lokale Branches sind alle gemergt; vor neuer Arbeit `git fetch` und von `origin/master` abzweigen.

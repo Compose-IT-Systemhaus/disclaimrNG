@@ -8,7 +8,7 @@
 
 It hooks into the SMTP mail flow of any milter-capable MTA (Postfix, Sendmail), pulls per-user data (name, title, phone, mail address, …) from an LDAP server or Active Directory, and lets non-technical staff manage signature templates through a modern web interface.
 
-> **Status:** active development. The Python 2 / Django 1.7 port is in progress — see the [CHANGELOG](CHANGELOG.md) for the current state.
+> **Status:** first release (0.1.0). The port of the original Python 2 / Django 1.7 code to Python 3.12 / Django 5 is complete — see the [CHANGELOG](CHANGELOG.md) for what is included.
 
 ## Features
 
@@ -27,16 +27,20 @@ cd disclaimrNG
 cp .env.example .env
 # edit .env — at minimum set DJANGO_SECRET_KEY and DJANGO_ALLOWED_HOSTS
 docker compose up -d
-docker compose exec web python manage.py createsuperuser
+docker compose logs web | grep -A3 -i password   # generated admin password
 ```
 
-The web UI is then available on `http://localhost:8000/admin/`. Configure your MTA to talk to the milter on port `5000`, e.g. for Postfix:
+The first start creates the user `admin` with a random password (printed once in the web log). The web UI is then available on `http://localhost:8000/` — log in and change the password.
+
+Configure your MTA to talk to the milter on port `5000`, e.g. for Postfix:
 
 ```
 smtpd_milters = inet:disclaimrng:5000
 non_smtpd_milters = inet:disclaimrng:5000
 milter_default_action = accept
 ```
+
+The milter protocol has no authentication, so Docker publishes port `5000` on `127.0.0.1` only. If your MTA runs on another host, set `MILTER_BIND` in `.env` to this host's private IP (never a public address).
 
 ## Architecture
 

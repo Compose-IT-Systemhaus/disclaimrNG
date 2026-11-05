@@ -24,7 +24,7 @@ Das Formular hat vier Abschnitte:
 - **Anfrage**
   - **Suchanfrage** — parametrisierter Filter; ``%s`` wird zur
     Laufzeit durch die Absender-Mail-Adresse ersetzt. AD-Default:
-    ``(userPrincipalName=%s)``. LDAP-Default: ``mail=%s``.
+    ``(|(mail=%s)(userPrincipalName=%s))``. LDAP-Default: ``mail=%s``.
   - **Attributliste** — komma- oder zeilengetrennte Attributnamen,
     die in der Editor-Autovervollständigung sichtbar werden
     (``cn, mail, telephoneNumber, …``). Leer = Variante-Defaults.

@@ -47,7 +47,7 @@ milter matches whichever domain owns the sender's address.
    - **User-DN**: ``CN=disclaimr,OU=Service,DC=example,DC=com``
    - **Password**: (your service account password)
 4. Query block — leave the AD defaults
-   (``(userPrincipalName=%s)``).
+   (``(|(mail=%s)(userPrincipalName=%s))``).
 5. URL inline:
    - **URL**: ``ldaps://dc1.example.com``
    - Add a second URL for failover: ``ldaps://dc2.example.com``

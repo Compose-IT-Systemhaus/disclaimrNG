@@ -1,0 +1,39 @@
+# Overlay for running disclaimrNG on the same Docker host as a Stalwart container.
+#
+#   docker compose -f compose.yml -f compose.stalwart.yml up -d
+#
+# What it adds to compose.yml:
+#   * the milter joins the external Docker network ``mailnet`` as ``disclaimrng-milter``,
+#     so the Stalwart container reaches it at disclaimrng-milter:5000;
+#   * the Active Directory CA (./certs/ad-ca.pem) is mounted into web and milter and
+#     LDAPTLS_CACERT points python-ldap at it, so ldaps:// connections verify.
+#
+# Prepare once:   docker network create mailnet   (the Stalwart container joins it too)
+#                 put the CA certificate (PEM) at ./certs/ad-ca.pem BEFORE the first start
+#                 (Docker would otherwise create a directory of that name)
+#
+# Another network name: set STALWART_NETWORK in .env.
+# Step-by-step: docs/en/stalwart-active-directory.md (also in the admin under Documentation).
+
+services:
+  web:
+    environment:
+      LDAPTLS_CACERT: /etc/ssl/ad/ca.pem
+    volumes:
+      - ./certs/ad-ca.pem:/etc/ssl/ad/ca.pem:ro
+
+  milter:
+    environment:
+      LDAPTLS_CACERT: /etc/ssl/ad/ca.pem
+    volumes:
+      - ./certs/ad-ca.pem:/etc/ssl/ad/ca.pem:ro
+    networks:
+      default:
+      mailnet:
+        aliases:
+          - disclaimrng-milter
+
+networks:
+  mailnet:
+    external: true
+    name: ${STALWART_NETWORK:-mailnet}

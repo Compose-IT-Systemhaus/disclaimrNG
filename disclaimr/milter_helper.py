@@ -591,8 +591,10 @@ class MilterHelper:
                 continue
 
             logging.debug("Connecting to directory server %s", directory_server.name)
-            query = directory_server.search_query % (
-                ldap.filter.escape_filter_chars(envelope_from),
+            # Every %s becomes the address — the Active Directory default query
+            # has two of them, which "%" with a one-element tuple would reject.
+            query = directory_server.search_query.replace(
+                "%s", ldap.filter.escape_filter_chars(envelope_from)
             )
             cache_key = f"{query}|{','.join(attrlist) if attrlist else '*'}"
             result = None

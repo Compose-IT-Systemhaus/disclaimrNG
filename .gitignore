@@ -81,3 +81,6 @@ docker-compose.override.yml
 
 # Monaco/TinyMCE are downloaded at image build time (docker/fetch_editor_assets.py)
 disclaimrwebadmin/static/disclaimrwebadmin/vendor/
+
+# AD CA certificate for the Stalwart setup (compose.stalwart.yml) — never commit
+/certs/

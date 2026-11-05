@@ -102,11 +102,6 @@ ignore = [
 DJANGO_SETTINGS_MODULE = "disclaimrweb.settings"
 python_files = ["test_*.py", "*_test.py"]
 testpaths = ["tests"]
-# --no-migrations syncs the test DB straight from models. We haven't
-# committed the initial migration yet (that lands once the model layout
-# stabilises), and re-running makemigrations on every test job would be
-# slower than letting Django build the schema in one shot.
-addopts = "--no-migrations"
 
 [tool.mypy]
 python_version = "3.12"

@@ -29,8 +29,8 @@ nginx nötig.
 
 ## ``relation "disclaimrwebadmin_…" does not exist``
 
-Die Migrationen der disclaimrwebadmin-App wurden nicht angewendet. Das
-Dockerfile ruft ``makemigrations`` zur Build-Zeit, der Entrypoint ruft
+Die Migrationen der disclaimrwebadmin-App wurden nicht angewendet. Sie liegen
+im Repository, der Entrypoint ruft
 ``migrate`` beim Boot — stelle sicher dass du auf einem aktuellen
 Build bist:
 
@@ -39,10 +39,10 @@ git pull
 docker compose up -d --build
 ```
 
-Falls du Modellfelder per Hand geändert hast (Working-Copy-Edit):
+Falls du ein Modell geändert hast, erzeuge die Migration im Working Copy und committe sie:
 
 ```bash
-docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py makemigrations disclaimrwebadmin
 docker compose exec web python manage.py migrate
 ```
 

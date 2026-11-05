@@ -27,8 +27,8 @@ it. WhiteNoise serves the result; no nginx required.
 
 ## ``relation "disclaimrwebadmin_…" does not exist``
 
-The disclaimrwebadmin app's migrations weren't applied. The Dockerfile
-runs ``makemigrations`` at build time and the entrypoint runs
+The disclaimrwebadmin app's migrations weren't applied. They are part of the
+repository and the entrypoint runs
 ``migrate`` at boot — make sure you're on a recent build:
 
 ```bash
@@ -36,10 +36,10 @@ git pull
 docker compose up -d --build
 ```
 
-If you've recently added a model field by hand (working copy edit), run:
+If you changed a model, create the migration in your working copy and commit it:
 
 ```bash
-docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py makemigrations disclaimrwebadmin
 docker compose exec web python manage.py migrate
 ```
 

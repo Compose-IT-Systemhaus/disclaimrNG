@@ -87,7 +87,7 @@ Projektkontext für Claude Code. Stand: 2026-10-23 (letzter gemergter PR: #25).
 
 ## Bekannte Stolperfallen
 
-- **Migrationen sind nicht committet.** `disclaimrwebadmin/migrations/` enthält nur `__init__.py`; `makemigrations` läuft im Dockerfile beim Build, pytest nutzt `--no-migrations`. Folge: Modelländerungen erzeugen beim nächsten Build ein neues `0001_initial`, das auf einer bestehenden DB (wo `0001_initial` schon als angewendet markiert ist) **nicht** erneut läuft → Schema-Drift. Vor produktivem Einsatz Migrationen einchecken.
+- **Migrationen sind committet** (`disclaimrwebadmin/migrations/`). Nach jeder Modelländerung `python manage.py makemigrations disclaimrwebadmin` ausführen und die Datei mit einchecken — die CI bricht bei `makemigrations --check` ab, wenn sie fehlt. Bereits angewendete Migrationen nie umschreiben, immer eine neue anlegen. pytest läuft mit Migrationen (kein `--no-migrations`).
 - **Py2→Py3-Erbe:** bytes vs. str (Body-Chunks, LDAP-Attributwerte), `filter()`/`map()` sind Iteratoren, `__unicode__` → `__str__`, `on_delete` überall nötig.
 - **Mail-Encoding im Milter:** Payload bei `7bit`/`8bit` als **str** setzen; nur für `quoted-printable`/`base64` bytes — sonst serialisiert Pythons `email` als base64 trotz anderem CTE-Header (Fix PR #19).
 - **python-libmilter 2.x spricht bytes:** Adressen, Header, Body-Chunks und Makro-Keys (`b"i"`) kommen als bytes, `replBody`/`addHeader`/`chgHeader` erwarten bytes. Umwandeln nur an der Grenze in `disclaimr.py` (`_text`/`_raw`/`_address`); `MilterHelper` arbeitet mit str. Tests, die `MilterHelper` direkt mit str füttern, sehen solche Fehler nicht → `test_milter_round_trip_with_bytes`.

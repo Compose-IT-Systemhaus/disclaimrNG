@@ -114,7 +114,7 @@ def test_upload_needs_the_add_permission(db):
     assert not SignatureImage.objects.exists()
 
 
-def test_uploaded_images_are_served_without_login_and_without_debug(client, settings):
+def test_uploaded_images_are_served_without_login_and_without_debug(db, client, settings):
     settings.DEBUG = False
     image = SignatureImage.objects.create(
         slug="pub",

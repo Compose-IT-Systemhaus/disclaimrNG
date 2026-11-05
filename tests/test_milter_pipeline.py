@@ -276,6 +276,52 @@ def test_milter_round_trip_with_bytes(db, daemon):
 
 
 # ---------------------------------------------------------------------------
+# Recipient regex: at least one recipient has to match
+# ---------------------------------------------------------------------------
+
+
+def _send_to(recipients, headers=_PLAIN_8BIT):
+    helper = _connected_helper()
+    helper.mail_from("alice@example.com", {})
+    for recipient in recipients:
+        helper.rcpt(recipient, {})
+    for key, value in headers:
+        helper.header(key, value, {})
+    helper.eoh({})
+    helper.body(b"hello", {})
+    return helper, helper.eob({})
+
+
+def test_requirement_matches_when_any_recipient_matches(db):
+    _setup_rule()
+    models.Requirement.objects.update(recipient=r"@customer\.com$")
+
+    # The matching recipient is not the first one.
+    helper, workflow = _send_to(["colleague@example.com", "bob@customer.com"])
+
+    assert b"Signature" in workflow["repl_body"].encode()
+    assert helper.mail_data["envelope_rcpt"] == "bob@customer.com"
+
+
+def test_requirement_without_any_matching_recipient_is_dropped(db):
+    _setup_rule()
+    models.Requirement.objects.update(recipient=r"@customer\.com$")
+
+    helper, workflow = _send_to(["a@example.com", "b@example.com"])
+
+    assert workflow is None
+    assert not helper.enabled
+
+
+def test_mail_without_content_transfer_encoding_gets_a_valid_one(db):
+    _setup_rule()
+
+    _, workflow = _send_to(["bob@example.org"], headers=[("Content-Type", "text/plain")])
+
+    assert workflow["add_header"]["Content-Transfer-Encoding"] == "7bit"
+
+
+# ---------------------------------------------------------------------------
 # Failures that used to make the MTA defer every mail
 # ---------------------------------------------------------------------------
 

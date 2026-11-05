@@ -235,7 +235,8 @@ class MilterHelper:
             "body": "",
         }
         self.enabled = True
-        self.rcptmatch = False
+        # Requirement ids whose recipient regex matched at least one RCPT.
+        self._rcpt_matched: set[int] = set()
         self.requirements: list[int] = []
         self.actions: list[Any] = []
         self.charsetsmatch = True
@@ -260,7 +261,7 @@ class MilterHelper:
             self.mail_data["sender_ip"] = sender_ip
         self.requirements = list(self._connection_requirements)
         self.enabled = bool(self.requirements)
-        self.rcptmatch = False
+        self._rcpt_matched = set()
         self.charsetsmatch = True
         self._body_chunks = []
         self._requirement_rows = None
@@ -322,22 +323,26 @@ class MilterHelper:
 
         self.mail_data["envelope_from"] = addr
 
-    def rcpt(self, recip: str, cmd_dict: dict) -> None:
-        """Called when an RCPT TO envelope value has been received."""
-        for req in self._active_requirements():
-            if not re.search(req.recipient, recip):
-                self._drop_requirements({req.id})
-                if not self.requirements:
-                    logging.debug(
-                        "Couldn't match recipient address in any requirement. Skipping."
-                    )
-                    self.enabled = False
-            else:
-                logging.debug("Recipient address matches regex.")
-                self.rcptmatch = True
-                self.enabled = True
+    @property
+    def rcptmatch(self) -> bool:
+        """Whether every requirement still in play has matched a recipient."""
+        return bool(self.requirements) and self._rcpt_matched.issuperset(self.requirements)
 
-        self.mail_data["envelope_rcpt"] = recip
+    def rcpt(self, recip: str, cmd_dict: dict) -> None:
+        """Called for each RCPT TO value.
+
+        A requirement's recipient regex has to match *at least one* recipient.
+        Requirements that matched none are dropped in :meth:`eoh`, once all
+        recipients are known.
+        """
+        matched = {
+            req.id for req in self._active_requirements() if re.search(req.recipient, recip)
+        }
+        # {recipient} is the first recipient that matched a requirement.
+        if matched and not self._rcpt_matched:
+            self.mail_data["envelope_rcpt"] = recip
+        self._rcpt_matched |= matched
+        self.mail_data.setdefault("envelope_rcpt", recip)
 
     def header(self, key: str, val: str, cmd_dict: dict) -> None:
         """Called for each header line."""
@@ -348,11 +353,15 @@ class MilterHelper:
         """Called once all headers have been received."""
         joined = "\n".join(self.mail_data["headers"])
         self._drop_requirements(
-            {req.id for req in self._active_requirements() if not re.search(req.header, joined)}
+            {
+                req.id
+                for req in self._active_requirements()
+                if req.id not in self._rcpt_matched or not re.search(req.header, joined)
+            }
         )
 
         if not self.requirements:
-            logging.debug("Couldn't match header in any requirement. Skipping.")
+            logging.debug("Couldn't match recipient or header in any requirement. Skipping.")
             self.enabled = False
 
     def body(self, chunk: bytes | str, cmd_dict: dict) -> None:
@@ -498,9 +507,9 @@ class MilterHelper:
         else:
             syslog.warning(
                 "Missing Content-Transfer-Encoding header, this violates RFC! "
-                "Falling back to 78bit"
+                "Falling back to 7bit"
             )
-            encoding = "78bit"
+            encoding = "7bit"
 
         charset = mail.get_content_charset() or "utf-8"
         return encoding, _to_str(mail_text, charset)
@@ -944,8 +953,8 @@ class MilterHelper:
         # Python's email library decides on its own whether to base64-encode
         # a payload at ``as_string()`` time based on the payload *type*:
         # bytes always trigger base64 (regardless of the
-        # Content-Transfer-Encoding header we add below). For 7bit / 8bit /
-        # 78bit we keep the payload as ``str`` so it gets written out
+        # Content-Transfer-Encoding header we add below). For 7bit / 8bit
+        # we keep the payload as ``str`` so it gets written out
         # unmolested. quoted-printable / base64 still need bytes because
         # the encoders mutate the payload in place.
         if encoding == "quoted-printable":

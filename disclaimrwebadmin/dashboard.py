@@ -80,7 +80,11 @@ def dashboard_callback(request: HttpRequest, context: dict[str, Any]) -> dict[st
     # Cards without a link are ones the user may not view — don't leak counts.
     cards = [card for card in cards if card["url"]]
 
-    signature_test_url = reverse(f"{_APP}:signature-test")
+    # Same permissions the signature-test view itself asks for.
+    may_test = request.user.has_perm(f"{_APP}.view_rule") or request.user.has_perm(
+        f"{_APP}.change_rule"
+    )
+    signature_test_url = reverse(f"{_APP}:signature-test") if may_test else None
     steps = [
         {
             "title": _("Create a signature"),

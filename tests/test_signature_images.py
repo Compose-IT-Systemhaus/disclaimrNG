@@ -136,9 +136,7 @@ def test_preview_table_empty_without_tags(db):
 
 @pytest.fixture
 def staff_client(db) -> Client:
-    user = get_user_model().objects.create_user(
-        username="img-admin", password="pw", is_staff=True
-    )
+    user = get_user_model().objects.create_superuser(username="img-admin", password="pw")
     client = Client()
     client.force_login(user)
     return client

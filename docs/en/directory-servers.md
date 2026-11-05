@@ -84,6 +84,22 @@ Per handle (replace ``<HANDLE>`` with the uppercased handle):
 ``LDAP_SERVERS`` is set. ``LDAP_SYNC_PRUNE=1`` deletes env-managed
 rows that no longer appear.
 
+## LDAPS with a private CA
+
+``ldaps://`` URLs are verified against the container's CA store. A directory whose
+certificate comes from a private (e.g. Active Directory) CA needs that CA:
+
+1. Put the CA certificate (PEM, intermediates appended) at ``./certs/ad-ca.pem`` next to
+   ``compose.yml``. The compose files mount ``./certs`` read-only into ``web`` and
+   ``milter``.
+2. Restart: ``docker compose up -d``. The entrypoint sees ``/etc/ssl/ad/ad-ca.pem`` and
+   sets ``LDAPTLS_CACERT`` for the process; the log says ``LDAPS: trusting the CA``.
+3. **Test connection** on the directory server must show ``bind + base search ok``.
+
+An ``LDAPTLS_CACERT`` set in ``.env`` takes precedence. The file replaces the
+system roots for LDAP connections, which is what you want for an internal directory.
+Plain ``ldap://`` with STARTTLS is not supported — use ``ldaps://``.
+
 ## Bound timeouts
 
 Every connection is opened with ``OPT_NETWORK_TIMEOUT=5`` and

@@ -10,6 +10,13 @@
 
 set -euo pipefail
 
+# Private CA for ldaps:// (Active Directory): compose mounts ./certs at /etc/ssl/ad.
+# An explicit LDAPTLS_CACERT wins; without the file nothing changes.
+if [ -z "${LDAPTLS_CACERT:-}" ] && [ -f /etc/ssl/ad/ad-ca.pem ]; then
+    export LDAPTLS_CACERT=/etc/ssl/ad/ad-ca.pem
+    echo "[entrypoint] LDAPS: trusting the CA in /etc/ssl/ad/ad-ca.pem"
+fi
+
 ROLE="${1:-web}"
 shift || true
 

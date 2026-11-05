@@ -680,6 +680,10 @@ class MilterHelper:
                     directory_server.userdn,
                 )
                 return None
+            except ldap.LDAPError as exc:
+                # e.g. AD demanding LDAPS/signing — must not defer the mail.
+                syslog.warning("Cannot bind to server %s: %s. Skipping.", url, exc)
+                return None
 
             try:
                 return conn.search_s(
@@ -695,6 +699,9 @@ class MilterHelper:
                     "cannot query. Skipping.",
                     url,
                 )
+            except ldap.LDAPError as exc:
+                # e.g. OPERATIONS_ERROR (AD anonymous), FILTER_ERROR (bad query).
+                syslog.warning("Cannot search server %s: %s. Skipping.", url, exc)
             return None
         finally:
             try:
@@ -882,6 +889,9 @@ class MilterHelper:
                 if not disclaimer_text.lstrip().startswith("<"):
                     disclaimer_text = f"<p>{disclaimer_text}</p>"
 
+                if not new_text.strip():
+                    # lxml raises "Document is empty"; nothing to append to.
+                    return mail
                 html_part = etree.HTML(new_text)
                 disclaimer_part = etree.HTML(disclaimer_text)
                 disclaimer_body = disclaimer_part.xpath("body")[0]

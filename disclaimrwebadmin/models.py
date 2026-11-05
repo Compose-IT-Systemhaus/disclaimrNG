@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
+import re
+
 import netaddr
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from . import constants
+
+
+def validate_regex(value: str) -> None:
+    """Reject a pattern the milter could not compile (it would defer every mail)."""
+    try:
+        re.compile(value)
+    except re.error as exc:
+        raise ValidationError(
+            _("Invalid regular expression: %(error)s"), params={"error": exc}
+        ) from exc
 
 
 def _signature_image_upload_to(instance: SignatureImage, filename: str) -> str:
@@ -208,11 +221,13 @@ class Requirement(models.Model):
         _("sender"),
         help_text=_("A regexp, that has to match the sender of a mail."),
         default=".*",
+        validators=[validate_regex],
     )
     recipient = models.TextField(
         _("recipient"),
         help_text=_("A regexp, that has to match the recipient of a mail"),
         default=".*",
+        validators=[validate_regex],
     )
     header = models.TextField(
         _("header-filter"),
@@ -221,11 +236,13 @@ class Requirement(models.Model):
             "represented in a key: value - format."
         ),
         default=".*",
+        validators=[validate_regex],
     )
     body = models.TextField(
         _("body-filter"),
         help_text=_("A regexp, that has to match the body of a mail"),
         default=".*",
+        validators=[validate_regex],
     )
     action = models.SmallIntegerField(
         _("action"),
@@ -666,3 +683,12 @@ class Action(models.Model):
         if not self.enabled:
             return f"{self.name} ({_('disabled')})"
         return self.name
+
+    def clean(self) -> None:
+        # Only "replace a tag" treats the parameters as a regex.
+        if self.action == constants.ACTION_ACTION_REPLACETAG:
+            try:
+                validate_regex(self.action_parameters)
+            except ValidationError as exc:
+                raise ValidationError({"action_parameters": exc.messages}) from exc
+

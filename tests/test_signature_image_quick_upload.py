@@ -22,9 +22,7 @@ def _png_bytes() -> bytes:
 
 @pytest.fixture
 def staff_client(db) -> Client:
-    user = get_user_model().objects.create_user(
-        username="up", password="pw", is_staff=True
-    )
+    user = get_user_model().objects.create_superuser(username="up", password="pw")
     client = Client()
     client.force_login(user)
     return client
@@ -93,3 +91,36 @@ def test_vocabulary_endpoint_includes_image_url(staff_client):
     images = response.json()["images"]
     assert images[0]["slug"] == "hero"
     assert "url" in images[0] and images[0]["url"]
+
+
+def test_upload_of_a_non_image_is_rejected(staff_client):
+    upload = SimpleUploadedFile("evil.html", b"<script>alert(1)</script>", content_type="text/html")
+    response = staff_client.post(
+        reverse("disclaimrwebadmin:signatureimage-quick-upload"), data={"image": upload}
+    )
+    assert response.status_code == 400
+    assert not SignatureImage.objects.exists()
+
+
+def test_upload_needs_the_add_permission(db):
+    user = get_user_model().objects.create_user(username="plain", password="pw", is_staff=True)
+    client = Client()
+    client.force_login(user)
+    upload = SimpleUploadedFile("a.png", _png_bytes(), content_type="image/png")
+    response = client.post(
+        reverse("disclaimrwebadmin:signatureimage-quick-upload"), data={"image": upload}
+    )
+    assert response.status_code == 403
+    assert not SignatureImage.objects.exists()
+
+
+def test_uploaded_images_are_served_without_login_and_without_debug(db, client, settings):
+    settings.DEBUG = False
+    image = SignatureImage.objects.create(
+        slug="pub",
+        name="Pub",
+        image=SimpleUploadedFile("pub.png", _png_bytes(), content_type="image/png"),
+    )
+    response = client.get(image.image.url)
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content).startswith(b"\x89PNG")

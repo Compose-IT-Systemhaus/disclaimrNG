@@ -236,6 +236,15 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         self._qid = None
         return lm.CONTINUE
 
+    def dataReceived(self, buf):
+        # python-libmilter swallows callback exceptions (its log() is a no-op),
+        # drops the connection and the MTA defers the mail — leave a traceback.
+        try:
+            super().dataReceived(buf)
+        except Exception:
+            syslog.exception("Unhandled error while processing mail %s", _text(self._qid))
+            raise
+
     def abort(self):
         logging.debug("ABORT: resetting the mail state")
         self.helper.reset()

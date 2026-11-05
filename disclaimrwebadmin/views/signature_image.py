@@ -9,7 +9,9 @@ the editor.
 
 from __future__ import annotations
 
+from django import forms
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import ValidationError
 from django.http import HttpRequest, JsonResponse
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
@@ -33,9 +35,18 @@ class SignatureImageQuickUploadView(View):
     """
 
     def post(self, request: HttpRequest) -> JsonResponse:
+        if not request.user.has_perm("disclaimrwebadmin.add_signatureimage"):
+            return JsonResponse({"error": "Permission denied."}, status=403)
+
         upload = request.FILES.get("image")
         if upload is None:
             return JsonResponse({"error": "Missing 'image' file."}, status=400)
+
+        # The model field does not inspect the file; the admin form field does.
+        try:
+            forms.ImageField().clean(upload)
+        except ValidationError as exc:
+            return JsonResponse({"error": " ".join(exc.messages)}, status=400)
 
         raw_slug = request.POST.get("slug", "").strip()
         raw_name = request.POST.get("name", "").strip()

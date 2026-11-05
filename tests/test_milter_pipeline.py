@@ -319,3 +319,60 @@ def test_mail_without_content_transfer_encoding_gets_a_valid_one(db):
     _, workflow = _send_to(["bob@example.org"], headers=[("Content-Type", "text/plain")])
 
     assert workflow["add_header"]["Content-Transfer-Encoding"] == "7bit"
+
+
+# ---------------------------------------------------------------------------
+# Failures that used to make the MTA defer every mail
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_regex_is_rejected_when_saving(db):
+    from django.core.exceptions import ValidationError
+
+    rule = models.Rule.objects.create(name="r")
+    with pytest.raises(ValidationError) as exc:
+        models.Requirement(rule=rule, name="req", sender="*@example.com").full_clean()
+    assert "sender" in exc.value.message_dict
+
+    disclaimer = models.Disclaimer.objects.create(name="d", text="x")
+    action = models.Action(
+        rule=rule,
+        disclaimer=disclaimer,
+        position=0,
+        name="a",
+        action=constants.ACTION_ACTION_REPLACETAG,
+        action_parameters="(unclosed",
+    )
+    with pytest.raises(ValidationError) as exc:
+        action.full_clean()
+    assert "action_parameters" in exc.value.message_dict
+
+
+def test_unexpected_ldap_errors_skip_the_server_instead_of_raising():
+    import ldap
+
+    server = MagicMock()
+    server.auth = constants.DIR_AUTH_NONE
+    for failing in ("simple_bind_s", "search_s"):
+        conn = MagicMock()
+        getattr(conn, failing).side_effect = ldap.OPERATIONS_ERROR({"desc": "bind required"})
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(milter_helper.ldap, "initialize", lambda url, conn=conn: conn)
+            assert MilterHelper._search_url(server, MagicMock(url="ldap://x"), "(x)", None) is None
+
+
+def test_empty_html_part_is_left_alone(db):
+    _setup_rule(html="<p>Signature</p>", html_use_text=False)
+    headers = [("Content-Type", "text/html; charset=utf-8"), ("Content-Transfer-Encoding", "8bit")]
+    workflow = _send(_connected_helper(), headers, [b"  \n"])
+    assert workflow["repl_body"].strip() == ""
+
+
+def test_callback_errors_are_logged_with_a_traceback(db, daemon, caplog):
+    milter = daemon.DisclaimrMilter()
+    boom = MagicMock(side_effect=RuntimeError("boom"))
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(daemon.lm.MilterProtocol, "dataReceived", boom)
+        with pytest.raises(RuntimeError):
+            milter.dataReceived(b"")
+    assert "Unhandled error" in caplog.text and "RuntimeError: boom" in caplog.text

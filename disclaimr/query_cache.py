@@ -44,19 +44,3 @@ class QueryCache:
                 "timestamp": time.monotonic(),
                 "data": data,
             }
-
-    @classmethod
-    def flush(cls) -> None:
-        """Drop all timed-out entries from the cache."""
-        with cls._lock:
-            now = time.monotonic()
-            for ds_id in list(cls._cache):
-                ds_cache = cls._cache[ds_id]
-                timeout = ds_cache["_timeout"]
-                for query in list(ds_cache):
-                    if query == "_timeout":
-                        continue
-                    if now - ds_cache[query]["timestamp"] > timeout:
-                        del ds_cache[query]
-                if len(ds_cache) == 1:
-                    del cls._cache[ds_id]

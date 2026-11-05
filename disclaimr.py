@@ -208,6 +208,14 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         return lm.CONTINUE
 
     def eob(self, cmd_dict):
+        try:
+            return self._eob(cmd_dict)
+        finally:
+            # This process lives as long as the SMTP connection, which can sit idle
+            # for hours between mails; don't hold a database connection meanwhile.
+            connections.close_all()
+
+    def _eob(self, cmd_dict):
         if not self.helper.enabled:
             logging.debug("Ignoring END-OF-BODY since a previous rule didn't match...")
             self._qid = None
@@ -246,6 +254,7 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
     def abort(self):
         logging.debug("ABORT: resetting the mail state")
         self.helper.reset()
+        connections.close_all()
 
     def close(self):
         logging.debug("Close called. QID: %s", self._qid)

@@ -135,7 +135,7 @@ def test_body_chunk_boundary_inside_multibyte_character(db):
 def test_first_body_line_that_looks_like_a_header_is_kept(db):
     _setup_rule()
     workflow = _send(_connected_helper(), _PLAIN_8BIT, [b"Note: please read\nSecond line"])
-    assert workflow["repl_body"].startswith("Note: please read\nSecond line")
+    assert workflow["repl_body"].startswith("Note: please read\r\nSecond line")
 
 
 def test_skipped_parts_stay_in_a_multipart_mail(db):
@@ -444,3 +444,34 @@ def test_active_directory_default_query_has_two_placeholders_and_still_resolves(
     assert resolved
     assert attributes["displayname"] == "Alice Example"
     assert seen == ["(|(mail=alice@example.com)(userPrincipalName=alice@example.com))"]
+
+
+def test_replacement_body_uses_crlf_only(db):
+    """Stalwart writes the replacement body as it is: no bare LF may reach it."""
+    _setup_rule()
+    workflow = _send(_connected_helper(), _PLAIN_8BIT, [b"first line\nsecond line\r\nthird"])
+    body = workflow["repl_body"]
+    assert "Signature" in body and "\r\n" in body
+    assert "\n" not in body.replace("\r\n", "")
+
+
+def test_database_connection_is_released_after_every_mail(db, daemon):
+    _setup_rule()
+    daemon.refresh_configuration(force=True)
+    milter = daemon.DisclaimrMilter()
+    milter.replBody = MagicMock()
+    milter.addHeader = MagicMock()
+    milter.chgHeader = MagicMock()
+    milter.connect(b"mx", b"4", b"10.0.0.1", 25, {})
+    milter.mailFrom(b"<alice@example.com>", {})
+    milter.rcpt(b"<bob@example.org>", {})
+    for key, value in _PLAIN_8BIT:
+        milter.header(key.encode(), value.encode(), {})
+    milter.eoh({})
+    milter.body(b"hello", {})
+
+    with pytest.MonkeyPatch.context() as patch:
+        closed = MagicMock()
+        patch.setattr(daemon.connections, "close_all", closed)
+        milter.eob({})
+    assert closed.called

@@ -30,6 +30,7 @@ import netaddr
 from django.db.models import Prefetch
 from lxml import etree
 
+from disclaimr.ldap_helper import open_connection
 from disclaimr.query_cache import QueryCache
 from disclaimrwebadmin import constants, models
 
@@ -44,18 +45,14 @@ _SUBKEY_TAG_RE = re.compile(r'^([^\[]*)\["([^"]*)"\]$')
 # is dropped — together with the line break before or after it — as soon as
 # one of its tags comes out empty.
 _RT_BLOCK_RE = re.compile(r"(\n)?\{rt\}(.*?)\{/rt\}(\r|<br />)?")
+# Any line ending, to normalise the replacement body to CRLF.
+_NEWLINE_RE = re.compile(r"\r?\n")
 # ``resolver["attr"]`` references — only these attributes are fetched from LDAP.
 _RESOLVER_REF_RE = re.compile(r'resolver\["([^"]+)"\]', re.IGNORECASE)
 
 _HTML_ESCAPE_TABLE = str.maketrans(
     {"&": "&amp;", '"': "&quot;", "'": "&apos;", ">": "&gt;", "<": "&lt;"}
 )
-
-# Bound, network-level timeouts so an unreachable LDAP server can never hang
-# the milter (or the synchronous signature-test admin view) for more than a
-# few seconds. python-ldap's defaults are effectively infinite, which used to
-# take down gunicorn workers.
-_LDAP_TIMEOUT = 5
 
 
 def _to_str(value: Any, charset: str = "utf-8") -> str:
@@ -477,7 +474,9 @@ class MilterHelper:
             logging.debug("Stripping trailing line feeds from multi-part payload")
             new_body = new_body.rstrip()
 
-        workflow["repl_body"] = new_body
+        # The milter protocol carries CRLF lines. Postfix accepts both, Stalwart writes
+        # the replacement body as it is, so it must not get the LF the email package emits.
+        workflow["repl_body"] = _NEWLINE_RE.sub("\r\n", new_body)
         return workflow
 
     @staticmethod
@@ -656,12 +655,7 @@ class MilterHelper:
         attrlist: list[str] | None,
     ) -> list | None:
         """Bind to ``url`` and run ``query``; ``None`` if the server is unusable."""
-        conn = ldap.initialize(url.url)
-        conn.set_option(ldap.OPT_NETWORK_TIMEOUT, _LDAP_TIMEOUT)
-        conn.set_option(ldap.OPT_TIMEOUT, _LDAP_TIMEOUT)
-        # Active Directory answers subtree searches on the domain root with
-        # referrals; chasing them (anonymously) only costs time.
-        conn.set_option(ldap.OPT_REFERRALS, 0)
+        conn = open_connection(url.url)
 
         ldap_user = ""
         ldap_password = ""

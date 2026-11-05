@@ -159,7 +159,8 @@ class DisclaimerTestCase(TestCase):
         return email.message_from_string(
             "%s\n\n%s" % (
                 "\n".join(headers),
-                returned["repl_body"]
+                # the milter answers with CRLF lines; these tests compare with LF
+                returned["repl_body"].replace("\r\n", "\n")
             )
         )
 

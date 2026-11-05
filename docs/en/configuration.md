@@ -33,6 +33,10 @@ docker compose exec web python manage.py bootstrap_admin --reset
 This forcibly recreates ``admin`` with a fresh password, even if other
 superusers exist.
 
+Prefer to choose the password yourself? Set ``DISCLAIMR_ADMIN_PASSWORD`` in
+``.env`` before the first start. It is then used instead of a generated one
+(also for ``--reset``) and is **not** written to the log.
+
 ## Django settings worth knowing
 
 | Setting | Purpose |

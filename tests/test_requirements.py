@@ -172,6 +172,7 @@ class RequirementsTestCase(TestCase):
 
         helper.connect("", "", "1.1.1.1", "", {})
         helper.rcpt("def", {})
+        helper.eoh({})  # recipients are judged once all of them are known
 
         self.assertFalse(
             helper.enabled,

@@ -10,9 +10,7 @@ from django.urls import reverse
 
 @pytest.fixture
 def staff_client(db) -> Client:
-    user = get_user_model().objects.create_user(
-        username="alice", password="pw", is_staff=True
-    )
+    user = get_user_model().objects.create_superuser(username="alice", password="pw")
     client = Client()
     client.force_login(user)
     return client

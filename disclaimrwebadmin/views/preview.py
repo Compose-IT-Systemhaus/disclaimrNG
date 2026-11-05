@@ -16,7 +16,6 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.generic import View
@@ -26,6 +25,8 @@ from disclaimr.milter_helper import (
     escape_html_value,
     render_template,
 )
+
+from .permissions import staff_with_perm
 
 _SAMPLE_DATA: dict[str, Any] = {
     "sender": "alice@example.com",
@@ -64,7 +65,7 @@ def _render(content: str, content_type: str) -> str:
     return rendered or ""
 
 
-@method_decorator(staff_member_required, name="dispatch")
+@method_decorator(staff_with_perm("add_disclaimer", "change_disclaimer"), name="dispatch")
 class DisclaimerPreviewView(View):
     """Render a disclaimer with sample data and return it as HTML."""
 

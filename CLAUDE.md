@@ -1,6 +1,6 @@
 # CLAUDE.md — disclaimrNG
 
-Projektkontext für Claude Code. Stand: 2026-11-05 (letzter gemergter PR: #31).
+Projektkontext für Claude Code. Stand: 2026-11-05 (letzter gemergter PR: #36).
 
 ## User & Arbeitsweise
 
@@ -144,6 +144,9 @@ CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite), `d
 - #31 Audit-Should-Fixes: „mindestens ein Empfänger passt“, `7bit`-Fallback, Rechte auf Admin-Views
 - #32 Toten Code entfernt, `DJANGO_SECURE_COOKIES`, `.mo` nicht mehr im Repo
 - #33 Initiale Migration eingecheckt, CI-Check `makemigrations --check`
+- #34 Doku-Refresh, Version 0.1.0, `release.yml`
+- #35 `/healthz` + Compose-Healthchecks, `DISCLAIMR_ADMIN_PASSWORD`, Sidebar-Rechte
+- #36 Monaco/TinyMCE beim Docker-Build ins Image (CDN nur noch Fallback)
 
 ## Releases
 

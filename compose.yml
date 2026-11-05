@@ -40,6 +40,13 @@ services:
       # (handy for backups/rsync from the host).
       - ${MEDIA_HOST_PATH:-media}:/app/media
     command: ["web"]
+    healthcheck:
+      # /healthz checks the database; start_period covers migrate + collectstatic.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
   milter:
     # Same image as web — the build is cached so this doesn't double the
@@ -55,13 +62,20 @@ services:
       db:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     env_file: .env
     ports:
       - "${MILTER_BIND:-127.0.0.1}:5000:5000"
     volumes:
       - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
+    healthcheck:
+      # Opening the milter port is enough; the forked child exits when we hang up.
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 5000), 3).close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   pgdata:

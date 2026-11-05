@@ -58,3 +58,11 @@ def test_reset_creates_admin_even_when_other_superuser_exists(db):
     User.objects.create_superuser(username="root", password="existing", email="")
     _run("--reset")
     assert User.objects.filter(username="admin", is_superuser=True).exists()
+
+
+def test_password_from_environment_is_used_and_not_logged(db, monkeypatch):
+    monkeypatch.setenv("DISCLAIMR_ADMIN_PASSWORD", "s3cret-from-env")
+    output = _run()
+    assert get_user_model().objects.get(username="admin").check_password("s3cret-from-env")
+    assert "s3cret-from-env" not in output
+    assert "DISCLAIMR_ADMIN_PASSWORD" in output

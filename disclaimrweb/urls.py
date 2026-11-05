@@ -5,6 +5,8 @@ from django.urls import include, path, re_path
 from django.views.i18n import JavaScriptCatalog
 from django.views.static import serve
 
+from .health import healthz
+
 
 def media(request: HttpRequest, path: str) -> HttpResponse:
     # shortcut: served by gunicorn — fine for a few small, public signature
@@ -24,6 +26,7 @@ urlpatterns = [
     # Signature images are embedded in mails, so recipients must reach them
     # without a login — in production too, not only with DEBUG.
     re_path(rf"^{settings.MEDIA_URL.lstrip('/')}(?P<path>.*)$", media),
+    path("healthz", healthz),
     path("admin/disclaimr/", include("disclaimrwebadmin.urls")),
     path("", admin.site.urls),
 ]

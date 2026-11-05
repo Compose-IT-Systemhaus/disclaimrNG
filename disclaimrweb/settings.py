@@ -28,6 +28,9 @@ if env_file.is_file():
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+if "*" not in ALLOWED_HOSTS:
+    # The compose healthchecks call the container on its own loopback address.
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, "127.0.0.1", "localhost"]
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 # Behind a TLS-terminating proxy (compose.traefik.yml sets this): cookies only
@@ -134,6 +137,17 @@ TEMPLATES = [
     },
 ]
 
+def _sees(app: str, model: str):
+    """Sidebar ``permission`` callback: may the user view (or change) ``app.model``?"""
+
+    def check(request) -> bool:
+        return request.user.has_perm(f"{app}.view_{model}") or request.user.has_perm(
+            f"{app}.change_{model}"
+        )
+
+    return check
+
+
 UNFOLD = {
     "SITE_TITLE": "disclaimrNG",
     "SITE_HEADER": "disclaimrNG",
@@ -216,6 +230,7 @@ UNFOLD = {
                     {
                         "title": _("Manage signatures"),
                         "icon": "draw",
+                        "permission": _sees("disclaimrwebadmin", "disclaimer"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_disclaimer_changelist"
                         ),
@@ -223,6 +238,7 @@ UNFOLD = {
                     {
                         "title": _("Rules"),
                         "icon": "rule",
+                        "permission": _sees("disclaimrwebadmin", "rule"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_rule_changelist"
                         ),
@@ -230,6 +246,7 @@ UNFOLD = {
                     {
                         "title": _("Images"),
                         "icon": "image",
+                        "permission": _sees("disclaimrwebadmin", "signatureimage"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_signatureimage_changelist"
                         ),
@@ -237,6 +254,7 @@ UNFOLD = {
                     {
                         "title": _("Signature test"),
                         "icon": "science",
+                        "permission": _sees("disclaimrwebadmin", "rule"),
                         "link": reverse_lazy(
                             "disclaimrwebadmin:signature-test"
                         ),
@@ -250,6 +268,7 @@ UNFOLD = {
                     {
                         "title": _("Tenants"),
                         "icon": "groups",
+                        "permission": _sees("disclaimrwebadmin", "tenant"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_tenant_changelist"
                         ),
@@ -257,6 +276,7 @@ UNFOLD = {
                     {
                         "title": _("Directory servers"),
                         "icon": "dns",
+                        "permission": _sees("disclaimrwebadmin", "directoryserver"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_directoryserver_changelist"
                         ),
@@ -264,11 +284,13 @@ UNFOLD = {
                     {
                         "title": _("Users"),
                         "icon": "person",
+                        "permission": _sees("auth", "user"),
                         "link": reverse_lazy("admin:auth_user_changelist"),
                     },
                     {
                         "title": _("Groups"),
                         "icon": "group",
+                        "permission": _sees("auth", "group"),
                         "link": reverse_lazy("admin:auth_group_changelist"),
                     },
                 ],

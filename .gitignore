@@ -78,3 +78,6 @@ venv/
 # Docker
 docker-compose.override.yml
 
+
+# Monaco/TinyMCE are downloaded at image build time (docker/fetch_editor_assets.py)
+disclaimrwebadmin/static/disclaimrwebadmin/vendor/

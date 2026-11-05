@@ -1,11 +1,12 @@
 /**
  * Template editor — Code / Visual / Preview tabs sharing one textarea.
  *
- * Loaded by the TemplateEditorWidget. Pulls Monaco and TinyMCE from
- * jsdelivr — versions are pinned so the editor behaves the same across
- * deployments. (Self-hosting both libraries would mean shipping a
- * couple of MB extra in the image; for an admin UI the CDN trade-off
- * is fine. Vendoring is tracked as a follow-up issue.)
+ * Loaded by the TemplateEditorWidget. Monaco and TinyMCE are served from
+ * ``static/disclaimrwebadmin/vendor/`` — docker/fetch_editor_assets.py
+ * downloads them at image build time, so the editor works without
+ * internet access. Where that directory is missing (a source mount hides
+ * it in dev) the same pinned versions are loaded from jsdelivr instead.
+ * Keep the versions in sync with that script.
  *
  *   window.monaco — Monaco editor (loaded via require())
  *   window.tinymce — TinyMCE editor
@@ -19,12 +20,22 @@
     const MONACO_VERSION = "0.50.0";
     const TINYMCE_VERSION = "7.3.0";
 
-    const MONACO_LOADER_URL =
-        `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs/loader.js`;
-    const MONACO_BASE_URL =
-        `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs`;
-    const TINYMCE_URL =
-        `https://cdn.jsdelivr.net/npm/tinymce@${TINYMCE_VERSION}/tinymce.min.js`;
+    // document.currentScript is only set while this file first executes.
+    const VENDOR_URL = document.currentScript
+        ? new URL("../vendor/", document.currentScript.src).href
+        : "/static/disclaimrwebadmin/vendor/";
+    const CDN_URL = "https://cdn.jsdelivr.net/npm/";
+
+    // Folders that hold loader.js / tinymce.min.js, local copy first.
+    const MONACO_BASES = [
+        `${VENDOR_URL}monaco-editor/min/vs`,
+        `${CDN_URL}monaco-editor@${MONACO_VERSION}/min/vs`,
+    ];
+    const TINYMCE_BASES = [
+        `${VENDOR_URL}tinymce`,
+        `${CDN_URL}tinymce@${TINYMCE_VERSION}`,
+    ];
+    let tinymceBase = TINYMCE_BASES[0];
 
     function loadScript(src) {
         return new Promise((resolve, reject) => {
@@ -42,16 +53,32 @@
                 script.dataset.loaded = "true";
                 resolve();
             });
-            script.addEventListener("error", reject);
+            script.addEventListener("error", (event) => {
+                script.remove(); // a later attempt must not find a dead tag
+                reject(event);
+            });
             document.head.appendChild(script);
         });
     }
 
+    // Load ``file`` from the first base that serves it; returns that base.
+    async function loadFromFirst(bases, file) {
+        for (const base of bases) {
+            try {
+                await loadScript(`${base}/${file}`);
+                return base;
+            } catch (error) {
+                // not there (404) — try the next one
+            }
+        }
+        throw new Error(`Cannot load ${file}`);
+    }
+
     async function ensureMonaco() {
         if (window.monaco) return window.monaco;
-        await loadScript(MONACO_LOADER_URL);
+        const base = await loadFromFirst(MONACO_BASES, "loader.js");
         await new Promise((resolve) => {
-            window.require.config({ paths: { vs: MONACO_BASE_URL } });
+            window.require.config({ paths: { vs: base } });
             window.require(["vs/editor/editor.main"], resolve);
         });
         return window.monaco;
@@ -59,7 +86,7 @@
 
     async function ensureTinyMCE() {
         if (window.tinymce) return window.tinymce;
-        await loadScript(TINYMCE_URL);
+        tinymceBase = await loadFromFirst(TINYMCE_BASES, "tinymce.min.js");
         return window.tinymce;
     }
 
@@ -485,8 +512,10 @@
                 // Tell TinyMCE where to fetch its skins/themes/plugins
                 // from — without this it would look for them on the
                 // same-origin host and 404 every plugin import.
-                base_url: `https://cdn.jsdelivr.net/npm/tinymce@${TINYMCE_VERSION}`,
+                base_url: tinymceBase,
                 suffix: ".min",
+                // Self-hosted TinyMCE 7 is GPL-2.0-or-later; this says so.
+                license_key: "gpl",
                 menubar: false,
                 toolbar:
                     "undo redo | bold italic underline | bullist numlist | " +

@@ -32,6 +32,15 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install .
 
 
+# ---- assets ----------------------------------------------------------------
+# Monaco + TinyMCE from the npm registry (pinned, sha512-verified), so the
+# template editor works without a CDN. Needs internet at *build* time only.
+
+FROM python:3.12-slim-bookworm AS assets
+COPY docker/fetch_editor_assets.py /fetch_editor_assets.py
+RUN python /fetch_editor_assets.py /vendor
+
+
 # ---- runtime ---------------------------------------------------------------
 
 FROM python:3.12-slim-bookworm AS runtime
@@ -64,6 +73,8 @@ COPY --chown=disclaimr:disclaimr locale ./locale
 # In-admin help docs (Markdown sources read by DocsView at request
 # time). Cheap to ship — under 100 KiB total.
 COPY --chown=disclaimr:disclaimr docs ./docs
+# Editor libraries (see the assets stage); collectstatic serves them.
+COPY --from=assets --chown=disclaimr:disclaimr /vendor ./disclaimrwebadmin/static/disclaimrwebadmin/vendor
 COPY --chown=disclaimr:disclaimr manage.py disclaimr.py pyproject.toml ./
 COPY --chown=disclaimr:disclaimr docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 

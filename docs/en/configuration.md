@@ -53,11 +53,12 @@ Served by [WhiteNoise](https://whitenoise.evans.io) directly out of
 gunicorn — no separate nginx required. ``collectstatic`` runs on every
 boot.
 
-The template editor's vendored Monaco / TinyMCE assets are loaded from
-**jsdelivr** (pinned versions, see
-[``template_editor.js``](https://github.com/Compose-IT-Systemhaus/disclaimrNG/blob/master/disclaimrwebadmin/static/disclaimrwebadmin/template_editor/template_editor.js)).
-Self-hosting them is tracked as a follow-up; for now the admin needs
-internet access to load the editor.
+The template editor's Monaco / TinyMCE libraries are part of the image: the
+Docker build downloads pinned versions from the npm registry (checksum
+verified) into the static files, so the admin works without internet
+access at runtime. The build itself needs internet access. If you mount the
+source tree over `/app` (the dev compose file does), that folder is hidden
+and the editor loads the same versions from **jsdelivr** instead.
 
 ## Media uploads (signature images)
 

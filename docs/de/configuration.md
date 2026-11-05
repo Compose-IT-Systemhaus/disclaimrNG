@@ -52,10 +52,12 @@ Werden von [WhiteNoise](https://whitenoise.evans.io) direkt aus
 gunicorn ausgeliefert — kein separates nginx nötig. ``collectstatic``
 läuft bei jedem Boot.
 
-Die Vendor-Assets des Template-Editors (Monaco / TinyMCE) werden vom
-**jsdelivr-CDN** geladen (gepinnt). Selbst-Hosting ist als Folge-Issue
-geplant; aktuell braucht der Admin-Browser Internet-Zugang um den
-Editor zu laden.
+Die Editor-Bibliotheken Monaco / TinyMCE gehören zum Image: der Docker-Build
+lädt gepinnte Versionen aus der npm-Registry (mit Prüfsumme) in die
+statischen Dateien, der Admin braucht zur Laufzeit also keinen
+Internet-Zugang. Der Build selbst braucht Internet. Wird der Quellbaum über
+`/app` gemountet (so wie in der Dev-Compose-Datei), ist dieser Ordner
+verdeckt und der Editor lädt dieselben Versionen vom **jsdelivr-CDN**.
 
 ## Medien-Uploads (Signatur-Bilder)
 

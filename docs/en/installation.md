@@ -55,14 +55,16 @@ libmilter, not HTTP, so it never goes through the proxy.
 In ``main.cf``:
 
 ```
-smtpd_milters = inet:disclaimrng:5000
-non_smtpd_milters = inet:disclaimrng:5000
+smtpd_milters = inet:127.0.0.1:5000
+non_smtpd_milters = inet:127.0.0.1:5000
 milter_default_action = accept
 milter_protocol = 6
 ```
 
-Replace ``disclaimrng`` with the hostname or IP that resolves to your
-milter container.
+``127.0.0.1`` works when Postfix runs on the same host as the stack: the
+milter port is published on the loopback address only, because the milter
+protocol has no authentication. If Postfix runs on another host, set
+``MILTER_BIND`` in ``.env`` to this host's private IP and use that IP here.
 
 ## Required environment variables
 
@@ -83,8 +85,17 @@ for the full annotated list, including LDAP and tenant bootstrap.
 
 ```bash
 git pull
-docker compose pull        # if you're using the registry image
 docker compose up -d --build
+```
+
+To run a published image instead of building from source, set
+``DISCLAIMR_IMAGE`` (for example
+``ghcr.io/compose-it-systemhaus/disclaimrng:0.1.0``) and
+``DISCLAIMR_PULL_POLICY=missing`` in ``.env``. Then updating is:
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 Migrations run automatically on the next ``web`` boot.

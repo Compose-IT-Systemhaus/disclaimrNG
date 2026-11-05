@@ -25,7 +25,7 @@ name: disclaimrng
 
 services:
   traefik:
-    image: traefik:v3.1
+    image: traefik:v3.7
     restart: unless-stopped
     command:
       - --providers.docker=true
@@ -69,10 +69,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
-    # Build locally until the image is published to GHCR; switch to
-    # ``pull_policy: missing`` once CI starts pushing.
-    pull_policy: build
+    # Built from this checkout by default; DISCLAIMR_IMAGE / DISCLAIMR_PULL_POLICY
+    # in .env switch to a published release (see .env.example).
+    image: ${DISCLAIMR_IMAGE:-ghcr.io/compose-it-systemhaus/disclaimrng:dev}
+    pull_policy: ${DISCLAIMR_PULL_POLICY:-build}
     restart: unless-stopped
     depends_on:
       db:
@@ -112,8 +112,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/compose-it-systemhaus/disclaimrng:dev
-    pull_policy: build
+    image: ${DISCLAIMR_IMAGE:-ghcr.io/compose-it-systemhaus/disclaimrng:dev}
+    pull_policy: ${DISCLAIMR_PULL_POLICY:-build}
     restart: unless-stopped
     depends_on:
       db:
@@ -126,8 +126,6 @@ services:
     # on a private interface only (MILTER_BIND in .env, default 127.0.0.1).
     ports:
       - "${MILTER_BIND:-127.0.0.1}:5000:5000"
-    volumes:
-      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

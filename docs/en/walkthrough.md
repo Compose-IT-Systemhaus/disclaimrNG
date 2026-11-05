@@ -170,8 +170,8 @@ template — ``displayName``, not ``displayname``).
 In ``main.cf``:
 
 ```
-smtpd_milters = inet:disclaimrng:5000
-non_smtpd_milters = inet:disclaimrng:5000
+smtpd_milters = inet:127.0.0.1:5000
+non_smtpd_milters = inet:127.0.0.1:5000
 milter_default_action = accept
 milter_protocol = 6
 ```

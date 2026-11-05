@@ -32,15 +32,17 @@ docker compose logs web | grep -A3 -i password   # generated admin password
 
 The first start creates the user `admin` with a random password (printed once in the web log). The web UI is then available on `http://localhost:8000/` — log in and change the password.
 
-Configure your MTA to talk to the milter on port `5000`, e.g. for Postfix:
+Configure your MTA to talk to the milter on port `5000` (`127.0.0.1` when Postfix runs on the same host), e.g. for Postfix:
 
 ```
-smtpd_milters = inet:disclaimrng:5000
-non_smtpd_milters = inet:disclaimrng:5000
+smtpd_milters = inet:127.0.0.1:5000
+non_smtpd_milters = inet:127.0.0.1:5000
 milter_default_action = accept
 ```
 
 The milter protocol has no authentication, so Docker publishes port `5000` on `127.0.0.1` only. If your MTA runs on another host, set `MILTER_BIND` in `.env` to this host's private IP (never a public address).
+
+The web UI on port `8000` is plain HTTP. On a shared network put it behind TLS (`compose.traefik.yml`) or bind it to a private address with `WEB_BIND`. To run a published image instead of building from source, set `DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.1.0` and `DISCLAIMR_PULL_POLICY=missing` in `.env`.
 
 ## Architecture
 

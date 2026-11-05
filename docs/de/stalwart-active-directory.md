@@ -282,7 +282,8 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-`ad-ca.pem` liegt bereits unter `/opt/disclaimrng/certs/` (Schritt 1.3).
+`ad-ca.pem` liegt bereits unter `/opt/disclaimrng/certs/` (Schritt 1.3); Compose
+bindet dieses Verzeichnis ein.
 
 Trage in `.env` mindestens ein (Beispielwerte ersetzen, Passwörter selbst erzeugen,
 z. B. `openssl rand -base64 33`):
@@ -326,9 +327,11 @@ AD zu; sonst müsstest du das Verzeichnis in jeder Action einzeln wählen.
 
 ### 4.1 Compose-Overlay für Stalwart
 
-Im Repository liegt `compose.stalwart.yml`. Es tut drei Dinge: hängt den **Milter**
-mit dem Namen `disclaimrng-milter` in das Netz `mailnet`, bindet die AD-CA in
-beide Container ein und setzt `LDAPTLS_CACERT`, damit python-ldap der AD-CA traut.
+Im Repository liegt `compose.stalwart.yml`. Es hängt den **Milter** mit dem Namen
+`disclaimrng-milter` in das Netz `mailnet`. Die AD-CA braucht kein Overlay: `compose.yml`
+bindet das Verzeichnis `./certs` in `web` und `milter` ein, und der Entrypoint setzt
+`LDAPTLS_CACERT` automatisch, sobald dort `ad-ca.pem` liegt (Schritt 1.3). Im Log steht
+dann `LDAPS: trusting the CA in /etc/ssl/ad/ad-ca.pem`.
 
 ```bash
 docker compose -f compose.yml -f compose.stalwart.yml up -d --build
@@ -474,7 +477,7 @@ AD-Teil der Signatur (je nach „fail when unable to resolve“ die ganze).
 | Client bekommt `451 4.3.5` beim Senden | Milter nicht erreichbar oder abgestürzt. `docker compose … ps` (healthy?), Netztest aus Schritt 4.1, `host` in Stalwart = `disclaimrng-milter`? `docker compose … logs milter` auf `Unhandled error` prüfen. |
 | Mail geht durch, aber **ohne** Signatur | (1) Milter in Stalwart nicht aktiv: `enable` greift nur bei angemeldeten Sessions. (2) Keine Regel passt: **Signature test** mit Absender/Empfänger probieren. (3) Recipient-Regex trifft keinen Empfänger. (4) `fail when unable to resolve` an und AD-Lookup fehlgeschlagen. |
 | Signatur ohne AD-Daten (leere Felder) | Absender wird im AD nicht gefunden: `mail` am Benutzer gesetzt? Alias-Adresse? Dann `SEARCH_QUERY` erweitern (Schritt 4). Im Milter-Log `Cannot resolve email …`. |
-| **Test connection**: `unreachable`/`ldap error` | Netz/Port 636, Hostname im Zertifikat, CA nicht vertraut. Im Container prüfen: `docker compose … exec web env \| grep LDAPTLS` und dass `/etc/ssl/ad/ca.pem` eine Datei ist (kein Verzeichnis — passiert, wenn `certs/ad-ca.pem` beim Start fehlte). |
+| **Test connection**: `unreachable`/`ldap error` | Netz/Port 636, Hostname im Zertifikat, CA nicht vertraut. Prüfen: `docker compose … logs web \| grep LDAPS` (muss `trusting the CA` zeigen) und `docker compose … exec web ls -l /etc/ssl/ad` (liegt `ad-ca.pem` dort? Dateiname genau so, Zugriff lesbar für Benutzer 1000?). |
 | **Test connection**: `invalid credentials` | Bind-DN/Passwort von `svc-disclaimr`; Sonderzeichen im Passwort in der `.env` ggf. in Anführungszeichen setzen. |
 | Stalwart: Anmeldung mit AD-Benutzer schlägt fehl | `filterLogin` zu streng (Konto deaktiviert, kein `mail`/UPN?), `bindDn`/Passwort falsch, CA nicht vertraut (Schritt 3.4). `docker logs stalwart` zeigt die LDAP-Meldung. |
 | Nach der Umstellung auf das AD kommt kein Admin mehr in die WebUI | Wiederherstellungs-Administrator setzen (`STALWART_RECOVERY_ADMIN`, siehe Schritt 3.2) und dem AD-Konto die Administratorrolle zuweisen. |

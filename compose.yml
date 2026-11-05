@@ -36,6 +36,9 @@ services:
       - "${WEB_BIND:-0.0.0.0}:8000:8000"
     volumes:
       - staticfiles:/app/staticfiles
+      # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
+      # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
+      - ./certs:/etc/ssl/ad:ro
       # Uploaded signature images live here (served at /media/ by the web
       # container; the milter only builds their URLs and never reads the files).
       # Override the bind path with MEDIA_HOST_PATH if you'd rather use a host
@@ -67,6 +70,10 @@ services:
     env_file: .env
     ports:
       - "${MILTER_BIND:-127.0.0.1}:5000:5000"
+    volumes:
+      # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
+      # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
+      - ./certs:/etc/ssl/ad:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

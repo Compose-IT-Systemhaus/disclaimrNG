@@ -87,6 +87,9 @@ services:
       - "8000"
     volumes:
       - staticfiles:/app/staticfiles
+      # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
+      # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
+      - ./certs:/etc/ssl/ad:ro
       - ${MEDIA_HOST_PATH:-media}:/app/media
     command: ["web"]
     healthcheck:
@@ -126,6 +129,10 @@ services:
     # on a private interface only (MILTER_BIND in .env, default 127.0.0.1).
     ports:
       - "${MILTER_BIND:-127.0.0.1}:5000:5000"
+    volumes:
+      # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
+      # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
+      - ./certs:/etc/ssl/ad:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

@@ -81,6 +81,23 @@ Pro Handle (``<HANDLE>`` mit dem uppercased-Handle ersetzen):
 gesetztem ``LDAP_SERVERS``. ``LDAP_SYNC_PRUNE=1`` löscht
 env-verwaltete Einträge, die nicht mehr auftauchen.
 
+## LDAPS mit privater CA
+
+``ldaps://``-URLs werden gegen den CA-Speicher des Containers geprüft. Ein Verzeichnis,
+dessen Zertifikat von einer privaten CA stammt (z. B. Active Directory), braucht diese CA:
+
+1. Lege das CA-Zertifikat (PEM, Zwischenzertifikate angehängt) unter
+   ``./certs/ad-ca.pem`` neben der ``compose.yml`` ab. Die Compose-Dateien binden
+   ``./certs`` read-only in ``web`` und ``milter`` ein.
+2. Neu starten: ``docker compose up -d``. Der Entrypoint findet
+   ``/etc/ssl/ad/ad-ca.pem`` und setzt ``LDAPTLS_CACERT``; im Log steht
+   ``LDAPS: trusting the CA``.
+3. **Test connection** am Verzeichnisserver muss ``bind + base search ok`` zeigen.
+
+Ein in der ``.env`` gesetztes ``LDAPTLS_CACERT`` hat Vorrang. Die Datei ersetzt für
+LDAP-Verbindungen die System-Roots — für ein internes Verzeichnis ist das gewollt.
+Reines ``ldap://`` mit STARTTLS wird nicht unterstützt — nutze ``ldaps://``.
+
 ## Begrenzte Timeouts
 
 Jede Connection wird mit ``OPT_NETWORK_TIMEOUT=5`` und

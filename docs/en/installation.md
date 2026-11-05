@@ -90,7 +90,7 @@ docker compose up -d --build
 
 To run a published image instead of building from source, set
 ``DISCLAIMR_IMAGE`` (for example
-``ghcr.io/compose-it-systemhaus/disclaimrng:0.1.0``) and
+``ghcr.io/compose-it-systemhaus/disclaimrng:0.1.1``) and
 ``DISCLAIMR_PULL_POLICY=missing`` in ``.env``. Then updating is:
 
 ```bash

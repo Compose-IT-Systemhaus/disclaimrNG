@@ -36,6 +36,20 @@ Lieber ein eigenes Passwort? Setze ``DISCLAIMR_ADMIN_PASSWORD`` in der
 ``.env`` vor dem ersten Start. Es wird statt eines generierten verwendet
 (auch bei ``--reset``) und **nicht** ins Log geschrieben.
 
+## Benutzer und Rollen
+
+Ab dem ersten Start gibt es drei Gruppen. Benutzer ordnet man unter *Benutzer* (oder *Gruppen*) zu:
+
+| Gruppe | Darf |
+|---|---|
+| **Admins** | alles: alle Modelle, Benutzer und Gruppen, Mandanten, Verzeichnisserver |
+| **Editor** | Signaturen, Regeln (mit Requirements, Bedingungen und Actions) und Bilder ansehen, anlegen und ändern; nicht löschen |
+| **Reader** | Signaturen, Regeln und Bilder nur ansehen |
+
+Für die Anmeldung im Admin braucht ein Benutzer zusätzlich den Haken *Mitarbeiter-Status*. Die Gruppen sind
+normale Django-Gruppen: Ihre Rechte lassen sich im Admin ändern und bleiben dann erhalten. ``python manage.py sync_roles --reset`` (im Web-Container) stellt den Standard wieder her. Das
+*Mail-Log* und die Dashboard-Statistik sind unabhängig von der Gruppe nur für Superuser.
+
 ## Wichtige Django-Settings
 
 | Setting | Zweck |

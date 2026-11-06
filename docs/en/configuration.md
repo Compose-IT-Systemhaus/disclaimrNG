@@ -37,6 +37,20 @@ Prefer to choose the password yourself? Set ``DISCLAIMR_ADMIN_PASSWORD`` in
 ``.env`` before the first start. It is then used instead of a generated one
 (also for ``--reset``) and is **not** written to the log.
 
+## Users and roles
+
+Three groups exist from the first start. Put users into them under *Users* (or *Groups*):
+
+| Group | May |
+|---|---|
+| **Admins** | everything: all models, users and groups, tenants, directory servers |
+| **Editor** | look at, create and change signatures, rules (with their requirements, conditions and actions) and images; not delete |
+| **Reader** | only look at signatures, rules and images |
+
+A user also needs the *Staff status* flag to sign in to the admin. The groups are ordinary
+Django groups: you can change their permissions in the admin, and the change is kept. ``python manage.py sync_roles --reset`` (in the web container) restores the defaults. The
+*Mail log* and the dashboard statistics are for superusers only, whatever the group.
+
 ## Django settings worth knowing
 
 | Setting | Purpose |

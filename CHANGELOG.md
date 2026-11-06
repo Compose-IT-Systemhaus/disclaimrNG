@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Built-in roles: the groups Admins (everything), Editor (look at, create and change signatures and rules) and Reader (look only) are created on start-up. Their permissions can be changed in the admin and are kept; `manage.py sync_roles --reset` restores them.
+
 ### Removed
 - The unused systemd notification of the milter and its start-up warning "Missing module systemd.daemon". The milter runs in a container, where systemd never starts it.
 

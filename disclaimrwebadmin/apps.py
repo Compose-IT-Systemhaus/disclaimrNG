@@ -15,6 +15,12 @@ _SIGNATURE_MODELS = {"disclaimer", "rule", "signatureimage"}
 _SETTINGS_MODELS = {"tenant", "directoryserver", "maillog"}
 
 
+def _create_roles(**kwargs) -> None:
+    from .roles import ensure_default_groups
+
+    ensure_default_groups()
+
+
 class DisclaimrwebadminConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "disclaimrwebadmin"
@@ -22,6 +28,10 @@ class DisclaimrwebadminConfig(AppConfig):
 
     def ready(self) -> None:
         from django.contrib import admin
+        from django.db.models.signals import post_migrate
+
+        # The built-in roles need the permissions, which exist after migrate.
+        post_migrate.connect(_create_roles, sender=self, dispatch_uid="disclaimr-roles")
 
         # unfold sits first in INSTALLED_APPS, so its admin/index.html and
         # admin/login.html shadow same-named templates of this app. Ours

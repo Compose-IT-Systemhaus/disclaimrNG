@@ -76,6 +76,33 @@ jobs:
       - name: Run pytest
         run: pytest -v --tb=short
 
+  e2e:
+    # The real stack (compose.yml) with a Postfix in front, a test LDAP and a mail sink:
+    # a mail goes in, the signature comes out. See tests/e2e/run.py.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      COMPOSE: docker compose -f compose.yml -f tests/e2e/compose.e2e.yml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env
+        run: cp .env.example .env
+
+      - name: Start the stack
+        run: $COMPOSE up -d --build --wait --wait-timeout 300
+
+      - name: Run the end-to-end test
+        run: python3 tests/e2e/run.py
+
+      - name: Show the logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail=200
+
+      - name: Stop the stack
+        if: always()
+        run: $COMPOSE down -v
+
   docker:
     runs-on: ubuntu-24.04
     permissions:

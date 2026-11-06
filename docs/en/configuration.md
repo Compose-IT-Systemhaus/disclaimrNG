@@ -46,6 +46,7 @@ Prefer to choose the password yourself? Set ``DISCLAIMR_ADMIN_PASSWORD`` in
 | ``DJANGO_TIME_ZONE`` | All timestamps and the admin date pickers use this. Defaults to ``Europe/Berlin``. |
 | ``DJANGO_LANGUAGE_CODE`` | Default UI language; admins can flip via the topbar flag toggle. |
 | ``MILTER_CONFIG_TTL`` | Seconds after which the milter reloads its sender-IP prefilter from the database (default ``60``), so new or changed requirements apply without a restart. |
+| ``MAIL_LOG_RETENTION_DAYS`` | Days the mail logs are kept (default ``30``, ``0`` = forever). |
 
 ## Static files
 

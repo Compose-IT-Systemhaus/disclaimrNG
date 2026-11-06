@@ -16,7 +16,7 @@ def tls_from_urls(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('disclaimrwebadmin', '0001_initial'),
+        ('disclaimrwebadmin', '0002_maillog'),
     ]
 
     operations = [

@@ -596,3 +596,33 @@ msgstr "TLS ist an: eine ldaps://-URL verwenden (oder TLS ausschalten)."
 
 msgid "TLS is off: use an ldap:// URL (or turn TLS on)."
 msgstr "TLS ist aus: eine ldap://-URL verwenden (oder TLS einschalten)."
+
+# --- Logs ---------------------------------------------------------------------
+msgid "time"
+msgstr "Zeit"
+
+msgid "queue ID"
+msgstr "Queue-ID"
+
+msgid "subject"
+msgstr "Betreff"
+
+msgid "client IP"
+msgstr "Client-IP"
+
+msgid "applied signatures"
+msgstr "Angewendete Signaturen"
+
+msgid "Applied signatures"
+msgstr "Angewendete Signaturen"
+
+msgid "Mail log"
+msgstr "Mail-Log"
+
+msgid "Logs"
+msgstr "Logs"
+msgid "signature added"
+msgstr "Signatur angehängt"
+
+msgid "Mail logs"
+msgstr "Mail-Logs"

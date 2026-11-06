@@ -7,6 +7,7 @@ import json
 from adminsortable2.admin import CustomInlineFormSet, SortableAdminBase, SortableTabularInline
 from django import forms
 from django.contrib import admin
+from django.template.defaultfilters import linebreaksbr
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
@@ -22,6 +23,7 @@ from .models import (
     DirectoryServer,
     DirectoryServerURL,
     Disclaimer,
+    MailLog,
     Requirement,
     Rule,
     SignatureImage,
@@ -294,3 +296,36 @@ class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
             }
         )
         return super().changeform_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(MailLog)
+class MailLogAdmin(ModelAdmin):
+    """Read-only list of the mails the milter saw — visible to superusers only."""
+
+    list_display = ("created", "sender", "recipient", "subject", "processed", "applied_summary")
+    list_filter = ("processed",)
+    search_fields = ("sender", "recipient", "subject", "queue_id", "applied")
+    date_hierarchy = "created"
+    fields = (
+        "created", "queue_id", "sender", "recipient", "subject", "sender_ip", "processed", "applied"
+    )
+    readonly_fields = fields
+
+    def has_module_permission(self, request) -> bool:
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None) -> bool:
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return request.user.is_superuser
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False
+
+    @admin.display(description=_("Applied signatures"))
+    def applied_summary(self, obj: MailLog) -> str:
+        return linebreaksbr(obj.applied) or "—"

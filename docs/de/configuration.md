@@ -45,6 +45,7 @@ Lieber ein eigenes Passwort? Setze ``DISCLAIMR_ADMIN_PASSWORD`` in der
 | ``DJANGO_TIME_ZONE`` | Alle Zeitstempel und Date-Picker im Admin nutzen das. Default ``Europe/Berlin``. |
 | ``DJANGO_LANGUAGE_CODE`` | Default-UI-Sprache; Admins können über die Topbar-Flagge umschalten. |
 | ``MILTER_CONFIG_TTL`` | Sekunden, nach denen der Milter den Sender-IP-Vorfilter neu aus der DB lädt (Default ``60``). Neue oder geänderte Requirements greifen so ohne Neustart. |
+| ``MAIL_LOG_RETENTION_DAYS`` | Tage, die die Mail-Logs aufbewahrt werden (Default ``30``, ``0`` = unbegrenzt). |
 
 ## Static Files
 

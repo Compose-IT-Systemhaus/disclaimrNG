@@ -236,6 +236,8 @@ class MilterHelper:
         self._rcpt_matched: set[int] = set()
         self.requirements: list[int] = []
         self.actions: list[Any] = []
+        # "rule → action → signature" per action applied to the current mail.
+        self.applied: list[str] = []
         self.charsetsmatch = True
 
         # Requirement ids matched by the client IP — the starting point of
@@ -259,6 +261,7 @@ class MilterHelper:
         self.requirements = list(self._connection_requirements)
         self.enabled = bool(self.requirements)
         self._rcpt_matched = set()
+        self.applied = []
         self.charsetsmatch = True
         self._body_chunks = []
         self._requirement_rows = None
@@ -434,6 +437,9 @@ class MilterHelper:
                 returned_mail = self.do_action(mail, action)
                 if returned_mail is not None:
                     mail = returned_mail
+                    self.applied.append(
+                        f"{rule.name} → {action.name} → {action.disclaimer.name}"
+                    )
 
             if not rule.continue_rules:
                 break

@@ -19,7 +19,7 @@ import binascii
 import email
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
@@ -59,6 +59,8 @@ class _TestOutcome:
     delete_headers: list[str]
     matched_rules: list[_MatchedRule]
     error: str = ""
+    # (requirement, condition, holds) of the directory conditions that were checked
+    conditions: list[tuple[str, str, bool]] = field(default_factory=list)
 
     @property
     def html_preview_data_url(self) -> str:
@@ -240,18 +242,17 @@ def _run_pipeline(
         )
 
     if workflow is None:
-        return (
-            _passthrough_outcome(
-                body,
-                content_type,
-                raw_input,
-                summary=_(
-                    "No active rule matched this mail — the pipeline would "
-                    "pass it through unchanged."
-                ),
-            ),
+        outcome = _passthrough_outcome(
+            body,
+            content_type,
             raw_input,
+            summary=_(
+                "No active rule matched this mail — the pipeline would "
+                "pass it through unchanged."
+            ),
         )
+        outcome.conditions = helper.condition_log
+        return outcome, raw_input
 
     try:
         matched_rules = _matched_rules(helper)
@@ -298,6 +299,7 @@ def _run_pipeline(
             change_headers=workflow.get("change_header", {}),
             delete_headers=workflow.get("delete_header", []),
             matched_rules=matched_rules,
+            conditions=helper.condition_log,
         ),
         raw_input,
     )

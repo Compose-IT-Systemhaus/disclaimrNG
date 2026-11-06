@@ -108,6 +108,18 @@
                 </p>
                 {% endif %}
 
+                {% if outcome.conditions and not outcome.error %}
+                <h3 class="signature-test__heading">{% translate "Directory conditions" %}</h3>
+                <ul class="signature-test__rules">
+                    {% for requirement, condition, holds in outcome.conditions %}
+                    <li>
+                        <span class="material-symbols-outlined" aria-hidden="true">{% if holds %}check{% else %}close{% endif %}</span>
+                        {{ requirement }}: {{ condition }} — {% if holds %}{% translate "met" %}{% else %}{% translate "not met" %}{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
                 {% if outcome.matched and not outcome.error %}
                 {% if outcome.matched_rules %}
                 <h3 class="signature-test__heading">{% translate "Matched rules" %}</h3>

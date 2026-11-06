@@ -130,12 +130,28 @@ checked value by value. All conditions of a requirement have to hold; for "eithe
 department" write two requirements (a rule applies when any *Accept* requirement
 matches). "Not in the department" is a *Deny* requirement with the condition.
 
+There are two kinds of condition:
+
+- **Attribute matches** — attribute plus regex, as above.
+- **Member of group** — the DN of a group, e.g. ``CN=Sales,OU=Groups,DC=example,DC=com``
+  (case and blanks around ``,`` and ``=`` do not matter). On an **Active Directory**
+  server (flavor *Active Directory*) members of nested groups count too: disclaimrNG asks
+  the server with the in-chain matching rule. On other servers the ``memberOf`` values of
+  the sender are compared, which only lists direct memberships and needs a server that
+  provides ``memberOf`` (e.g. the OpenLDAP memberof overlay).
+
+Active Directory does not list the **primary group** of a user (usually *Domain Users*)
+in ``memberOf``, so a condition on that group never holds.
+
 The sender is looked up in the directory servers of the tenant that owns the sender's
-domain (one lookup per mail, only when the other filters already matched). If the
+domain (one lookup per mail, only when the other filters already matched; an Active
+Directory group condition adds one more query per group). If the
 directory does not answer, times out or does not know the sender, the condition does
 **not** hold and the mail is not deferred: a rule with an *Accept* requirement is then
 skipped, but a *Deny* requirement does not take effect either, so such a mail can still
 be signed by another rule.
+
+The *Signature test* page lists every checked condition with its result.
 
 The **Action** inline picks the disclaimer and how to merge it:
 

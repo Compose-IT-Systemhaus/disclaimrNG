@@ -132,12 +132,28 @@ für „Abteilung A oder B“ legt man zwei Requirements an (eine Regel greift, 
 *Akzeptieren*-Requirement passt). „Nicht in der Abteilung“ ist eine *Ablehnen*-Requirement
 mit der Bedingung.
 
+Es gibt zwei Arten von Bedingung:
+
+- **Attribut passt** — Attribut plus Regex, wie oben.
+- **Mitglied der Gruppe** — der DN einer Gruppe, z. B. ``CN=Vertrieb,OU=Gruppen,DC=example,DC=com``
+  (Groß-/Kleinschreibung und Leerzeichen um ``,`` und ``=`` spielen keine Rolle). Bei einem
+  **Active-Directory**-Server (Flavor *Active Directory*) zählen auch Mitglieder verschachtelter
+  Gruppen: disclaimrNG fragt den Server mit der In-Chain-Matching-Rule. Bei anderen Servern
+  werden die ``memberOf``-Werte des Absenders verglichen; das sind nur direkte Mitgliedschaften,
+  und der Server muss ``memberOf`` liefern (z. B. das OpenLDAP-memberof-Overlay).
+
+Active Directory führt die **primäre Gruppe** eines Benutzers (meist *Domain Users*) nicht in
+``memberOf`` auf, eine Bedingung auf diese Gruppe trifft deshalb nie zu.
+
 Der Absender wird in den Verzeichnisservern des Mandanten gesucht, dem seine Domain
-gehört (eine Abfrage pro Mail, und nur, wenn die übrigen Filter schon gepasst haben).
+gehört (eine Abfrage pro Mail, und nur, wenn die übrigen Filter schon gepasst haben; eine
+Gruppenbedingung bei Active Directory kostet je Gruppe eine weitere Abfrage).
 Antwortet das Verzeichnis nicht, läuft in ein Timeout oder kennt den Absender nicht, gilt
 die Bedingung als **nicht erfüllt**, die Mail wird nicht zurückgestellt: Eine Regel mit
 *Akzeptieren*-Requirement wird dann übersprungen, eine *Ablehnen*-Requirement greift aber
 ebenfalls nicht, die Mail kann also von einer anderen Regel noch signiert werden.
+
+Die Seite *Signaturtest* listet jede geprüfte Bedingung mit ihrem Ergebnis auf.
 
 Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
 

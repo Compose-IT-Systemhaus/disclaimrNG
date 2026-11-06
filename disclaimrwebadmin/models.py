@@ -289,9 +289,9 @@ class RequirementCondition(models.Model):
     """A directory condition of a :class:`Requirement`.
 
     The sender is looked up in the directory servers of its tenant; the condition holds
-    when the regex matches one of the values of the attribute. All conditions of a
-    requirement have to hold (AND); a condition that cannot be checked (directory down,
-    sender unknown) does not hold.
+    when the regex matches one of the values of the attribute, or (kind *group*) when the
+    sender is a member of the group. All conditions of a requirement have to hold (AND); a
+    condition that cannot be checked (directory down, sender unknown) does not hold.
     """
 
     requirement = models.ForeignKey(
@@ -300,9 +300,18 @@ class RequirementCondition(models.Model):
         on_delete=models.CASCADE,
         related_name="conditions",
     )
+    kind = models.SmallIntegerField(
+        _("type"),
+        choices=(
+            (constants.COND_KIND_ATTRIBUTE, _("Attribute matches")),
+            (constants.COND_KIND_GROUP, _("Member of group")),
+        ),
+        default=constants.COND_KIND_ATTRIBUTE,
+    )
     attribute = models.CharField(
         _("attribute"),
         max_length=255,
+        blank=True,
         validators=[
             RegexValidator(r"^[A-Za-z][A-Za-z0-9-]*$", _("Enter a directory attribute name."))
         ],
@@ -310,10 +319,22 @@ class RequirementCondition(models.Model):
     )
     pattern = models.TextField(
         _("pattern"),
+        blank=True,
         validators=[validate_regex],
         help_text=_(
             "A regexp, that has to match one value of the attribute. Attributes with "
             "several values are checked value by value."
+        ),
+    )
+    group_dn = models.CharField(
+        _("group DN"),
+        max_length=500,
+        blank=True,
+        validators=[RegexValidator(r"^\s*[^=,]+=.+", _("Enter a distinguished name."))],
+        help_text=_(
+            "DN of the group, e.g. CN=Sales,OU=Groups,DC=example,DC=com. On Active "
+            "Directory members of nested groups count too, otherwise only the "
+            "memberOf values of the sender are compared."
         ),
     )
 
@@ -323,7 +344,17 @@ class RequirementCondition(models.Model):
         verbose_name_plural = _("Directory conditions")
 
     def __str__(self) -> str:
+        if self.kind == constants.COND_KIND_GROUP:
+            return _("member of %(dn)s") % {"dn": self.group_dn}
         return f"{self.attribute} ~ {self.pattern}"
+
+    def clean(self) -> None:
+        required = (
+            ["group_dn"] if self.kind == constants.COND_KIND_GROUP else ["attribute", "pattern"]
+        )
+        errors = {f: _("This field is required.") for f in required if not getattr(self, f)}
+        if errors:
+            raise ValidationError(errors)
 
 
 class Disclaimer(models.Model):

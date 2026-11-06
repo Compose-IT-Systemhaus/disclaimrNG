@@ -155,6 +155,15 @@ def _build_image_replacements(
     return rendered
 
 
+# LDAP_MATCHING_RULE_IN_CHAIN: memberOf including nested groups (Active Directory).
+_AD_IN_CHAIN = "1.2.840.113556.1.4.1941"
+
+
+def _normalize_dn(dn: str) -> str:
+    """Case and blanks around ``,``/``=`` do not distinguish DNs."""
+    return re.sub(r"\s*([,=])\s*", r"\1", dn.strip().lower())
+
+
 def _is_entity_header(name: str) -> bool:
     """``Content-*`` and ``MIME-Version`` describe the body, not the mail."""
     return name.lower().startswith("content-") or name.lower() == "mime-version"
@@ -296,6 +305,9 @@ class MilterHelper:
         ] = {}
         # Images the current do_action() has to attach (Content-ID → part).
         self._pending_images: dict[str, email.mime.image.MIMEImage] = {}
+        # (requirement, condition, holds) per checked directory condition; shown by the
+        # signature test page.
+        self.condition_log: list[tuple[str, str, bool]] = []
 
     def reset(self) -> None:
         """Forget everything about the previous mail on this connection."""
@@ -312,6 +324,7 @@ class MilterHelper:
         self._requirement_rows = None
         self._resolver_cache = {}
         self._image_cache = {}
+        self.condition_log = []
 
     def connect(self, hostname: str, family: Any, ip: str, port: int, cmd_dict: dict) -> None:
         """Called when a client connects to the milter."""
@@ -578,48 +591,105 @@ class MilterHelper:
         if not checked:
             return set()
 
+        conditions = [c for req in checked for c in req.conditions.all()]
         attrlist = sorted(
-            {c.attribute.lower() for req in checked for c in req.conditions.all()}
+            {c.attribute.lower() for c in conditions if c.kind == constants.COND_KIND_ATTRIBUTE}
         )
-        values = self._sender_attributes(attrlist)
-        if values is None:
+        wants_groups = any(c.kind == constants.COND_KIND_GROUP for c in conditions)
+        found = self._sender_entry(attrlist, wants_groups)
+        if found is None:
             syslog.warning(
                 "Cannot look up %s for the directory conditions. They do not hold.",
                 self.mail_data["envelope_from"],
             )
-            values = {}
-        return {
-            req.id
-            for req in checked
-            if not all(
-                any(re.search(c.pattern, v) for v in values.get(c.attribute.lower(), []))
-                for c in req.conditions.all()
-            )
-        }
+        server, values = found or (None, {})
 
-    def _sender_attributes(self, attrlist: list[str]) -> dict[str, list[str]] | None:
-        """Single values of ``attrlist`` for the sender, from the first server that knows it."""
+        memberships: dict[str, bool] = {}
+
+        def holds(condition: models.RequirementCondition) -> bool:
+            if condition.kind == constants.COND_KIND_GROUP:
+                if server is None:
+                    return False
+                key = _normalize_dn(condition.group_dn)
+                if key not in memberships:
+                    memberships[key] = self._is_member(server, values, condition.group_dn)
+                return memberships[key]
+            return any(
+                re.search(condition.pattern, v)
+                for v in values.get(condition.attribute.lower(), [])
+            )
+
+        failed: set[int] = set()
+        for req in checked:
+            results = [(c, holds(c)) for c in req.conditions.all()]
+            self.condition_log += [(req.name, str(c), ok) for c, ok in results]
+            if not all(ok for _, ok in results):
+                failed.add(req.id)
+        return failed
+
+    def _sender_entry(
+        self, attrlist: list[str], wants_groups: bool
+    ) -> tuple[models.DirectoryServer, dict[str, list[str]]] | None:
+        """Server and values of ``attrlist`` for the sender, from the first server that knows it.
+
+        Servers that are not Active Directory also deliver ``memberOf`` when group
+        conditions need it (AD answers those with a query, see :meth:`_is_member`).
+        """
         envelope_from = self.mail_data["envelope_from"]
         tenant = models.Tenant.match_sender(envelope_from)
         servers = tenant.directory_servers.filter(enabled=True) if tenant else []
         for directory_server in servers:
+            ask = list(attrlist)
+            if wants_groups and directory_server.flavor != constants.DIR_FLAVOR_AD:
+                ask = sorted({*ask, "memberof"})
+            ask = ask or ["1.1"]  # no attributes, only whether the sender exists
             query = self._sender_query(directory_server, envelope_from)
-            cache_key = f"{query}|{','.join(attrlist)}"
-            result = QueryCache.get(directory_server, cache_key) if directory_server.enable_cache else None
+            cache_key = f"{query}|{','.join(ask)}"
+            result = (
+                QueryCache.get(directory_server, cache_key)
+                if directory_server.enable_cache
+                else None
+            )
             if result is None:
                 for url in directory_server.directoryserverurl_set.all():
-                    result = self._search_url(directory_server, url, query, attrlist)
+                    result = self._search_url(directory_server, url, query, ask)
                     if result is not None:
                         break
             if not result or len(result) != 1:
                 continue
             if directory_server.enable_cache:
                 QueryCache.set(directory_server, cache_key, result)
-            return {
+            return directory_server, {
                 key.lower(): [_to_str(v) for v in raw_values]
                 for key, raw_values in result[0][1].items()
             }
         return None
+
+    def _is_member(
+        self,
+        directory_server: models.DirectoryServer,
+        values: dict[str, list[str]],
+        group_dn: str,
+    ) -> bool:
+        """Whether the sender belongs to ``group_dn``.
+
+        Active Directory: a second query for the sender that also asks for the group
+        through the in-chain rule, so nested groups count. Otherwise the ``memberOf``
+        values of the sender are compared.
+        """
+        if directory_server.flavor != constants.DIR_FLAVOR_AD:
+            wanted = _normalize_dn(group_dn)
+            return any(_normalize_dn(v) == wanted for v in values.get("memberof", []))
+
+        query = self._sender_query(directory_server, self.mail_data["envelope_from"])
+        if not query.lstrip().startswith("("):
+            query = f"({query})"
+        in_group = f"(memberOf:{_AD_IN_CHAIN}:={ldap.filter.escape_filter_chars(group_dn)})"
+        for url in directory_server.directoryserverurl_set.all():
+            result = self._search_url(directory_server, url, f"(&{query}{in_group})", ["1.1"])
+            if result is not None:
+                return any(dn for dn, _ in result)  # (None, …) entries are referrals
+        return False
 
     @staticmethod
     def _sender_query(directory_server: models.DirectoryServer, envelope_from: str) -> str:

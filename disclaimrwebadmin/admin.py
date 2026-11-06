@@ -43,6 +43,7 @@ class RequirementInline(StackedInline):
 class RequirementConditionInline(TabularInline):
     model = RequirementCondition
     extra = 1
+    fields = ("kind", "attribute", "pattern", "group_dn")
 
 
 @admin.register(Requirement)

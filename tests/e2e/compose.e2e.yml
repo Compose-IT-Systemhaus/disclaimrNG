@@ -1,0 +1,49 @@
+# End-to-end stack: the real compose.yml (db, web, milter) plus a test LDAP, a Postfix that
+# hands every mail to the milter, and a mail sink that catches what Postfix relays.
+#
+#   cp .env.example .env
+#   docker compose -f compose.yml -f tests/e2e/compose.e2e.yml up -d --build --wait
+#   python3 tests/e2e/run.py
+#
+# See tests/e2e/run.py for what is checked.
+
+services:
+  web:
+    environment:
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DISCLAIMR_ADMIN_PASSWORD: e2e-admin
+      # Tenant and directory server through the env bootstrap, as documented.
+      TENANTS: planetexpress
+      TENANT_PLANETEXPRESS_DOMAINS: planetexpress.com
+      LDAP_SERVERS: planetexpress
+      LDAP_SERVER_PLANETEXPRESS_BASE_DN: ou=people,dc=planetexpress,dc=com
+      LDAP_SERVER_PLANETEXPRESS_URL: ldap://ldap:10389
+      LDAP_SERVER_PLANETEXPRESS_BIND_DN: cn=admin,dc=planetexpress,dc=com
+      LDAP_SERVER_PLANETEXPRESS_BIND_PASSWORD: GoodNewsEveryone
+      LDAP_SERVER_PLANETEXPRESS_TENANT: planetexpress
+
+  # Futurama test data; the TLS certificate is self-signed for CN=planetexpress.com, so the
+  # service also answers to that name inside the network.
+  ldap:
+    image: ghcr.io/rroemhild/docker-test-openldap:master
+    ports:
+      - "127.0.0.1:10636:10636"
+    networks:
+      default:
+        aliases:
+          - planetexpress.com
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  postfix:
+    build: tests/e2e/postfix
+    depends_on:
+      milter:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "127.0.0.1:2525:25"

@@ -122,6 +122,16 @@ If the action's **Resolve sender** flag is on, the milter queries the
 linked DirectoryServers (or the tenant's, see
 [Tenants](../tenants/)) before substituting placeholders.
 
+### Time-limited actions (banners)
+
+An action can have a **Valid from** and a **Valid until** moment (both optional,
+entered in the server's time zone). Outside that window the action is skipped, as
+if it were disabled; the mail is judged at the moment it is processed. That
+makes campaign banners or holiday notices self-managing: add the banner as an
+additional action *after* the regular signature in the same rule, set the dates,
+done. Do not put it in a rule of its own without **Continue after this rule**:
+a rule whose actions are all skipped still ends the rule chain.
+
 ## Testing a rule before deploying it
 
 Use **Signatures → Signature test** to play arbitrary mails through

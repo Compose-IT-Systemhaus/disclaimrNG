@@ -33,6 +33,16 @@ Die Suche durchsucht Absender, Empfänger, Betreff, Queue-ID und die
 angewendeten Signaturen; die Datumsnavigation oberhalb der Liste grenzt auf
 Jahr, Monat und Tag ein.
 
+## Kennzahlen im Dashboard
+
+Administratoren sehen im Dashboard außerdem eine Karte mit den Mails der letzten
+sieben Tage: gesehen, signiert und unverändert, ein Balken pro Tag (der dunkle Teil
+ist signiert), die fünf häufigsten Signaturen und wann die letzte Mail gesehen wurde.
+Eine lange Pause seit der letzten Mail ist der schnellste Hinweis, dass der Milter
+nicht mit dem MTA verbunden ist. Die Zahlen stammen aus diesem Log, gelten also nur für
+die Aufbewahrungsdauer (siehe unten), und Mails, die scheiterten, bevor sie
+protokolliert werden konnten (z. B. eine Exception im Milter), zählen nicht mit.
+
 ## Aufbewahrung
 
 Einträge werden nach **30 Tagen** automatisch gelöscht. Die Frist stellst du in

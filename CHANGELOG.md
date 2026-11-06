@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- The unused systemd notification of the milter and its start-up warning "Missing module systemd.daemon". The milter runs in a container, where systemd never starts it.
+
 ## [0.2.0] - 2026-11-06
 
 Three new migrations (`0005`–`0007`) run on start-up. If you use your own Compose file, mount the `media` volume read-only at `/app/media` in the milter container to use embedded images; without it such images are linked as before (warning in the milter log).

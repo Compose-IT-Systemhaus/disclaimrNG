@@ -28,17 +28,6 @@ from disclaimrwebadmin.models import MailLog  # noqa: E402
 
 syslog = logging.getLogger("disclaimr")
 
-try:
-    import systemd.daemon
-
-    HAS_SYSTEMD_PYTHON = True
-except ImportError:
-    syslog.warning(
-        "Missing module systemd.daemon, systemd support not available! "
-        "Consider installing systemd-python"
-    )
-    HAS_SYSTEMD_PYTHON = False
-
 
 # How long (seconds) the sender-IP prefilter is reused before it is rebuilt
 # from the database, so new or changed requirements apply without a restart.
@@ -331,11 +320,6 @@ def run_disclaimr_milter() -> None:
     syslog.info("Starting disclaimr %s listening on %s", __version__, options.socket)
 
     try:
-        logging.debug("HAS_SYSTEMD_PYTHON: %s", HAS_SYSTEMD_PYTHON)
-        if HAS_SYSTEMD_PYTHON and systemd.daemon.booted():
-            logging.debug("Reporting to systemd that we are ready...")
-            systemd.daemon.notify("READY=1")
-
         factory.run()
 
     except Exception as exc:

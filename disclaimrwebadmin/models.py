@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import re
+from datetime import timedelta
 
 import netaddr
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from . import constants
@@ -692,3 +695,38 @@ class Action(models.Model):
             except ValidationError as exc:
                 raise ValidationError({"action_parameters": exc.messages}) from exc
 
+
+
+class MailLog(models.Model):
+    """One mail the milter saw, written by ``disclaimr.py`` at the end of the body.
+
+    Rule, action and signature are stored by name (not as foreign keys) so the
+    entry stays readable after they are renamed or deleted.
+    """
+
+    created = models.DateTimeField(_("time"), auto_now_add=True, db_index=True)
+    queue_id = models.CharField(_("queue ID"), max_length=64, blank=True)
+    sender = models.TextField(_("sender"), blank=True)
+    recipient = models.TextField(_("recipient"), blank=True)
+    subject = models.TextField(_("subject"), blank=True)
+    sender_ip = models.CharField(_("client IP"), max_length=64, blank=True)
+    # False for mails the milter saw but left untouched (no rule matched).
+    processed = models.BooleanField(_("signature added"), default=False)
+    # One "rule → action → signature" line per applied action.
+    applied = models.TextField(_("applied signatures"), blank=True)
+
+    class Meta:
+        ordering = ["-created", "-id"]
+        verbose_name = _("Mail log")
+        verbose_name_plural = _("Logs")
+
+    def __str__(self) -> str:
+        return f"{self.created:%Y-%m-%d %H:%M:%S} {self.sender}"
+
+    @classmethod
+    def prune(cls) -> int:
+        """Delete entries older than ``MAIL_LOG_RETENTION_DAYS`` (0 keeps everything)."""
+        days = settings.MAIL_LOG_RETENTION_DAYS
+        if days <= 0:
+            return 0
+        return cls.objects.filter(created__lt=timezone.now() - timedelta(days=days)).delete()[0]

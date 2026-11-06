@@ -24,6 +24,7 @@ from django.db import connections  # noqa: E402  -- after django.setup()
 from disclaimr.configuration_helper import build_configuration  # noqa: E402
 from disclaimr.logging_helper import set_queue_id  # noqa: E402
 from disclaimr.milter_helper import MilterHelper  # noqa: E402
+from disclaimrwebadmin.models import MailLog  # noqa: E402
 
 syslog = logging.getLogger("disclaimr")
 
@@ -45,7 +46,23 @@ CONFIG_TTL = float(os.environ.get("MILTER_CONFIG_TTL", "60"))
 
 configuration: dict = {}
 _configuration_built_at = 0.0
+_logs_pruned_at: float | None = None
 options: argparse.Namespace
+
+
+def _prune_mail_logs(now: float, force: bool) -> None:
+    """Apply the log retention at startup and then at most once an hour."""
+    global _logs_pruned_at
+    if not force and _logs_pruned_at is not None and now - _logs_pruned_at < 3600:
+        return
+    _logs_pruned_at = now
+    try:
+        removed = MailLog.prune()
+    except Exception:  # a failing cleanup must not stop the milter from refreshing
+        syslog.exception("Cannot prune the mail log")
+    else:
+        if removed:
+            syslog.info("Pruned %d mail log entries past the retention period", removed)
 
 
 def refresh_configuration(force: bool = False) -> None:
@@ -64,6 +81,7 @@ def refresh_configuration(force: bool = False) -> None:
 
     try:
         configuration = build_configuration()
+        _prune_mail_logs(now, force)
     except Exception:
         if force:
             raise
@@ -126,6 +144,9 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         # Instantiated in the accepting parent right before the fork.
         refresh_configuration()
         self.helper = MilterHelper(configuration)
+        # Sender, first recipient and subject of the current mail for the log; the
+        # helper stops collecting them once no rule applies, but those mails are logged too.
+        self._note: dict[str, str] = {}
         logging.debug("Initialising Milter Fork")
 
     def _track_queue_id(self, macros: dict[str, str]) -> None:
@@ -153,11 +174,12 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         self.helper.reset()
         macros = _macros(cmd_dict)
         set_queue_id(macros.get("i", ""))
+        addr = _address(addr, macros, "mail_addr")
+        self._note = {"sender": addr}
 
         if not self.helper.enabled:
             logging.debug("Ignoring MAIL-FROM since a previous rule didn't match...")
             return lm.CONTINUE
-        addr = _address(addr, macros, "mail_addr")
         logging.debug("MAILFROM: %s", addr)
         self.helper.mail_from(addr, macros)
         return lm.CONTINUE
@@ -172,18 +194,21 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         macros = _macros(cmd_dict)
         self._track_queue_id(macros)
         recip = _address(recip, macros, "rcpt_addr")
+        self._note.setdefault("recipient", recip)
         logging.debug("RCPT: %s", recip)
         self.helper.rcpt(recip, macros)
         return lm.CONTINUE
 
     @lm.noReply
     def header(self, key, val, cmd_dict):
+        key, val = _text(key), _text(val)
+        if key.lower() == "subject":
+            self._note.setdefault("subject", val)
         if not self.helper.enabled:
             logging.debug("Ignoring HEADER since a previous rule didn't match...")
             return lm.CONTINUE
         macros = _macros(cmd_dict)
         self._track_queue_id(macros)
-        key, val = _text(key), _text(val)
         logging.debug("HEADER: %s: %s", key, val)
         self.helper.header(key, val, macros)
         return lm.CONTINUE
@@ -216,13 +241,14 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
             connections.close_all()
 
     def _eob(self, cmd_dict):
+        macros = _macros(cmd_dict)
         if not self.helper.enabled:
             logging.debug("Ignoring END-OF-BODY since a previous rule didn't match...")
+            self._log_mail(macros)
             self._qid = None
             return lm.CONTINUE
 
         logging.debug("ENDOFBODY: Processing actions...")
-        macros = _macros(cmd_dict)
         self._track_queue_id(macros)
         tasks = self.helper.eob(macros) or {}
 
@@ -238,9 +264,27 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
         for header in tasks.get("delete_header", []):
             self.chgHeader(_raw(header), b"")
 
+        self._log_mail(macros)
+
         # Done with this mail — close() only reports mails that got stuck.
         self._qid = None
         return lm.CONTINUE
+
+    def _log_mail(self, macros: dict[str, str]) -> None:
+        """Record the mail in the admin's "Logs" view (never fails the mail)."""
+        data, note = self.helper.mail_data, self._note
+        try:
+            MailLog.objects.create(
+                queue_id=macros.get("i", ""),
+                sender=data.get("envelope_from") or note.get("sender", ""),
+                recipient=data.get("envelope_rcpt") or note.get("recipient", ""),
+                subject=note.get("subject", ""),
+                sender_ip=data.get("sender_ip") or "",
+                processed=bool(self.helper.applied),
+                applied="\n".join(self.helper.applied),
+            )
+        except Exception:
+            syslog.exception("Could not write the mail log entry")
 
     def dataReceived(self, buf):
         # python-libmilter swallows callback exceptions (its log() is a no-op),
@@ -254,6 +298,7 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
     def abort(self):
         logging.debug("ABORT: resetting the mail state")
         self.helper.reset()
+        self._note = {}
         connections.close_all()
 
     def close(self):

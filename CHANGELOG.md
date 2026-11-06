@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- "Logs" view under Settings (administrators only): every mail the milter sees, with sender, recipient, subject and the applied rule/action/signature; unprocessed mails can be filtered out. Entries are removed after `MAIL_LOG_RETENTION_DAYS` days (default 30, `0` keeps them). Documented on the new "Mail logs" handbook page.
+
 ## [0.1.1] - 2026-11-05
 
 ### Added

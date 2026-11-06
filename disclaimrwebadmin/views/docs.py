@@ -37,6 +37,7 @@ TOC: list[tuple[str, object]] = [
     ("signatures", _("Signatures & rules")),
     ("walkthrough", _("Walkthrough — domain signature")),
     ("stalwart-active-directory", _("Runbook — Stalwart & Active Directory")),
+    ("mail-logs", _("Mail logs")),
     ("troubleshooting", _("Troubleshooting")),
 ]
 

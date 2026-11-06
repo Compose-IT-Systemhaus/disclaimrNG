@@ -19,6 +19,7 @@ env = environ.Env(
     DJANGO_CSRF_TRUSTED_ORIGINS=(list, []),
     DJANGO_SECURE_COOKIES=(bool, False),
     MEDIA_BASE_URL=(str, ""),
+    MAIL_LOG_RETENTION_DAYS=(int, 30),
 )
 
 env_file = BASE_DIR / ".env"
@@ -110,6 +111,8 @@ STORAGES = {
 # emails (signatures fly through MTAs, so relative URLs are useless). Falls
 # back to MEDIA_URL for local development; in production set this to the
 # public hostname of your disclaimrNG deployment.
+# Days the "Logs" view keeps mail entries; 0 keeps them forever.
+MAIL_LOG_RETENTION_DAYS = env("MAIL_LOG_RETENTION_DAYS")
 MEDIA_BASE_URL = env("MEDIA_BASE_URL").rstrip("/") or MEDIA_URL.rstrip("/")
 
 STATICFILES_FINDERS = [
@@ -292,6 +295,13 @@ UNFOLD = {
                         "icon": "group",
                         "permission": _sees("auth", "group"),
                         "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                    {
+                        "title": _("Logs"),
+                        "icon": "receipt_long",
+                        # Mail addresses and subjects — administrators only.
+                        "permission": lambda request: request.user.is_superuser,
+                        "link": reverse_lazy("admin:disclaimrwebadmin_maillog_changelist"),
                     },
                 ],
             },

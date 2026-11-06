@@ -234,13 +234,14 @@ class DisclaimrMilter(lm.ForkMixin, lm.MilterProtocol):
 
     def eob(self, cmd_dict):
         try:
-            return self._eob(cmd_dict)
+            return self._finish_mail(cmd_dict)
         finally:
             # This process lives as long as the SMTP connection, which can sit idle
             # for hours between mails; don't hold a database connection meanwhile.
             connections.close_all()
 
-    def _eob(self, cmd_dict):
+    # Not "_eob": python-libmilter has an internal method of that name that calls eob().
+    def _finish_mail(self, cmd_dict):
         macros = _macros(cmd_dict)
         if not self.helper.enabled:
             logging.debug("Ignoring END-OF-BODY since a previous rule didn't match...")

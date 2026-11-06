@@ -5,6 +5,11 @@
 REQ_ACTION_ACCEPT = 0
 REQ_ACTION_DENY = 1
 
+# Requirement directory conditions
+
+COND_KIND_ATTRIBUTE = 0
+COND_KIND_GROUP = 1
+
 # Actions Actions
 
 ACTION_ACTION_REPLACETAG = 0

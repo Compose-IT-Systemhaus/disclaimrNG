@@ -11,6 +11,8 @@ repository root. Standard library only. What it checks:
 * The mail log records the mail.
 * LDAPS: without the CA certificate the lookup fails (the mail is still delivered, without
   directory data), with the CA stored on the directory server it works.
+* Directory conditions: rules that demand a group membership (memberOf of the test LDAP) or an
+  attribute value of the sender apply or not accordingly.
 * An image flagged "embed" ends up in the HTML mail as an inline ``cid:`` part (the milter
   reads the file from the shared media volume).
 """
@@ -201,6 +203,29 @@ Action.objects.create(rule=Rule.objects.get(name="E2E"), disclaimer=disclaimer, 
 print(buf.getvalue().hex())
 """
 
+CONDITION_SEED = """
+from disclaimrwebadmin import constants
+from disclaimrwebadmin.models import Action, Disclaimer, Requirement, Rule
+
+Rule.objects.update(continue_rules=True)
+
+def conditional(name, text, **condition):
+    rule = Rule.objects.create(name=name, continue_rules=True)
+    requirement = Requirement.objects.create(rule=rule, name=name)
+    requirement.conditions.create(**condition)
+    disclaimer = Disclaimer.objects.create(name=name, text=text)
+    Action.objects.create(rule=rule, disclaimer=disclaimer, position=0, name=name,
+                          action=constants.ACTION_ACTION_ADD)
+
+people = "ou=people,dc=planetexpress,dc=com"
+group = constants.COND_KIND_GROUP
+conditional("Staff", "GROUP-STAFF", kind=group, group_dn="cn=admin_staff," + people)
+conditional("Crew", "GROUP-CREW", kind=group, group_dn="cn=ship_crew," + people)
+conditional("Owner", "ATTR-OWNER", attribute="employeeType", pattern="^Owner$")
+conditional("Intern", "ATTR-INTERN", attribute="employeeType", pattern="^Intern$")
+print("seeded")
+"""
+
 LOG_CHECK = """
 from disclaimrwebadmin.models import MailLog
 print(MailLog.objects.filter(processed=True, applied__contains="E2E → Signature → Signature").count())
@@ -226,6 +251,16 @@ def main() -> int:
     pem = ssl.get_server_certificate(("127.0.0.1", 10636))
     print(django(STORE_CA, CA_PEM=pem))
     scenario("LDAPS with the stored CA", "e2e tls with ca", signature_has_data=True)
+
+    print("\nDirectory conditions")
+    print(django(CONDITION_SEED))
+    time.sleep(3)
+    send("e2e conditions")
+    raw = receive("e2e conditions")
+    check("GROUP-STAFF" in raw, "member of admin_staff: the group rule applies", raw)
+    check("GROUP-CREW" not in raw, "not a member of ship_crew: the group rule is skipped", raw)
+    check("ATTR-OWNER" in raw, "employeeType Owner: the attribute rule applies", raw)
+    check("ATTR-INTERN" not in raw, "employeeType is not Intern: the attribute rule is skipped", raw)
 
     print("\nEmbedded image")
     png = bytes.fromhex(django(EMBED_SEED))

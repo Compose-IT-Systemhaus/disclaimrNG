@@ -697,6 +697,39 @@ msgstr "Logs"
 msgid "signature added"
 msgstr "Signatur angehängt"
 
+msgid "Single sign-on (OIDC)"
+msgstr "Single Sign-on (OIDC)"
+
+msgid "SSO groups"
+msgstr "SSO-Gruppen"
+
+msgid "SSO group"
+msgstr "SSO-Gruppe"
+
+msgid "local group"
+msgstr "Lokale Gruppe"
+
+msgid "SSO group mapping"
+msgstr "SSO-Gruppenzuordnung"
+
+msgid "SSO group mappings"
+msgstr "SSO-Gruppenzuordnungen"
+
+msgid "The group name as the identity provider sends it (claim value)."
+msgstr "Der Gruppenname, wie der Identity Provider ihn sendet (Claim-Wert)."
+
+msgid "Members of the SSO group get this group when they sign in."
+msgstr "Mitglieder der SSO-Gruppe bekommen diese Gruppe bei der Anmeldung."
+
+msgid "Sign in with %(name)s"
+msgstr "Mit %(name)s anmelden"
+
+msgid "Sign-in with %(name)s failed."
+msgstr "Die Anmeldung mit %(name)s ist fehlgeschlagen."
+
+msgid "This account is disabled."
+msgstr "Dieses Konto ist deaktiviert."
+
 msgid "Mail logs"
 msgstr "Mail-Logs"
 

@@ -28,6 +28,7 @@ from .models import (
     RequirementCondition,
     Rule,
     SignatureImage,
+    SSOGroupMapping,
     Tenant,
     TenantDomain,
 )
@@ -317,6 +318,13 @@ class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
             }
         )
         return super().changeform_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(SSOGroupMapping)
+class SSOGroupMappingAdmin(ModelAdmin):
+    list_display = ("sso_group", "group")
+    list_select_related = ("group",)
+    search_fields = ("sso_group", "group__name")
 
 
 @admin.register(MailLog)

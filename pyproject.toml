@@ -34,6 +34,8 @@ dependencies = [
     # PyPI distribution is hyphenated (``django-admin-sortable2``); the
     # importable Python module is ``adminsortable2`` (no hyphens).
     "django-admin-sortable2>=2.2",
+    # Single sign-on (OpenID Connect); 65.11 split ID token and userinfo in extra_data.
+    "django-allauth[socialaccount]>=65.11,<66",
     "django-unfold>=0.40",
     "psycopg[binary]>=3.1",
     "python-ldap>=3.4",
@@ -99,7 +101,7 @@ ignore = [
 "tests/test_requirements.py" = ["I001"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "disclaimrweb.settings"
+DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py", "*_test.py"]
 testpaths = ["tests"]
 

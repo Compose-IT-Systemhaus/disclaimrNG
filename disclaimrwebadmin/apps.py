@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 # Lower-case object_name -> which sidebar group the model belongs to.
 # Anything not listed here stays under whatever app Django put it in.
 _SIGNATURE_MODELS = {"disclaimer", "rule", "signatureimage"}
-_SETTINGS_MODELS = {"tenant", "directoryserver", "maillog"}
+_SETTINGS_MODELS = {"tenant", "directoryserver", "maillog", "ssogroupmapping"}
 
 
 def _create_roles(**kwargs) -> None:

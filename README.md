@@ -17,6 +17,7 @@ It hooks into the SMTP mail flow of any milter-capable MTA (Postfix, Sendmail), 
 - **Web UI for templates** with side-by-side **Code editor** (Monaco, with auto-completion for resolver variables) and **WYSIWYG editor** (TinyMCE), plus a live **preview** rendered against sample LDAP data.
 - **Rule engine** with requirements (sender IP / regex, recipient regex, header / body filters) and actions (append disclaimer, replace tag, …) — configurable through the web UI.
 - **Plaintext and HTML** mail support including charset handling and an HTML-fallback option.
+- **Single sign-on** through OpenID Connect (Authentik): users are created on first sign-in and the provider's groups map onto the roles Admins, Editor and Reader.
 - **Docker-Compose stack** with Postgres, web frontend and milter daemon — `docker compose up` and you are running.
 
 ## Quickstart

@@ -705,6 +705,31 @@ class SignatureImage(models.Model):
         return f"{self.name} ({self.slug})"
 
 
+class SSOGroupMapping(models.Model):
+    """Maps a group name reported by the identity provider onto a local group."""
+
+    sso_group = models.CharField(
+        _("SSO group"),
+        max_length=255,
+        unique=True,
+        help_text=_("The group name as the identity provider sends it (claim value)."),
+    )
+    group = models.ForeignKey(
+        "auth.Group",
+        verbose_name=_("local group"),
+        on_delete=models.CASCADE,
+        help_text=_("Members of the SSO group get this group when they sign in."),
+    )
+
+    class Meta:
+        ordering = ["sso_group"]
+        verbose_name = _("SSO group mapping")
+        verbose_name_plural = _("SSO group mappings")
+
+    def __str__(self) -> str:
+        return f"{self.sso_group} → {self.group}"
+
+
 class ActionQuerySet(models.QuerySet):
     def active(self, at=None):
         """Enabled actions whose validity window contains ``at`` (default: now)."""

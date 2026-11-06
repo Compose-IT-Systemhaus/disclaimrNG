@@ -565,3 +565,33 @@ msgstr ""
 # --- Validation --------------------------------------------------------------
 msgid "Invalid regular expression: %(error)s"
 msgstr "Ungültiger regulärer Ausdruck: %(error)s"
+
+# --- Logs ---------------------------------------------------------------------
+msgid "time"
+msgstr "Zeit"
+
+msgid "queue ID"
+msgstr "Queue-ID"
+
+msgid "subject"
+msgstr "Betreff"
+
+msgid "client IP"
+msgstr "Client-IP"
+
+msgid "applied signatures"
+msgstr "Angewendete Signaturen"
+
+msgid "Applied signatures"
+msgstr "Angewendete Signaturen"
+
+msgid "Mail log"
+msgstr "Mail-Log"
+
+msgid "Logs"
+msgstr "Logs"
+msgid "signature added"
+msgstr "Signatur angehängt"
+
+msgid "Mail logs"
+msgstr "Mail-Logs"

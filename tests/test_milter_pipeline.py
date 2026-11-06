@@ -267,12 +267,70 @@ def test_milter_round_trip_with_bytes(db, daemon):
             milter.header(key.encode(), value.encode(), {b"i": b"4F2A1"})
         milter.eoh({})
         milter.body(text, {})
-        milter.eob({})
+        milter.eob({b"i": b"4F2A1"})
 
     first, second = (call.args[0] for call in milter.replBody.call_args_list)
     assert isinstance(second, bytes)
     assert b"first mail" in first and b"Signature" in first
     assert b"second mail" in second and b"first mail" not in second
+
+    # Every changed mail leaves one entry for the admin's "Logs" view.
+    entries = list(models.MailLog.objects.order_by("id"))
+    assert len(entries) == 2
+    assert entries[0].queue_id == "4F2A1"
+    assert entries[0].sender == "alice@example.com"
+    assert entries[0].recipient == "bob@example.org"
+    assert entries[0].sender_ip == "10.0.0.1"
+    assert entries[0].applied == "r → a → d"
+    assert entries[0].processed
+
+
+def _run_mail(daemon, sender=b"alice@example.com"):
+    milter = daemon.DisclaimrMilter()
+    milter.replBody = MagicMock()
+    milter.addHeader = MagicMock()
+    milter.chgHeader = MagicMock()
+    milter.connect(b"mx.example.com", b"4", b"10.0.0.1", 25, {})
+    milter.mailFrom(b"<" + sender + b">", {b"i": b"9Z", b"mail_addr": sender})
+    milter.rcpt(b"<bob@example.org>", {b"i": b"9Z"})
+    milter.header(b"Subject", b"Quarterly report", {b"i": b"9Z"})
+    milter.eoh({})
+    milter.body(b"text", {})
+    milter.eob({b"i": b"9Z"})
+    return milter
+
+
+def test_mail_without_matching_rule_is_logged_as_unprocessed(db, daemon):
+    _setup_rule()
+    models.Requirement.objects.update(sender=r"@other\.com$")
+    daemon.refresh_configuration(force=True)
+
+    milter = _run_mail(daemon)
+
+    milter.replBody.assert_not_called()
+    (entry,) = models.MailLog.objects.all()
+    assert not entry.processed
+    assert (entry.sender, entry.recipient, entry.subject, entry.applied) == (
+        "alice@example.com",
+        "bob@example.org",
+        "Quarterly report",
+        "",
+    )
+
+
+def test_old_log_entries_are_pruned_by_the_milter(db, daemon, settings):
+    _setup_rule()
+    old = models.MailLog.objects.create(sender="old@example.com")
+    models.MailLog.objects.filter(pk=old.pk).update(created="2020-01-01T00:00:00Z")
+    models.MailLog.objects.create(sender="new@example.com")
+
+    settings.MAIL_LOG_RETENTION_DAYS = 0
+    daemon.refresh_configuration(force=True)
+    assert models.MailLog.objects.count() == 2  # 0 keeps everything
+
+    settings.MAIL_LOG_RETENTION_DAYS = 90
+    daemon.refresh_configuration(force=True)
+    assert list(models.MailLog.objects.values_list("sender", flat=True)) == ["new@example.com"]
 
 
 # ---------------------------------------------------------------------------

@@ -26,7 +26,9 @@ Active Directory zieht.
    Name und Telefon des Absenders aus AD zieht."
 7. **[Runbook — Stalwart & Active Directory](stalwart-active-directory/)** —
    disclaimrNG neben einem Stalwart-1.0-Container, mit Active Directory.
-8. **[Troubleshooting](troubleshooting/)** — typische Fehler und wie
+8. **[Single Sign-on (OIDC)](sso-authentik/)** — Anmeldung über Authentik, dessen
+   Gruppen auf die Rollen Admins, Editor und Reader abbilden.
+9. **[Troubleshooting](troubleshooting/)** — typische Fehler und wie
    man die Logs liest.
 
 ## Schnell-Links

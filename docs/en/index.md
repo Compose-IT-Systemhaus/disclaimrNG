@@ -25,7 +25,9 @@ Active Directory.
    name and phone from AD."
 7. **[Runbook — Stalwart & Active Directory](stalwart-active-directory/)** —
    disclaimrNG next to a Stalwart 1.0 container, with Active Directory.
-8. **[Troubleshooting](troubleshooting/)** — common errors and how to
+8. **[Single sign-on (OIDC)](sso-authentik/)** — sign in through Authentik, map
+   its groups onto the roles Admins, Editor and Reader.
+9. **[Troubleshooting](troubleshooting/)** — common errors and how to
    read the logs.
 
 ## Quick links

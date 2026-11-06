@@ -20,6 +20,12 @@ env = environ.Env(
     DJANGO_SECURE_COOKIES=(bool, False),
     MEDIA_BASE_URL=(str, ""),
     MAIL_LOG_RETENTION_DAYS=(int, 30),
+    OIDC_SERVER_URL=(str, ""),
+    OIDC_CLIENT_ID=(str, ""),
+    OIDC_CLIENT_SECRET=(str, ""),
+    OIDC_NAME=(str, "SSO"),
+    OIDC_SCOPES=(list, ["openid", "profile", "email"]),
+    OIDC_GROUPS_CLAIM=(str, "groups"),
 )
 
 env_file = BASE_DIR / ".env"
@@ -55,6 +61,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "adminsortable2",
+    # Single sign-on (OpenID Connect). Installed always, active only when OIDC_* is set;
+    # the account pages of allauth are not routed, see disclaimrweb/urls.py.
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.openid_connect",
     "disclaimrwebadmin.apps.DisclaimrwebadminConfig",
 ]
 
@@ -71,7 +83,51 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
+
+# --- Single sign-on (OpenID Connect, e.g. Authentik) -------------------------------------
+OIDC_SERVER_URL = env("OIDC_SERVER_URL")
+OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
+OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
+OIDC_NAME = env("OIDC_NAME")
+OIDC_GROUPS_CLAIM = env("OIDC_GROUPS_CLAIM")
+OIDC_ENABLED = bool(OIDC_SERVER_URL and OIDC_CLIENT_ID and OIDC_CLIENT_SECRET)
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+SOCIALACCOUNT_ADAPTER = "disclaimrwebadmin.sso.SocialAccountAdapter"
+SOCIALACCOUNT_PROVIDERS = {
+    "openid_connect": {
+        "APPS": (
+            [
+                {
+                    "provider_id": "sso",
+                    "name": OIDC_NAME,
+                    "client_id": OIDC_CLIENT_ID,
+                    "secret": OIDC_CLIENT_SECRET,
+                    "settings": {
+                        "server_url": OIDC_SERVER_URL,
+                        "fetch_userinfo": True,
+                        "oauth_pkce_enabled": True,
+                    },
+                }
+            ]
+            if OIDC_ENABLED
+            else []
+        ),
+        "SCOPE": env("OIDC_SCOPES"),
+    }
+}
+# The callback is /accounts/oidc/sso/login/callback/ — register exactly this at the provider.
+SOCIALACCOUNT_OPENID_CONNECT_URL_PREFIX = "oidc"
+# A plain link starts the login; no allauth page is shown in between.
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False  # never log in to a local account by e-mail
+ACCOUNT_EMAIL_VERIFICATION = "none"
+LOGIN_REDIRECT_URL = "/"
 
 ROOT_URLCONF = "disclaimrweb.urls"
 WSGI_APPLICATION = "disclaimrweb.wsgi.application"
@@ -135,6 +191,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
+                "disclaimrwebadmin.sso.sso_context",
             ],
         },
     },
@@ -282,6 +339,14 @@ UNFOLD = {
                         "permission": _sees("disclaimrwebadmin", "directoryserver"),
                         "link": reverse_lazy(
                             "admin:disclaimrwebadmin_directoryserver_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("SSO groups"),
+                        "icon": "badge",
+                        "permission": _sees("disclaimrwebadmin", "ssogroupmapping"),
+                        "link": reverse_lazy(
+                            "admin:disclaimrwebadmin_ssogroupmapping_changelist"
                         ),
                     },
                     {

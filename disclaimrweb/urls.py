@@ -28,5 +28,13 @@ urlpatterns = [
     re_path(rf"^{settings.MEDIA_URL.lstrip('/')}(?P<path>.*)$", media),
     path("healthz", healthz),
     path("admin/disclaimr/", include("disclaimrwebadmin.urls")),
-    path("", admin.site.urls),
 ]
+
+if settings.OIDC_ENABLED:
+    # Only the login and callback of the OpenID Connect provider — not allauth's account pages
+    # (sign-up, password reset, ...), which would open a second way in.
+    urlpatterns.append(
+        path("accounts/", include("allauth.socialaccount.providers.openid_connect.urls"))
+    )
+
+urlpatterns.append(path("", admin.site.urls))

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Single sign-on over OpenID Connect (tested against the Authentik conventions): set `OIDC_SERVER_URL`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` and the login page gets a button. Users are created on their first sign-in; at every sign-in the groups of the provider are mapped onto local groups (*Settings › SSO groups*), users without a mapped group become Readers, and members of Admins are superusers. Local accounts are never linked or taken over. New dependency `django-allauth`; its tables are created by `migrate`.
 - Built-in roles: the groups Admins (everything), Editor (look at, create and change signatures and rules) and Reader (look only) are created on start-up. Their permissions can be changed in the admin and are kept; `manage.py sync_roles --reset` restores them.
 
 ### Removed

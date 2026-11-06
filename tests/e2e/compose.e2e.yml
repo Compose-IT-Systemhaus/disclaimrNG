@@ -28,6 +28,13 @@ services:
     image: ghcr.io/rroemhild/docker-test-openldap:master
     ports:
       - "127.0.0.1:10636:10636"
+    # The image's own healthcheck searches the admin DN, which is no entry in its database
+    # (err=32) and so reports "unhealthy" forever. Ask for the people subtree instead.
+    healthcheck:
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://127.0.0.1:10389 -D cn=admin,dc=planetexpress,dc=com -w GoodNewsEveryone -b ou=people,dc=planetexpress,dc=com -s base >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     networks:
       default:
         aliases:

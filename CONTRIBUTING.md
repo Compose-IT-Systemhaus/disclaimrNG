@@ -30,6 +30,16 @@ docker compose exec web ruff check .
 docker compose exec web mypy disclaimr disclaimrwebadmin
 ```
 
+The end-to-end test (CI job `e2e`) sends a mail through Postfix, the milter and a test LDAP
+into a mail sink and checks the signature. It needs Docker and runs from the repository root:
+
+```bash
+cp .env.example .env
+docker compose -f compose.yml -f tests/e2e/compose.e2e.yml up -d --build --wait
+python3 tests/e2e/run.py
+docker compose -f compose.yml -f tests/e2e/compose.e2e.yml down -v
+```
+
 ## How to contribute
 
 1. **Talk to us first** for non-trivial changes so we can align on scope (GitHub Issues are disabled in this repository — open a draft pull request or contact the maintainers).

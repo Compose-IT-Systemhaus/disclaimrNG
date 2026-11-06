@@ -53,6 +53,20 @@ abgeleitet (mit Numeric-Suffix bei Kollision). Bilder leben im
 ``media``-Docker-Volume und werden über ``MEDIA_BASE_URL``
 ausgeliefert.
 
+### Verlinken oder einbetten
+
+Standardmäßig wird ein Bild **verlinkt**: Die Mail enthält ein ``<img>`` auf
+``MEDIA_BASE_URL``, das Mailprogramm des Empfängers lädt es von Ihrem Server (viele
+blockieren das, bis der Nutzer „Bilder laden“ klickt).
+
+Mit **In die Mail einbetten** am Bild wird es stattdessen an die Mail angehängt
+(``cid:``-Verweis, ``multipart/related``). Es erscheint sofort und braucht keinen
+Zugriff auf Ihren Server, dafür wird jede Mail um die Bildgröße größer. Eingebettet wird
+nur in HTML-Teilen (Plaintext behält die URL) und bis 1 MiB; ein größeres, nicht lesbares
+oder kein Bild wird verlinkt, mit einer Warnung im Milter-Log. Der Milter liest die Datei
+aus dem ``media``-Volume, das die mitgelieferten Compose-Dateien read-only einhängen;
+im eigenen Setup dasselbe Volume im Milter-Container unter ``/app/media`` einhängen.
+
 ## Platzhalter-Referenz
 
 | Token | Wird zu |

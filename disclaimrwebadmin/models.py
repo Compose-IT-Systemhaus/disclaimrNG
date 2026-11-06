@@ -613,6 +613,15 @@ class SignatureImage(models.Model):
         blank=True,
         help_text=_("Optional height in pixels."),
     )
+    embed = models.BooleanField(
+        _("embed in the mail"),
+        default=False,
+        help_text=_(
+            "Attach the image to HTML mails instead of linking to it, so mail clients "
+            "show it without \"load images\" and without reaching your server. "
+            "Makes every mail larger by the image size (max. 1 MiB)."
+        ),
+    )
 
     class Meta:
         ordering = ["slug"]

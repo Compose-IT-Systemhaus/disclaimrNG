@@ -205,3 +205,31 @@ def test_vocabulary_endpoint_lists_images(staff_client):
     assert slugs == {"logo", "badge"}
     names = {img["name"] for img in payload["images"]}
     assert names == {"Acme Logo", "Trust Badge"}
+
+
+# ---------------------------------------------------------------------------
+# embedded (cid:) rendering
+# ---------------------------------------------------------------------------
+
+
+def test_embed_references_cid_and_collects_the_part(db):
+    _make_image("logo", embed=True)
+    embedded: dict = {}
+
+    rendered = _build_image_replacements('{image["logo"]}', "text/html", embedded)
+
+    (cid, part), = embedded.items()
+    assert cid.startswith("logo.") and cid.endswith("@disclaimr")
+    assert f'src="cid:{cid}"' in rendered["logo"]
+    assert part["Content-ID"] == f"<{cid}>"
+    assert part.get_payload(decode=True) == _png_bytes()
+
+
+def test_embed_only_applies_to_html_and_when_asked_for(db):
+    _make_image("logo", embed=True)
+    embedded: dict = {}
+    assert "cid:" not in _build_image_replacements('{image["logo"]}', "text/html")
+    assert _build_image_replacements('{image["logo"]}', "text/plain", embedded)["logo"].endswith(
+        "logo.png"
+    )
+    assert embedded == {}

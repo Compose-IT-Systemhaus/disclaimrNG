@@ -160,7 +160,7 @@ def test_text_disclaimer_renders_images_as_markup_in_html_parts(db, monkeypatch)
     monkeypatch.setattr(
         milter_helper,
         "_build_image_replacements",
-        lambda text, content_type: {"logo": '<img src="https://x/logo.png" />'},
+        lambda text, content_type, embedded=None: {"logo": '<img src="https://x/logo.png" />'},
     )
     _setup_rule(text='Regards\n{image["logo"]}')
     headers, body = _split_mime(MIMEText("<p>Hello</p>", "html", "utf-8"))
@@ -542,3 +542,140 @@ def test_milter_does_not_shadow_libmilter_internals(daemon):
     internals = {n for n in dir(daemon.lm.MilterProtocol) if n.startswith("_") and not n.startswith("__")}
     ours = {n for n in vars(daemon.DisclaimrMilter) if n.startswith("_") and not n.startswith("__")}
     assert not internals & ours, internals & ours
+
+
+# ---------------------------------------------------------------------------
+# embedded signature images (cid:)
+# ---------------------------------------------------------------------------
+
+_HTML_HEADERS = [
+    ("From", "alice@example.com"),
+    ("Subject", "Hi"),
+    ("MIME-Version", "1.0"),
+    ("Content-Type", "text/html; charset=utf-8"),
+    ("Content-Transfer-Encoding", "8bit"),
+]
+
+
+@pytest.fixture
+def logo(db, settings, tmp_path):
+    """An image flagged ``embed``; returns its bytes."""
+    import io
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    buf = io.BytesIO()
+    Image.new("RGB", (1, 1), color="red").save(buf, format="PNG")
+    models.SignatureImage.objects.create(
+        slug="logo",
+        name="Logo",
+        embed=True,
+        image=SimpleUploadedFile("logo.png", buf.getvalue(), content_type="image/png"),
+    )
+    return buf.getvalue()
+
+
+def _rebuilt(headers, workflow) -> email.message.Message:
+    merged = dict(headers)
+    merged.update(workflow.get("change_header", {}))
+    merged.update(workflow.get("add_header", {}))
+    for name in workflow.get("delete_header", []):
+        merged.pop(name, None)
+    raw = "\n".join(f"{k}: {v}" for k, v in merged.items()) + "\n\n" + workflow["repl_body"]
+    return email.message_from_string(raw)
+
+
+def _signed_with_logo(headers, body, **rule):
+    _setup_rule(html='<p>{image["logo"]}</p>', html_use_text=False, **rule)
+    return _rebuilt(headers, _send(_connected_helper(), headers, [body]))
+
+
+def _html_of(part: email.message.Message) -> str:
+    return MilterHelper.decode_mail(part)[1]
+
+
+def test_embedded_image_wraps_html_mail_in_multipart_related(logo):
+    mail = _signed_with_logo(_HTML_HEADERS, "<p>Hello</p>\n")
+
+    assert mail.get_content_type() == "multipart/related"
+    assert mail["From"] == "alice@example.com" and mail["Subject"] == "Hi"
+    page, image = mail.get_payload()
+    assert page["From"] is None and page["Subject"] is None
+    assert page.get_content_type() == "text/html"
+    cid = image["Content-ID"].strip("<>")
+    assert f'src="cid:{cid}"' in _html_of(page)
+    assert image.get_content_type() == "image/png"
+    assert image.get_content_disposition() == "inline"
+    assert image.get_payload(decode=True) == logo
+
+
+def test_embedded_image_goes_around_multipart_alternative(logo):
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText("Hello", "plain", "utf-8"))
+    alt.attach(MIMEText("<p>Hello</p>", "html", "utf-8"))
+    headers, body = _split_mime(alt)
+    headers = [("From", "alice@example.com"), *headers]
+
+    mail = _signed_with_logo(headers, body)
+
+    assert mail.get_content_type() == "multipart/related"
+    inner, image = mail.get_payload()
+    assert inner.get_content_type() == "multipart/alternative"
+    assert len(inner.get_payload()) == 2
+    assert f'src="cid:{image["Content-ID"].strip("<>")}"' in _html_of(inner.get_payload()[1])
+
+
+def test_embedded_image_is_added_to_an_existing_related(logo):
+    related = MIMEMultipart("related")
+    related.attach(MIMEText("<p>Hello</p>", "html", "utf-8"))
+    related.attach(email.message_from_string("Content-Type: image/gif\nContent-ID: <old>\n\nGIF"))
+    headers, body = _split_mime(related)
+
+    mail = _signed_with_logo([("From", "alice@example.com"), *headers], body)
+
+    assert mail.get_content_type() == "multipart/related"
+    assert [p["Content-ID"] for p in mail.get_payload()][1] == "<old>"
+    assert len(mail.get_payload()) == 3
+
+
+def test_same_image_is_attached_once_for_two_actions(logo):
+    _setup_rule(html='<p>{image["logo"]}</p>', html_use_text=False)
+    models.Action.objects.create(
+        rule=models.Rule.objects.get(),
+        disclaimer=models.Disclaimer.objects.get(),
+        position=1,
+        name="b",
+        action=constants.ACTION_ACTION_ADD,
+    )
+    workflow = _send(_connected_helper(), _HTML_HEADERS, ["<p>Hello</p>\n"])
+
+    assert len(_rebuilt(_HTML_HEADERS, workflow).get_payload()) == 2
+
+
+def test_plaintext_and_unflagged_images_stay_links(logo):
+    models.SignatureImage.objects.update(embed=False)
+    mail = _signed_with_logo(_HTML_HEADERS, "<p>Hello</p>\n")
+    assert not mail.is_multipart()
+    assert "cid:" not in _html_of(mail) and "logo.png" in _html_of(mail)
+
+    models.SignatureImage.objects.update(embed=True)
+    models.Disclaimer.objects.update(text='{image["logo"]}', html_use_text=True)
+    models.Disclaimer.objects.update(text_use_template=True)
+    plain = [("From", "alice@example.com"), ("Content-Type", "text/plain; charset=utf-8")]
+    workflow = _send(_connected_helper(), plain, ["Hello\n"])
+    assert "multipart" not in str(workflow.get("change_header", {}))
+    assert "cid:" not in workflow["repl_body"] and "logo.png" in workflow["repl_body"]
+
+
+def test_image_is_linked_when_too_large_or_action_skipped(logo, monkeypatch):
+    monkeypatch.setattr(milter_helper, "_EMBED_MAX_BYTES", 10)
+    mail = _signed_with_logo(_HTML_HEADERS, "<p>Hello</p>\n")
+    assert not mail.is_multipart() and "cid:" not in _html_of(mail)
+
+
+def test_skipped_action_attaches_nothing(logo):
+    _setup_rule(html='<p>{image["logo"]} {missing}</p>', html_use_text=False, template_fail=True)
+    workflow = _send(_connected_helper(), _HTML_HEADERS, ["<p>Hello</p>\n"])
+    assert not _rebuilt(_HTML_HEADERS, workflow).is_multipart()

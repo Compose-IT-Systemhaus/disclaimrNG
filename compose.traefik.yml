@@ -133,6 +133,8 @@ services:
       # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
       # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
       - ./certs:/etc/ssl/ad:ro
+      # Signature images flagged "embed" are read from here and attached to the mail.
+      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

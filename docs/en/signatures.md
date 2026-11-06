@@ -52,6 +52,21 @@ The **+ Hochladen** button accepts a file directly and creates a new
 filename (with a numeric suffix on collision). Images live in the
 ``media`` Docker volume and are served from ``MEDIA_BASE_URL``.
 
+### Link or embed
+
+By default an image is **linked**: the mail contains an ``<img>`` that points to
+``MEDIA_BASE_URL``, and the recipient's mail client loads it from your server (many
+clients block that until the user clicks "load images").
+
+Tick **Embed in the mail** on the image to attach it to the mail instead
+(``cid:`` reference, ``multipart/related``). It then shows right away and needs no
+access to your server, but every mail grows by the size of the image. Embedding only
+applies to HTML parts (plaintext keeps the URL) and to images up to 1 MiB; a bigger,
+unreadable or non-image file is linked instead, with a warning in the milter log. The
+milter reads the file from the ``media`` volume, which the shipped Compose files mount
+read-only; with your own setup mount the same volume at ``/app/media`` in the milter
+container.
+
 ## Placeholder reference
 
 | Token | Resolves to |

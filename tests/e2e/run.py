@@ -11,10 +11,14 @@ repository root. Standard library only. What it checks:
 * The mail log records the mail.
 * LDAPS: without the CA certificate the lookup fails (the mail is still delivered, without
   directory data), with the CA stored on the directory server it works.
+* An image flagged "embed" ends up in the HTML mail as an inline ``cid:`` part (the milter
+  reads the file from the shared media volume).
 """
 
 from __future__ import annotations
 
+import email
+import email.policy
 import json
 import re
 import smtplib
@@ -67,12 +71,15 @@ def mailpit(path: str, method: str = "GET") -> bytes:
         return response.read()
 
 
-def send(subject: str) -> None:
+def send(subject: str, html: str | None = None) -> None:
     message = EmailMessage()
     message["From"] = SENDER
     message["To"] = "bob@example.org"
     message["Subject"] = subject
-    message.set_content("Hello Zoidberg\nSecond line\n")
+    if html:
+        message.set_content(html, subtype="html")
+    else:
+        message.set_content("Hello Zoidberg\nSecond line\n")
 
     def attempt():
         # A 4xx while the milter or Postfix are still coming up: try again.
@@ -173,6 +180,27 @@ DirectoryServer.objects.filter(name="Planetexpress TLS").update(ca_certificate=o
 print("stored")
 """
 
+EMBED_SEED = """
+import io
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
+from disclaimrwebadmin import constants
+from disclaimrwebadmin.models import Action, Disclaimer, Rule, SignatureImage
+
+buf = io.BytesIO()
+Image.new("RGB", (2, 2), color="red").save(buf, format="PNG")
+SignatureImage.objects.create(
+    slug="logo", name="Logo", embed=True,
+    image=SimpleUploadedFile("logo.png", buf.getvalue(), content_type="image/png"),
+)
+disclaimer = Disclaimer.objects.create(
+    name="Logo", html_use_text=False, html='<p>EMBED-LOGO {image["logo"]}</p>', html_use_template=True,
+)
+Action.objects.create(rule=Rule.objects.get(name="E2E"), disclaimer=disclaimer, position=3,
+                      name="Logo", action=constants.ACTION_ACTION_ADD)
+print(buf.getvalue().hex())
+"""
+
 LOG_CHECK = """
 from disclaimrwebadmin.models import MailLog
 print(MailLog.objects.filter(processed=True, applied__contains="E2E → Signature → Signature").count())
@@ -198,6 +226,23 @@ def main() -> int:
     pem = ssl.get_server_certificate(("127.0.0.1", 10636))
     print(django(STORE_CA, CA_PEM=pem))
     scenario("LDAPS with the stored CA", "e2e tls with ca", signature_has_data=True)
+
+    print("\nEmbedded image")
+    png = bytes.fromhex(django(EMBED_SEED))
+    time.sleep(3)
+    send("e2e embed", html="<p>Hello Zoidberg</p>")
+    raw = receive("e2e embed")
+    mail = email.message_from_string(raw, policy=email.policy.default)
+    check(mail.get_content_type() == "multipart/related", "mail is multipart/related", raw)
+    parts = list(mail.iter_parts()) if mail.is_multipart() else []
+    page = next((p for p in parts if p.get_content_type() == "text/html"), None)
+    image = next((p for p in parts if p.get_content_type() == "image/png"), None)
+    check(page is not None and image is not None, "has an HTML part and an image part", raw)
+    if page is not None and image is not None:
+        cid = image["Content-ID"].strip("<>")
+        check(f"cid:{cid}" in page.get_content(), "the HTML references the image by cid", raw)
+        check("EMBED-LOGO" in page.get_content(), "the disclaimer text is in the HTML", raw)
+        check(image.get_content() == png, "the image bytes arrive unchanged", raw)
 
     print()
     if failures:

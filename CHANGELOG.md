@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Signature images can be embedded in the mail instead of linked: tick "Embed in the mail" on the image and HTML mails carry it as an inline `cid:` part (`multipart/related`), so it shows without "load images" and without a request to your server. Images over 1 MiB are still linked. The milter now mounts the `media` volume read-only (Compose files updated); a custom setup needs the same mount.
+
 ## [0.1.3] - 2026-11-06
 
 **Release 0.1.2 must not be used:** it defers every mail that reaches the milter through a real MTA (see "Fixed"). Update to 0.1.3.

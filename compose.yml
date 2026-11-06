@@ -40,7 +40,7 @@ services:
       # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
       - ./certs:/etc/ssl/ad:ro
       # Uploaded signature images live here (served at /media/ by the web
-      # container; the milter only builds their URLs and never reads the files).
+      # container; the milter mounts the same volume read-only to embed them).
       # Override the bind path with MEDIA_HOST_PATH if you'd rather use a host
       # directory (handy for backups/rsync from the host).
       - ${MEDIA_HOST_PATH:-media}:/app/media
@@ -74,6 +74,8 @@ services:
       # Private CA for ldaps:// (optional): put the PEM file at ./certs/ad-ca.pem; the
       # entrypoint then sets LDAPTLS_CACERT. Without it nothing changes.
       - ./certs:/etc/ssl/ad:ro
+      # Signature images flagged "embed" are read from here and attached to the mail.
+      - ${MEDIA_HOST_PATH:-media}:/app/media:ro
     command: ["milter"]
     healthcheck:
       # Opening the milter port is enough; the forked child exits when we hang up.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "disclaimrng"
-version = "0.2.0"
+version = "0.3.0"
 description = "Modernised, dockerized mail signature server with LDAP/AD integration and web template editor"
 readme = "README.md"
 license = { file = "LICENSE" }

@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-06
+
+New migrations run on start-up (`0008` and the tables of `django-allauth`). The roles Admins, Editor and Reader are created automatically. Single sign-on stays off until the `OIDC_*` variables are set; see the new documentation page *Single sign-on (OIDC)* — the sign-in round trip has not been tested against a live Authentik yet.
+
 ### Added
-- Single sign-on over OpenID Connect (tested against the Authentik conventions): set `OIDC_SERVER_URL`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` and the login page gets a button. Users are created on their first sign-in; at every sign-in the groups of the provider are mapped onto local groups (*Settings › SSO groups*), users without a mapped group become Readers, and members of Admins are superusers. Local accounts are never linked or taken over. New dependency `django-allauth`; its tables are created by `migrate`.
+- Single sign-on over OpenID Connect (for Authentik and other OIDC providers): set `OIDC_SERVER_URL`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` and the login page gets a button. Users are created on their first sign-in; at every sign-in the groups of the provider are mapped onto local groups (*Settings › SSO groups*), users without a mapped group become Readers, and members of Admins are superusers. Local accounts are never linked or taken over. New dependency `django-allauth`; its tables are created by `migrate`.
 - Built-in roles: the groups Admins (everything), Editor (look at, create and change signatures and rules) and Reader (look only) are created on start-up. Their permissions can be changed in the admin and are kept; `manage.py sync_roles --reset` restores them.
 
 ### Removed
@@ -93,7 +97,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.1...v0.1.2

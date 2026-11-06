@@ -22,6 +22,12 @@ services:
       LDAP_SERVER_PLANETEXPRESS_BIND_PASSWORD: GoodNewsEveryone
       LDAP_SERVER_PLANETEXPRESS_TENANT: planetexpress
 
+  milter:
+    environment:
+      # Rules created while the stack runs reach the sender-IP prefilter within a second
+      # (production default: 60 s).
+      MILTER_CONFIG_TTL: "1"
+
   # Futurama test data; the TLS certificate is self-signed for CN=planetexpress.com, so the
   # service also answers to that name inside the network.
   ldap:

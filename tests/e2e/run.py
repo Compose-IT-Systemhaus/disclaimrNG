@@ -183,6 +183,7 @@ def main() -> int:
     print("waiting for the LDAP server")
     wait_for("the test LDAP", lambda: django(LDAP_READY) == "ready")
     print(django(SEED))
+    time.sleep(3)  # the milter reloads its prefilter every second (MILTER_CONFIG_TTL)
 
     scenario("Plain LDAP", "e2e plain", signature_has_data=True)
 

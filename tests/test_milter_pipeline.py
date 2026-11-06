@@ -533,3 +533,12 @@ def test_database_connection_is_released_after_every_mail(db, daemon):
         patch.setattr(daemon.connections, "close_all", closed)
         milter.eob({})
     assert closed.called
+
+
+def test_milter_does_not_shadow_libmilter_internals(daemon):
+    """python-libmilter dispatches through private methods (``_eob``, ``_rcpt``, ...);
+    a method of the same name in our subclass breaks every real mail while the unit
+    tests, which call ``eob()`` directly, stay green."""
+    internals = {n for n in dir(daemon.lm.MilterProtocol) if n.startswith("_") and not n.startswith("__")}
+    ours = {n for n in vars(daemon.DisclaimrMilter) if n.startswith("_") and not n.startswith("__")}
+    assert not internals & ours, internals & ours

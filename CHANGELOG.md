@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-06
+
+Three new migrations (`0005`–`0007`) run on start-up. If you use your own Compose file, mount the `media` volume read-only at `/app/media` in the milter container to use embedded images; without it such images are linked as before (warning in the milter log).
+
 ### Added
 - Directory conditions for requirements: a requirement can demand that a directory attribute of the sender (e.g. `department`) matches a regex, so rules can target departments or titles. All conditions of a requirement have to hold; if the directory cannot be asked they do not hold. The conditions are edited on the requirement's own page, linked from the rule.
 - Group conditions: a requirement can demand that the sender is a member of a group. On Active Directory nested groups count (in-chain matching rule), otherwise the sender's `memberOf` values are compared. The signature test page lists the checked conditions.
@@ -82,7 +86,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.0...v0.1.1

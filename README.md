@@ -42,7 +42,7 @@ milter_default_action = accept
 
 The milter protocol has no authentication, so Docker publishes port `5000` on `127.0.0.1` only. If your MTA runs on another host, set `MILTER_BIND` in `.env` to this host's private IP (never a public address).
 
-The web UI on port `8000` is plain HTTP. On a shared network put it behind TLS (`compose.traefik.yml`) or bind it to a private address with `WEB_BIND`. To run a published image instead of building from source, set `DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.1.3` and `DISCLAIMR_PULL_POLICY=missing` in `.env`.
+The web UI on port `8000` is plain HTTP. On a shared network put it behind TLS (`compose.traefik.yml`) or bind it to a private address with `WEB_BIND`. To run a published image instead of building from source, set `DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.2.0` and `DISCLAIMR_PULL_POLICY=missing` in `.env`.
 
 ## Architecture
 

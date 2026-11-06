@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-06
+
+**Release 0.1.2 must not be used:** it defers every mail that reaches the milter through a real MTA (see "Fixed"). Update to 0.1.3.
+
+### Added
+- Time-limited actions: an action can have a "valid from" and a "valid until" moment, so campaign banners and holiday notices start and stop on their own. The milter judges the window when it processes the mail.
+- Dashboard card "Mails of the last 7 days" for administrators: seen, signed and untouched mails, a bar per day, the most frequent signatures and the time of the last mail, taken from the mail log.
+- An end-to-end test in the CI (Postfix, the milter, a test LDAP and a mail sink) that checks the signature, the line endings, banner validity, the mail log and LDAPS with a stored CA certificate.
+
+### Fixed
+- Every mail through a real MTA was deferred (`TypeError: _eob() takes 2 positional arguments but 3 were given`): a method of the milter shadowed python-libmilter's internal `_eob`. Introduced in 0.1.2.
+
 ## [0.1.2] - 2026-11-06
 
 ### Added
@@ -65,7 +77,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/releases/tag/v0.1.0

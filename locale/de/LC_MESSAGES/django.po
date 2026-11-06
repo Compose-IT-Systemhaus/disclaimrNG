@@ -626,3 +626,43 @@ msgstr "Signatur angehängt"
 
 msgid "Mail logs"
 msgstr "Mail-Logs"
+
+# --- Banner validity and dashboard figures -------------------------------------
+msgid "valid from"
+msgstr "gültig ab"
+
+msgid "Optional. The action is only applied from this moment on."
+msgstr "Optional. Die Action wird erst ab diesem Zeitpunkt angewendet."
+
+msgid "valid until"
+msgstr "gültig bis"
+
+msgid "Optional. The action is not applied any more from this moment on."
+msgstr "Optional. Ab diesem Zeitpunkt wird die Action nicht mehr angewendet."
+
+msgid "Must be later than \"valid from\"."
+msgstr "Muss nach „gültig ab“ liegen."
+
+msgid "Mails of the last 7 days"
+msgstr "Mails der letzten 7 Tage"
+
+msgid "All logs"
+msgstr "Alle Logs"
+
+msgid "Seen"
+msgstr "Gesehen"
+
+msgid "Signed"
+msgstr "Signiert"
+
+msgid "Untouched"
+msgstr "Unverändert"
+
+msgid "%(total)s mails over the last week, %(signed)s signed"
+msgstr "%(total)s Mails in der letzten Woche, davon %(signed)s signiert"
+
+msgid "Last mail seen %(when)s."
+msgstr "Letzte Mail gesehen %(when)s."
+
+msgid "No mail seen yet."
+msgstr "Noch keine Mail gesehen."

@@ -66,6 +66,40 @@
             </section>
             {% endif %}
 
+            {% if dashboard.mail_stats %}
+            {% with stats=dashboard.mail_stats %}
+            <section class="dz-card">
+                <header class="dz-card__header">
+                    <h2 class="dz-card__title">{% translate "Mails of the last 7 days" %}</h2>
+                    <a class="dz-mailstats__more" href="{{ stats.url }}">{% translate "All logs" %}</a>
+                </header>
+                <dl class="dz-mailstats">
+                    <div><dt>{% translate "Seen" %}</dt><dd>{{ stats.total }}</dd></div>
+                    <div><dt>{% translate "Signed" %}</dt><dd>{{ stats.signed }}</dd></div>
+                    <div><dt>{% translate "Untouched" %}</dt><dd>{{ stats.untouched }}</dd></div>
+                </dl>
+                <div class="dz-bars" role="img" aria-label="{% blocktranslate with total=stats.total signed=stats.signed %}{{ total }} mails over the last week, {{ signed }} signed{% endblocktranslate %}">
+                    {% for day in stats.days %}
+                    <div class="dz-bars__col" title="{{ day.day|date:'D j.n.' }}: {{ day.signed }} / {{ day.total }}">
+                        <div class="dz-bars__track"><div class="dz-bars__bar" style="height: {{ day.height }}%"><div class="dz-bars__signed" style="height: {{ day.signed_pct }}%"></div></div></div>
+                        <span class="dz-bars__label">{{ day.day|date:"D" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if stats.top %}
+                <ul class="dz-mailstats__top">
+                    {% for row in stats.top %}
+                    <li><span>{{ row.applied|linebreaksbr }}</span><span class="dz-badge">{{ row.n }}</span></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <p class="dz-mailstats__last">
+                    {% if stats.last %}{% blocktranslate with when=stats.last|naturaltime %}Last mail seen {{ when }}.{% endblocktranslate %}{% else %}{% translate "No mail seen yet." %}{% endif %}
+                </p>
+            </section>
+            {% endwith %}
+            {% endif %}
+
             <section class="dz-card">
                 <header class="dz-card__header">
                     <h2 class="dz-card__title">{% translate "Your recent changes" %}</h2>

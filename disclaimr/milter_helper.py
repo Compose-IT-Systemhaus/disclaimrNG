@@ -420,7 +420,7 @@ class MilterHelper:
         orig_mail = mail
 
         actions = (
-            models.Action.objects.filter(enabled=True)
+            models.Action.objects.active()
             .select_related("disclaimer")
             .prefetch_related("directory_servers")
         )

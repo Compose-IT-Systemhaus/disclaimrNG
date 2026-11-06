@@ -32,6 +32,16 @@ signature.
 Search covers sender, recipient, subject, queue ID and the applied signatures;
 the date navigation above the list narrows down to a year, month or day.
 
+## Dashboard figures
+
+Administrators also see a card on the dashboard with the mails of the last seven
+days: seen, signed and untouched, a bar per day (the dark part is signed), the five
+most frequent signatures and when the last mail was seen. A long gap since the last
+mail is the quickest hint that the milter is not connected to the MTA. The figures
+come from this log, so they cover only what the retention below keeps, and mails
+that failed before they could be logged (for example an exception in the milter)
+are not counted.
+
 ## Retention
 
 Entries are deleted automatically after **30 days**. Set the period in

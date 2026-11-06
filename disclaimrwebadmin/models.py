@@ -10,6 +10,7 @@ import netaddr
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -622,6 +623,16 @@ class SignatureImage(models.Model):
         return f"{self.name} ({self.slug})"
 
 
+class ActionQuerySet(models.QuerySet):
+    def active(self, at=None):
+        """Enabled actions whose validity window contains ``at`` (default: now)."""
+        at = at or timezone.now()
+        return self.filter(enabled=True).filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=at),
+            Q(valid_until__isnull=True) | Q(valid_until__gt=at),
+        )
+
+
 class Action(models.Model):
     """A disclaimer action.
 
@@ -643,6 +654,18 @@ class Action(models.Model):
         _("enabled"),
         default=True,
         help_text=_("Is this action enabled?"),
+    )
+    valid_from = models.DateTimeField(
+        _("valid from"),
+        help_text=_("Optional. The action is only applied from this moment on."),
+        null=True,
+        blank=True,
+    )
+    valid_until = models.DateTimeField(
+        _("valid until"),
+        help_text=_("Optional. The action is not applied any more from this moment on."),
+        null=True,
+        blank=True,
     )
     description = models.TextField(
         _("description"),
@@ -709,6 +732,8 @@ class Action(models.Model):
         blank=True,
     )
 
+    objects = ActionQuerySet.as_manager()
+
     class Meta:
         ordering = ["position"]
         verbose_name = _("Action")
@@ -720,6 +745,8 @@ class Action(models.Model):
         return self.name
 
     def clean(self) -> None:
+        if self.valid_from and self.valid_until and self.valid_until <= self.valid_from:
+            raise ValidationError({"valid_until": _("Must be later than \"valid from\".")})
         # Only "replace a tag" treats the parameters as a regex.
         if self.action == constants.ACTION_ACTION_REPLACETAG:
             try:

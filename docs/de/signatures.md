@@ -123,6 +123,17 @@ Ist das **Resolve sender**-Flag der Action aktiv, fragt der Milter
 die verknüpften DirectoryServer (oder die des Tenants, siehe
 [Tenants](../tenants/)) ab, bevor Platzhalter ersetzt werden.
 
+### Zeitlich begrenzte Actions (Banner)
+
+Eine Action kann **Gültig ab** und **Gültig bis** haben (beides optional,
+in der Zeitzone des Servers). Außerhalb dieses Fensters wird die Action übersprungen,
+als wäre sie deaktiviert; maßgeblich ist der Zeitpunkt, an dem die Mail verarbeitet
+wird. So verwalten sich Kampagnen-Banner oder Betriebsferien-Hinweise selbst: den
+Banner als zusätzliche Action *nach* der normalen Signatur in dieselbe Regel legen,
+Daten eintragen, fertig. Nicht als eigene Regel ohne **Continue after this rule**
+anlegen: eine Regel, deren Actions alle übersprungen werden, beendet trotzdem die
+Regelkette.
+
 ## Eine Regel testen, bevor sie deployed wird
 
 Über **Signaturen → Signaturtest** beliebige Mails durch die **echte**

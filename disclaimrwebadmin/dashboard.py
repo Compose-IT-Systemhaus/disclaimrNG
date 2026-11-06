@@ -7,18 +7,30 @@ links and the operator's own recent changes.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from django.contrib.admin.models import LogEntry
 from django.db.models import Count, Q
+from django.db.models.functions import TruncDate
 from django.http import HttpRequest
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
-from .models import DirectoryServer, Disclaimer, Rule, SignatureImage, Tenant, TenantDomain
+from .models import (
+    DirectoryServer,
+    Disclaimer,
+    MailLog,
+    Rule,
+    SignatureImage,
+    Tenant,
+    TenantDomain,
+)
 
 _APP = "disclaimrwebadmin"
+_STATS_DAYS = 7
 
 
 def _admin_url(request: HttpRequest, model: str, view: str) -> str | None:
@@ -27,6 +39,52 @@ def _admin_url(request: HttpRequest, model: str, view: str) -> str | None:
     if not request.user.has_perm(f"{_APP}.{permission}_{model}"):
         return None
     return reverse(f"admin:{_APP}_{model}_{view}")
+
+
+def _mail_stats(request: HttpRequest) -> dict[str, Any] | None:
+    """Mail counts of the last days from the mail log; ``None`` unless the user may open the log.
+
+    The log holds personal data and is for superusers only (see ``MailLogAdmin``),
+    so the figures follow the same rule — a ``view_maillog`` permission is not enough.
+    """
+    if not request.user.is_superuser:
+        return None
+    start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
+        days=_STATS_DAYS - 1
+    )
+    logs = MailLog.objects.filter(created__gte=start)
+    per_day = {
+        row["day"]: row
+        for row in logs.annotate(day=TruncDate("created"))
+        .values("day")
+        .annotate(total=Count("id"), signed=Count("id", filter=Q(processed=True)))
+    }
+    days = []
+    for offset in range(_STATS_DAYS):
+        day = start.date() + timedelta(days=offset)
+        row = per_day.get(day, {})
+        days.append({"day": day, "total": row.get("total", 0), "signed": row.get("signed", 0)})
+    peak = max(day["total"] for day in days) or 1
+    for day in days:
+        day["height"] = round(100 * day["total"] / peak)
+        day["signed_pct"] = round(100 * day["signed"] / day["total"]) if day["total"] else 0
+    total = sum(day["total"] for day in days)
+    signed = sum(day["signed"] for day in days)
+    return {
+        "days": days,
+        "total": total,
+        "signed": signed,
+        "untouched": total - signed,
+        # Same text = same combination of rule, action and signature.
+        "top": list(
+            logs.filter(processed=True)
+            .values("applied")
+            .annotate(n=Count("id"))
+            .order_by("-n")[:5]
+        ),
+        "last": MailLog.objects.values_list("created", flat=True).first(),
+        "url": reverse(f"admin:{_APP}_maillog_changelist"),
+    }
 
 
 def dashboard_callback(request: HttpRequest, context: dict[str, Any]) -> dict[str, Any]:
@@ -153,5 +211,6 @@ def dashboard_callback(request: HttpRequest, context: dict[str, Any]) -> dict[st
         "quick_links": [link for link in quick_links if link["url"]],
         "recent": list(recent),
         "signature_test_url": signature_test_url,
+        "mail_stats": _mail_stats(request),
     }
     return context

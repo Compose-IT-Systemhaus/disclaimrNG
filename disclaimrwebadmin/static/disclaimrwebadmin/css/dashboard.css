@@ -308,3 +308,92 @@ a.dz-activity__title:hover {
     color: var(--dz-text-muted);
     transform: translateX(2px);
 }
+
+/* Mails of the last days (from the mail log). */
+.dz-mailstats {
+    display: flex;
+    gap: 2rem;
+    margin: 0;
+    padding: 1rem 1.25rem 0;
+}
+
+.dz-mailstats dt {
+    font-size: 0.75rem;
+    color: var(--dz-text-muted);
+}
+
+.dz-mailstats dd {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dz-text);
+}
+
+.dz-mailstats__more {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--dz-accent-text);
+}
+
+.dz-bars {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 0.5rem;
+}
+
+.dz-bars__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dz-bars__track {
+    display: flex;
+    align-items: flex-end;
+    height: 5rem;
+}
+
+.dz-bars__bar {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    background: var(--dz-border-strong);
+    overflow: hidden;
+}
+
+.dz-bars__signed {
+    width: 100%;
+    background: var(--dz-accent);
+}
+
+.dz-bars__label {
+    text-align: center;
+    font-size: 0.6875rem;
+    color: var(--dz-text-muted);
+}
+
+.dz-mailstats__top {
+    margin: 0;
+    padding: 0.5rem 1.25rem;
+    list-style: none;
+    font-size: 0.8125rem;
+    color: var(--dz-text-body);
+}
+
+.dz-mailstats__top li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.375rem 0;
+    border-top: 1px solid var(--dz-border);
+}
+
+.dz-mailstats__last {
+    margin: 0;
+    padding: 0 1.25rem 1rem;
+    font-size: 0.75rem;
+    color: var(--dz-text-muted);
+}

@@ -67,6 +67,31 @@ msgstr "Regel"
 msgid "Requirement"
 msgstr "Anforderung"
 
+msgid "Directory condition"
+msgstr "Verzeichnis-Bedingung"
+
+msgid "Directory conditions"
+msgstr "Verzeichnis-Bedingungen"
+
+msgid "attribute"
+msgstr "Attribut"
+
+msgid "pattern"
+msgstr "Muster"
+
+msgid "Enter a directory attribute name."
+msgstr "Geben Sie einen Namen für ein Verzeichnisattribut ein."
+
+msgid "Directory attribute of the sender, e.g. department or title."
+msgstr "Verzeichnisattribut des Absenders, z. B. department oder title."
+
+msgid ""
+"A regexp, that has to match one value of the attribute. Attributes with several "
+"values are checked value by value."
+msgstr ""
+"Eine Regex, die auf einen Wert des Attributs passen muss. Attribute mit mehreren "
+"Werten werden Wert für Wert geprüft."
+
 msgid "Requirements"
 msgstr "Anforderungen"
 

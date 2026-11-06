@@ -120,6 +120,23 @@ Tighten the requirement to scope the rule:
 Each Requirement also has an **Action** field of *Accept* or *Deny*.
 A *Deny* requirement short-circuits the whole rule for that mail.
 
+### Directory conditions
+
+A requirement can also look at the sender's directory entry. Open the requirement
+(the *Change* link on its row in the rule) and add **Directory conditions**: a
+directory attribute (``department``, ``title``, …) and a regex. The condition holds when
+the regex matches one value of the attribute; attributes with several values are
+checked value by value. All conditions of a requirement have to hold; for "either
+department" write two requirements (a rule applies when any *Accept* requirement
+matches). "Not in the department" is a *Deny* requirement with the condition.
+
+The sender is looked up in the directory servers of the tenant that owns the sender's
+domain (one lookup per mail, only when the other filters already matched). If the
+directory does not answer, times out or does not know the sender, the condition does
+**not** hold and the mail is not deferred: a rule with an *Accept* requirement is then
+skipped, but a *Deny* requirement does not take effect either, so such a mail can still
+be signed by another rule.
+
 The **Action** inline picks the disclaimer and how to merge it:
 
 - **Add a disclaimer string to the body** — appends to the existing

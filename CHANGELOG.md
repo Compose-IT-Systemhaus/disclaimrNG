@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Directory conditions for requirements: a requirement can demand that a directory attribute of the sender (e.g. `department`) matches a regex, so rules can target departments or titles. All conditions of a requirement have to hold; if the directory cannot be asked they do not hold. The conditions are edited on the requirement's own page, linked from the rule.
 - Signature images can be embedded in the mail instead of linked: tick "Embed in the mail" on the image and HTML mails carry it as an inline `cid:` part (`multipart/related`), so it shows without "load images" and without a request to your server. Images over 1 MiB are still linked. The milter now mounts the `media` volume read-only (Compose files updated); a custom setup needs the same mount.
 
 ## [0.1.3] - 2026-11-06

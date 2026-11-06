@@ -9,6 +9,7 @@ from datetime import timedelta
 import netaddr
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -282,6 +283,47 @@ class Requirement(models.Model):
 
     def get_sender_ip_network(self) -> netaddr.IPNetwork:
         return netaddr.IPNetwork(f"{self.sender_ip}/{self.sender_ip_cidr}")
+
+
+class RequirementCondition(models.Model):
+    """A directory condition of a :class:`Requirement`.
+
+    The sender is looked up in the directory servers of its tenant; the condition holds
+    when the regex matches one of the values of the attribute. All conditions of a
+    requirement have to hold (AND); a condition that cannot be checked (directory down,
+    sender unknown) does not hold.
+    """
+
+    requirement = models.ForeignKey(
+        Requirement,
+        verbose_name=_("Requirement"),
+        on_delete=models.CASCADE,
+        related_name="conditions",
+    )
+    attribute = models.CharField(
+        _("attribute"),
+        max_length=255,
+        validators=[
+            RegexValidator(r"^[A-Za-z][A-Za-z0-9-]*$", _("Enter a directory attribute name."))
+        ],
+        help_text=_("Directory attribute of the sender, e.g. department or title."),
+    )
+    pattern = models.TextField(
+        _("pattern"),
+        validators=[validate_regex],
+        help_text=_(
+            "A regexp, that has to match one value of the attribute. Attributes with "
+            "several values are checked value by value."
+        ),
+    )
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = _("Directory condition")
+        verbose_name_plural = _("Directory conditions")
+
+    def __str__(self) -> str:
+        return f"{self.attribute} ~ {self.pattern}"
 
 
 class Disclaimer(models.Model):

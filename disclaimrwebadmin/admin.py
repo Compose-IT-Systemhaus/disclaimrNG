@@ -175,7 +175,7 @@ class SignatureImageAdmin(ModelAdmin):
     fieldsets = (
         (None, {"fields": ("slug", "name", "description")}),
         ("File", {"fields": ("image", "thumbnail")}),
-        ("Display", {"fields": ("alt_text", "width", "height")}),
+        ("Display", {"fields": ("alt_text", "width", "height", "embed")}),
     )
 
     @admin.display(description="Preview")

@@ -14,11 +14,14 @@ import copy
 import email
 import email.encoders
 import email.message
+import email.mime.image
 import email.mime.message
 import email.mime.multipart
 import email.mime.text
+import hashlib
 import html
 import logging
+import mimetypes
 import quopri
 import re
 from collections.abc import Callable
@@ -86,8 +89,32 @@ def _media_base_url() -> str:
     return getattr(settings, "MEDIA_BASE_URL", "") or settings.MEDIA_URL.rstrip("/")
 
 
+# shortcut: bigger images are linked instead of embedded; make it a setting if anyone needs more.
+_EMBED_MAX_BYTES = 1024 * 1024
+
+
+def _embedded_image(image: models.SignatureImage) -> email.mime.image.MIMEImage | None:
+    """The image as an inline MIME part, or ``None`` (then the caller links it)."""
+    subtype = (mimetypes.guess_type(image.image.name)[0] or "").partition("image/")[2]
+    try:
+        with image.image.open("rb") as fh:
+            data = fh.read(_EMBED_MAX_BYTES + 1)
+    except OSError as exc:
+        syslog.warning("Cannot embed image %s (%s). Linking it.", image.slug, exc)
+        return None
+    if not subtype or len(data) > _EMBED_MAX_BYTES:
+        syslog.warning("Image %s is too large or not an image. Linking it.", image.slug)
+        return None
+    part = email.mime.image.MIMEImage(data, subtype)
+    part.add_header("Content-ID", f"<{image.slug}.{hashlib.sha1(data).hexdigest()[:8]}@disclaimr>")
+    part.add_header("Content-Disposition", "inline", filename=image.image.name.rpartition("/")[2])
+    return part
+
+
 def _build_image_replacements(
-    disclaimer_text: str, content_type: str
+    disclaimer_text: str,
+    content_type: str,
+    embedded: dict[str, email.mime.image.MIMEImage] | None = None,
 ) -> dict[str, str]:
     """Resolve ``image["slug"]`` references against the SignatureImage table.
 
@@ -95,6 +122,9 @@ def _build_image_replacements(
     fragment is an ``<img>`` tag with the absolute URL; for plaintext it is
     just the URL. Slugs that don't resolve are omitted — the caller's
     template_fail logic decides whether to skip the action.
+
+    With an ``embedded`` dict, images flagged ``embed`` are referenced as ``cid:`` in
+    HTML and their MIME parts are collected there (Content-ID → part).
     """
     slugs = {m.lower() for m in _IMAGE_REF_RE.findall(disclaimer_text)}
     if not slugs:
@@ -107,8 +137,14 @@ def _build_image_replacements(
             continue
         absolute_url = f"{base}/{image.image.name}"
         if content_type == "text/html":
+            src = absolute_url
+            part = _embedded_image(image) if embedded is not None and image.embed else None
+            if part is not None:
+                cid = part["Content-ID"].strip("<>")
+                embedded[cid] = part
+                src = f"cid:{cid}"
             alt = image.alt_text or image.name
-            attrs = [f'src="{html.escape(absolute_url)}"', f'alt="{html.escape(alt)}"']
+            attrs = [f'src="{html.escape(src)}"', f'alt="{html.escape(alt)}"']
             if image.width:
                 attrs.append(f'width="{image.width}"')
             if image.height:
@@ -117,6 +153,11 @@ def _build_image_replacements(
         else:
             rendered[image.slug.lower()] = absolute_url
     return rendered
+
+
+def _is_entity_header(name: str) -> bool:
+    """``Content-*`` and ``MIME-Version`` describe the body, not the mail."""
+    return name.lower().startswith("content-") or name.lower() == "mime-version"
 
 
 def _lookup_tag(token: str, replacements: dict[str, Any]) -> tuple[str, str | None]:
@@ -250,7 +291,11 @@ class MilterHelper:
         # Per-mail memos so multipart mails don't repeat LDAP / DB lookups
         # for every text part.
         self._resolver_cache: dict[int, tuple[bool, dict[str, str]]] = {}
-        self._image_cache: dict[tuple[str, str], dict[str, str]] = {}
+        self._image_cache: dict[
+            tuple[str, str], tuple[dict[str, str], dict[str, email.mime.image.MIMEImage]]
+        ] = {}
+        # Images the current do_action() has to attach (Content-ID → part).
+        self._pending_images: dict[str, email.mime.image.MIMEImage] = {}
 
     def reset(self) -> None:
         """Forget everything about the previous mail on this connection."""
@@ -715,11 +760,44 @@ class MilterHelper:
                 pass
 
     def _image_replacements(self, disclaimer_text: str, content_type: str) -> dict[str, str]:
-        """Memoised :func:`_build_image_replacements` (one query per mail)."""
+        """Memoised :func:`_build_image_replacements` (one query per mail).
+
+        The parts of embedded images are queued in ``_pending_images``; they are only
+        attached once the action went through (see :meth:`do_action`).
+        """
         key = (disclaimer_text, content_type)
         if key not in self._image_cache:
-            self._image_cache[key] = _build_image_replacements(disclaimer_text, content_type)
-        return self._image_cache[key]
+            embedded: dict[str, email.mime.image.MIMEImage] = {}
+            replacements = _build_image_replacements(disclaimer_text, content_type, embedded)
+            self._image_cache[key] = (replacements, embedded)
+        replacements, embedded = self._image_cache[key]
+        self._pending_images.update(embedded)
+        return replacements
+
+    @staticmethod
+    def _attach_images(
+        mail: email.message.Message, images: list[email.mime.image.MIMEImage]
+    ) -> email.message.Message:
+        """Put ``images`` into a top-level ``multipart/related`` around ``mail``."""
+        known = {p["Content-ID"] for p in mail.walk()}
+        images = [i for i in images if i["Content-ID"] not in known]
+        if not images:
+            return mail
+        if mail.get_content_type() == "multipart/related":
+            related = mail
+        else:
+            related = email.mime.multipart.MIMEMultipart("related")
+            # The MIME entity headers stay with the content, all others move to the envelope.
+            moved = [(k, v) for k, v in mail.items() if not _is_entity_header(k)]
+            for key, value in moved:
+                related.add_header(key, value)
+            for key in {k.lower() for k, _ in moved}:
+                del mail[key]
+            related.attach(mail)
+        for image in images:
+            related.attach(image)
+        related.as_string()  # let MIMEMultipart pick a boundary
+        return related
 
     def _replace_template_tags(
         self,
@@ -751,7 +829,11 @@ class MilterHelper:
 
         Returns the modified copy, or ``None`` if the action was skipped.
         """
-        return self._apply_action(copy.deepcopy(mail_parameter), action)
+        self._pending_images = {}
+        result = self._apply_action(copy.deepcopy(mail_parameter), action)
+        if result is not None and self._pending_images:
+            result = self._attach_images(result, list(self._pending_images.values()))
+        return result
 
     def _apply_action(
         self, mail: email.message.Message, action: models.Action
@@ -927,15 +1009,8 @@ class MilterHelper:
                 return None
 
             new_mail = email.mime.multipart.MIMEMultipart("mixed")
-            bad_headers = (
-                "content-type",
-                "content-transfer-encoding",
-                "mime-version",
-                "content-disposition",
-                "content-description",
-            )
             for header in mail.keys():
-                if header.lower() not in bad_headers:
+                if not _is_entity_header(header):
                     new_mail.add_header(header, mail[header])
 
             new_mail.attach(email.mime.message.MIMEMessage(mail))

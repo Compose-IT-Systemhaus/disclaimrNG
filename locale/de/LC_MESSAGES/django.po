@@ -116,6 +116,18 @@ msgstr "Anzeigebreite"
 msgid "display height"
 msgstr "Anzeigehöhe"
 
+msgid "embed in the mail"
+msgstr "In die Mail einbetten"
+
+msgid ""
+"Attach the image to HTML mails instead of linking to it, so mail clients show it "
+"without \"load images\" and without reaching your server. Makes every mail larger "
+"by the image size (max. 1 MiB)."
+msgstr ""
+"Hängt das Bild an HTML-Mails an, statt darauf zu verlinken: Mailprogramme zeigen es "
+"ohne „Bilder laden“ und ohne Zugriff auf Ihren Server. Jede Mail wird um die "
+"Bildgröße größer (max. 1 MiB)."
+
 msgid "domain"
 msgstr "Domain"
 

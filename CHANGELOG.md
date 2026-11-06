@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-06
+
 ### Added
 - "Logs" view under Settings (administrators only): every mail the milter sees, with sender, recipient, subject and the applied rule/action/signature; unprocessed mails can be filtered out. Entries are removed after `MAIL_LOG_RETENTION_DAYS` days (default 30, `0` keeps them). Documented on the new "Mail logs" handbook page.
+- Directory servers choose TLS: a checkbox "Encrypt the connection (TLS)" (on by default; the URL scheme has to match, `ldaps://` with TLS, `ldap://` without) and, with TLS, a CA certificate per server that can be uploaded as a PEM file or pasted. It is stored in the database and used by the milter and by the "Test connection" / "Discover attributes" buttons; without one the container's CA store still applies. Existing servers get TLS switched on when they use `ldaps://` URLs.
+
+### Fixed
+- The password field of the directory server form was narrower than the user-DN field.
 
 ## [0.1.1] - 2026-11-05
 
@@ -59,6 +65,7 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/releases/tag/v0.1.0

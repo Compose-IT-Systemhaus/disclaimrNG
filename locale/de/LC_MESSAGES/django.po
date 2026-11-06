@@ -565,3 +565,34 @@ msgstr ""
 # --- Validation --------------------------------------------------------------
 msgid "Invalid regular expression: %(error)s"
 msgstr "Ungültiger regulärer Ausdruck: %(error)s"
+
+# --- Directory server TLS ------------------------------------------------------
+msgid "encrypt the connection (TLS)"
+msgstr "Verbindung verschlüsseln (TLS)"
+
+msgid "Connect over TLS (ldaps://, usually port 636). Without it everything, including the bind password, travels unencrypted (ldap://, port 389). The URLs below must match."
+msgstr "Verbindung über TLS (ldaps://, meist Port 636). Ohne TLS läuft alles, auch das Bind-Passwort, unverschlüsselt (ldap://, Port 389). Die URLs unten müssen dazu passen."
+
+msgid "CA certificate"
+msgstr "CA-Zertifikat"
+
+msgid "PEM certificate of the CA that signed the server certificate. Leave empty to use the container's CA store (or LDAPTLS_CACERT)."
+msgstr "PEM-Zertifikat der CA, die das Serverzertifikat ausgestellt hat. Leer lassen, um den CA-Speicher des Containers (oder LDAPTLS_CACERT) zu verwenden."
+
+msgid "Not a valid PEM certificate: %(error)s"
+msgstr "Kein gültiges PEM-Zertifikat: %(error)s"
+
+msgid "CA certificate file"
+msgstr "CA-Zertifikatsdatei"
+
+msgid "Upload a PEM file; it replaces the CA certificate text below."
+msgstr "PEM-Datei hochladen; sie ersetzt den CA-Zertifikat-Text darunter."
+
+msgid "Not a PEM certificate file."
+msgstr "Keine PEM-Zertifikatsdatei."
+
+msgid "TLS is on: use an ldaps:// URL (or turn TLS off)."
+msgstr "TLS ist an: eine ldaps://-URL verwenden (oder TLS ausschalten)."
+
+msgid "TLS is off: use an ldap:// URL (or turn TLS on)."
+msgstr "TLS ist aus: eine ldap://-URL verwenden (oder TLS einschalten)."

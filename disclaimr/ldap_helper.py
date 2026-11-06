@@ -8,7 +8,11 @@ interactive admin experience.
 
 from __future__ import annotations
 
+import hashlib
+import os
+import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import ldap
@@ -51,23 +55,45 @@ class AttributeDiscoveryResult:
 LDAP_TIMEOUT = 5
 
 
-def open_connection(url: str):
+def _ca_file(pem: str) -> str:
+    """Path of a file holding ``pem``: libldap only reads CA certificates from files.
+
+    Named after the content, so every process and worker shares one file per CA.
+    """
+    digest = hashlib.sha256(pem.encode()).hexdigest()
+    path = Path(tempfile.gettempdir()) / "disclaimr-ldap-ca" / f"{digest[:16]}.pem"
+    if not path.exists():
+        path.parent.mkdir(exist_ok=True)
+        scratch = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        scratch.write_text(pem)
+        scratch.replace(path)  # atomic: a concurrent reader never sees a half-written file
+    return str(path)
+
+
+def open_connection(url: str, directory_server: DirectoryServer | None = None):
     """Return an unbound connection to ``url`` with the project's options.
 
-    The CA for ``ldaps://`` comes from ``LDAPTLS_CACERT`` (set by the entrypoint).
-    Active Directory answers subtree searches on the domain root with referrals;
-    chasing them (anonymously) only costs time.
+    ``ldaps://`` is verified against the CA certificate stored on the directory
+    server; without one, against the container's CA store (``LDAPTLS_CACERT`` is set
+    by the entrypoint). Active Directory answers subtree searches on the domain root
+    with referrals; chasing them (anonymously) only costs time.
     """
     conn = ldap.initialize(url)
     conn.set_option(ldap.OPT_NETWORK_TIMEOUT, LDAP_TIMEOUT)
     conn.set_option(ldap.OPT_TIMEOUT, LDAP_TIMEOUT)
     conn.set_option(ldap.OPT_REFERRALS, 0)
+    pem = directory_server.ca_certificate if directory_server else ""
+    if pem and url.lower().startswith("ldaps://"):
+        conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_DEMAND)
+        conn.set_option(ldap.OPT_X_TLS_CACERTFILE, _ca_file(pem))
+        # libldap applies pending TLS options only now; must be the last TLS option.
+        conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
     return conn
 
 
 def _bind(directory_server: DirectoryServer, url: str):
     """Open a connection to ``url`` and bind using the server's credentials."""
-    conn = open_connection(url)
+    conn = open_connection(url, directory_server)
 
     bind_dn = ""
     bind_pw = ""

@@ -332,6 +332,8 @@ Im Repository liegt `compose.stalwart.yml`. Es hängt den **Milter** mit dem Nam
 bindet das Verzeichnis `./certs` in `web` und `milter` ein, und der Entrypoint setzt
 `LDAPTLS_CACERT` automatisch, sobald dort `ad-ca.pem` liegt (Schritt 1.3). Im Log steht
 dann `LDAPS: trusting the CA in /etc/ssl/ad/ad-ca.pem`.
+Alternativ lädst du die CA am Verzeichnisserver im Admin hoch (Feld *CA-Zertifikatsdatei*);
+sie gilt dann nur für diesen Server und braucht keinen Mount.
 
 ```bash
 docker compose -f compose.yml -f compose.stalwart.yml up -d --build

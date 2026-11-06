@@ -655,7 +655,7 @@ class MilterHelper:
         attrlist: list[str] | None,
     ) -> list | None:
         """Bind to ``url`` and run ``query``; ``None`` if the server is unusable."""
-        conn = open_connection(url.url)
+        conn = open_connection(url.url, directory_server)
 
         ldap_user = ""
         ldap_password = ""

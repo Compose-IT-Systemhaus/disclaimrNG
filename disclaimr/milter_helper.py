@@ -347,7 +347,9 @@ class MilterHelper:
                 req.id: req
                 for req in models.Requirement.objects.filter(
                     id__in=self.requirements, enabled=True
-                ).select_related("rule")
+                )
+                .select_related("rule")
+                .prefetch_related("conditions")
             }
             self.requirements = [r for r in self.requirements if r in self._requirement_rows]
         return [self._requirement_rows[r] for r in self.requirements]
@@ -434,9 +436,11 @@ class MilterHelper:
         self._drop_requirements(
             {req.id for req in self._active_requirements() if not re.search(req.body, body)}
         )
+        # Last, because it may need a directory lookup.
+        self._drop_requirements(self._failed_directory_conditions())
 
         if not self.requirements:
-            logging.debug("Couldn't match body in any requirement. Skipping.")
+            logging.debug("Couldn't match body or directory data in any requirement. Skipping.")
             self.enabled = False
             return None
 
@@ -564,6 +568,67 @@ class MilterHelper:
         charset = mail.get_content_charset() or "utf-8"
         return encoding, _to_str(mail_text, charset)
 
+    def _failed_directory_conditions(self) -> set[int]:
+        """Ids of the requirements in play whose directory conditions do not hold.
+
+        Without conditions nothing is looked up. Servers are the ones of the sender's
+        tenant; if the sender cannot be looked up, no condition holds.
+        """
+        checked = [req for req in self._active_requirements() if req.conditions.all()]
+        if not checked:
+            return set()
+
+        attrlist = sorted(
+            {c.attribute.lower() for req in checked for c in req.conditions.all()}
+        )
+        values = self._sender_attributes(attrlist)
+        if values is None:
+            syslog.warning(
+                "Cannot look up %s for the directory conditions. They do not hold.",
+                self.mail_data["envelope_from"],
+            )
+            values = {}
+        return {
+            req.id
+            for req in checked
+            if not all(
+                any(re.search(c.pattern, v) for v in values.get(c.attribute.lower(), []))
+                for c in req.conditions.all()
+            )
+        }
+
+    def _sender_attributes(self, attrlist: list[str]) -> dict[str, list[str]] | None:
+        """Single values of ``attrlist`` for the sender, from the first server that knows it."""
+        envelope_from = self.mail_data["envelope_from"]
+        tenant = models.Tenant.match_sender(envelope_from)
+        servers = tenant.directory_servers.filter(enabled=True) if tenant else []
+        for directory_server in servers:
+            query = self._sender_query(directory_server, envelope_from)
+            cache_key = f"{query}|{','.join(attrlist)}"
+            result = QueryCache.get(directory_server, cache_key) if directory_server.enable_cache else None
+            if result is None:
+                for url in directory_server.directoryserverurl_set.all():
+                    result = self._search_url(directory_server, url, query, attrlist)
+                    if result is not None:
+                        break
+            if not result or len(result) != 1:
+                continue
+            if directory_server.enable_cache:
+                QueryCache.set(directory_server, cache_key, result)
+            return {
+                key.lower(): [_to_str(v) for v in raw_values]
+                for key, raw_values in result[0][1].items()
+            }
+        return None
+
+    @staticmethod
+    def _sender_query(directory_server: models.DirectoryServer, envelope_from: str) -> str:
+        # Every %s becomes the address — the Active Directory default query has two of them,
+        # which "%" with a one-element tuple would reject.
+        return directory_server.search_query.replace(
+            "%s", ldap.filter.escape_filter_chars(envelope_from)
+        )
+
     def _directory_servers_for(
         self, action: models.Action, envelope_from: str
     ) -> list[models.DirectoryServer]:
@@ -641,11 +706,7 @@ class MilterHelper:
                 continue
 
             logging.debug("Connecting to directory server %s", directory_server.name)
-            # Every %s becomes the address — the Active Directory default query
-            # has two of them, which "%" with a one-element tuple would reject.
-            query = directory_server.search_query.replace(
-                "%s", ldap.filter.escape_filter_chars(envelope_from)
-            )
+            query = self._sender_query(directory_server, envelope_from)
             cache_key = f"{query}|{','.join(attrlist) if attrlist else '*'}"
             result = None
 

@@ -121,6 +121,24 @@ Jede Requirement hat zusätzlich ein **Action**-Feld: *Akzeptieren*
 oder *Ablehnen*. Eine *Ablehnen*-Requirement deaktiviert die ganze
 Regel für diese Mail.
 
+### Verzeichnis-Bedingungen
+
+Eine Requirement kann auch den Verzeichniseintrag des Absenders prüfen. Die Requirement
+öffnen (Link *Ändern* an ihrer Zeile in der Regel) und **Verzeichnis-Bedingungen**
+ergänzen: ein Verzeichnisattribut (``department``, ``title``, …) und eine Regex. Die
+Bedingung gilt, wenn die Regex auf einen Wert des Attributs passt; Attribute mit mehreren
+Werten werden Wert für Wert geprüft. Alle Bedingungen einer Requirement müssen gelten;
+für „Abteilung A oder B“ legt man zwei Requirements an (eine Regel greift, sobald eine
+*Akzeptieren*-Requirement passt). „Nicht in der Abteilung“ ist eine *Ablehnen*-Requirement
+mit der Bedingung.
+
+Der Absender wird in den Verzeichnisservern des Mandanten gesucht, dem seine Domain
+gehört (eine Abfrage pro Mail, und nur, wenn die übrigen Filter schon gepasst haben).
+Antwortet das Verzeichnis nicht, läuft in ein Timeout oder kennt den Absender nicht, gilt
+die Bedingung als **nicht erfüllt**, die Mail wird nicht zurückgestellt: Eine Regel mit
+*Akzeptieren*-Requirement wird dann übersprungen, eine *Ablehnen*-Requirement greift aber
+ebenfalls nicht, die Mail kann also von einer anderen Regel noch signiert werden.
+
 Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
 
 - **Add a disclaimer string to the body** — hängt an den Body an. Bei

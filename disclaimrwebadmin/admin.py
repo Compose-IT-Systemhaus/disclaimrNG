@@ -25,6 +25,7 @@ from .models import (
     Disclaimer,
     MailLog,
     Requirement,
+    RequirementCondition,
     Rule,
     SignatureImage,
     Tenant,
@@ -36,6 +37,25 @@ from .widgets import TemplateEditorWidget
 class RequirementInline(StackedInline):
     model = Requirement
     extra = 0
+    show_change_link = True
+
+
+class RequirementConditionInline(TabularInline):
+    model = RequirementCondition
+    extra = 1
+
+
+@admin.register(Requirement)
+class RequirementAdmin(ModelAdmin):
+    """Reached from the rule; it carries the directory conditions as an inline."""
+
+    list_display = ("name", "rule", "action", "enabled")
+    list_filter = ("rule",)
+    search_fields = ("name", "rule__name")
+    inlines = [RequirementConditionInline]
+
+    def get_model_perms(self, request):
+        return {}  # not in the dashboard or the app list; the rule links here
 
 
 class ActionInline(StackedInline):

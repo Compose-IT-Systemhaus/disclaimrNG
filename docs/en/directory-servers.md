@@ -19,6 +19,14 @@ The form has four sections:
     the search query and attribute vocabulary; *Custom* leaves them
     blank.
   - **Base DN** — e.g. ``dc=acme,dc=com``.
+  - **Encrypt the connection (TLS)** — on by default: use ``ldaps://``
+    URLs (port 636). Off: ``ldap://`` URLs (port 389), and everything —
+    including the bind password — travels unencrypted. The URL scheme must
+    match; the form tells you when it does not.
+  - **CA certificate file** / **CA certificate** — only with TLS. Upload a
+    PEM file (or paste the PEM text) of the CA that signed the server
+    certificate. It is stored in the database and used for this server by
+    the milter and the admin buttons. Empty: the container's CA store.
   - **Auth method** — *None* (anonymous bind) or *Simple* (DN +
     password).
   - **User-DN** / **Password** — only when auth is *Simple*.
@@ -86,8 +94,10 @@ rows that no longer appear.
 
 ## LDAPS with a private CA
 
-``ldaps://`` URLs are verified against the container's CA store. A directory whose
-certificate comes from a private (e.g. Active Directory) CA needs that CA:
+``ldaps://`` URLs are verified against a CA certificate. The usual way is the
+**CA certificate** field of the directory server (upload in the admin, see above): it
+applies to that server only. For a CA that should apply to **every** directory server,
+or when you bootstrap servers from environment variables, use the container's CA store:
 
 1. Put the CA certificate (PEM, intermediates appended) at ``./certs/ad-ca.pem`` next to
    ``compose.yml``. The compose files mount ``./certs`` read-only into ``web`` and

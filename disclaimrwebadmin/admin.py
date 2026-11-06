@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import json
 
-from adminsortable2.admin import SortableAdminBase, SortableTabularInline
+from adminsortable2.admin import CustomInlineFormSet, SortableAdminBase, SortableTabularInline
 from django import forms
 from django.contrib import admin
-from django.forms import PasswordInput
 from django.template.defaultfilters import linebreaksbr
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
+from unfold.widgets import (
+    UnfoldAdminFileFieldWidget,
+    UnfoldAdminPasswordWidget,
+    UnfoldAdminTextareaWidget,
+)
 
 from . import constants
 from .models import (
@@ -70,8 +74,26 @@ class TenantAdmin(ModelAdmin):
         return f"{', '.join(domains[:3])} (+{len(domains) - 3} more)"
 
 
+class DirectoryServerURLFormSet(CustomInlineFormSet):
+    """The URL scheme has to match the server's TLS setting (ldaps:// iff TLS)."""
+
+    def clean(self):
+        super().clean()
+        for form in self.forms:
+            data = getattr(form, "cleaned_data", {})
+            url = data.get("url", "")
+            if not url or data.get("DELETE"):
+                continue
+            is_tls = url.lower().startswith("ldaps://")
+            if self.instance.use_tls and not is_tls:
+                form.add_error("url", _("TLS is on: use an ldaps:// URL (or turn TLS off)."))
+            elif not self.instance.use_tls and is_tls:
+                form.add_error("url", _("TLS is off: use an ldap:// URL (or turn TLS on)."))
+
+
 class DirectoryServerURLInline(SortableTabularInline, TabularInline):
     model = DirectoryServerURL
+    formset = DirectoryServerURLFormSet
     extra = 0
     min_num = 1
 
@@ -169,6 +191,13 @@ class SignatureImageAdmin(ModelAdmin):
 
 
 class DirectoryServerForm(forms.ModelForm):
+    ca_certificate_file = forms.FileField(
+        required=False,
+        label=_("CA certificate file"),
+        help_text=_("Upload a PEM file; it replaces the CA certificate text below."),
+        widget=UnfoldAdminFileFieldWidget,
+    )
+
     class Meta:
         model = DirectoryServer
         # Explicit list keeps ruff DJ006/DJ007 happy (no ``exclude``,
@@ -180,6 +209,8 @@ class DirectoryServerForm(forms.ModelForm):
             "enabled",
             "flavor",
             "base_dn",
+            "use_tls",
+            "ca_certificate",
             "auth",
             "userdn",
             "password",
@@ -188,7 +219,23 @@ class DirectoryServerForm(forms.ModelForm):
             "enable_cache",
             "cache_timeout",
         )
-        widgets = {"password": PasswordInput(render_value=True)}
+        # Unfold's widget, so the field looks like the user-DN field above it.
+        widgets = {
+            "password": UnfoldAdminPasswordWidget(render_value=True),
+            "ca_certificate": UnfoldAdminTextareaWidget(attrs={"rows": 6}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        upload = cleaned.get("ca_certificate_file")
+        if upload:
+            try:
+                if upload.size > 64 * 1024:
+                    raise ValueError
+                cleaned["ca_certificate"] = upload.read().decode("ascii")
+            except (ValueError, UnicodeDecodeError):
+                self.add_error("ca_certificate_file", _("Not a PEM certificate file."))
+        return cleaned
 
 
 @admin.register(DirectoryServer)
@@ -205,7 +252,16 @@ class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
         (
             "Connection",
             {
-                "fields": ("flavor", "base_dn", "auth", "userdn", "password"),
+                "fields": (
+                    "flavor",
+                    "base_dn",
+                    "use_tls",
+                    "ca_certificate_file",
+                    "ca_certificate",
+                    "auth",
+                    "userdn",
+                    "password",
+                ),
             },
         ),
         (

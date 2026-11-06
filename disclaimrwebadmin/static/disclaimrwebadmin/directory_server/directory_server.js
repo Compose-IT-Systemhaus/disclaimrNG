@@ -109,6 +109,20 @@
             console.warn("flavor defaults parse failed", err);
         }
 
+        // The CA certificate only matters with TLS.
+        const tlsField = getField("use_tls");
+        if (tlsField) {
+            const showCa = () => {
+                document
+                    .querySelectorAll(".field-ca_certificate, .field-ca_certificate_file")
+                    .forEach((row) => {
+                        row.style.display = tlsField.checked ? "" : "none";
+                    });
+            };
+            tlsField.addEventListener("change", showCa);
+            showCa();
+        }
+
         const flavorField = getField("flavor");
         if (flavorField) {
             flavorField.addEventListener("change", () => {

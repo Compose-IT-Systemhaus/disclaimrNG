@@ -18,6 +18,14 @@ Das Formular hat vier Abschnitte:
     Directory* oder *Eigene*. AD/LDAP füllen sinnvolle Defaults für
     Suchanfrage und Attributliste; *Eigene* lässt sie leer.
   - **Base DN** — z. B. ``dc=acme,dc=com``.
+  - **Verbindung verschlüsseln (TLS)** — standardmäßig an: ``ldaps://``-URLs
+    verwenden (Port 636). Aus: ``ldap://``-URLs (Port 389), und alles —
+    auch das Bind-Passwort — läuft unverschlüsselt. Das URL-Schema muss
+    dazu passen; das Formular meldet es, wenn nicht.
+  - **CA-Zertifikatsdatei** / **CA-Zertifikat** — nur mit TLS. PEM-Datei
+    der CA, die das Serverzertifikat ausgestellt hat, hochladen (oder den
+    PEM-Text einfügen). Sie liegt in der Datenbank und gilt für diesen Server,
+    im Milter wie bei den Admin-Buttons. Leer: der CA-Speicher des Containers.
   - **Authentifizierungsmethode** — *Keine* (anonymer Bind) oder
     *Einfach* (DN + Passwort).
   - **Benutzer-DN** / **Passwort** — nur bei *Einfach*.
@@ -83,8 +91,10 @@ env-verwaltete Einträge, die nicht mehr auftauchen.
 
 ## LDAPS mit privater CA
 
-``ldaps://``-URLs werden gegen den CA-Speicher des Containers geprüft. Ein Verzeichnis,
-dessen Zertifikat von einer privaten CA stammt (z. B. Active Directory), braucht diese CA:
+``ldaps://``-URLs werden gegen ein CA-Zertifikat geprüft. Der übliche Weg ist das Feld
+**CA-Zertifikat** am Verzeichnisserver (Upload im Admin, siehe oben): es gilt nur für diesen
+Server. Für eine CA, die für **alle** Verzeichnisserver gelten soll, oder wenn du Server
+über Umgebungsvariablen anlegst, nimm den CA-Speicher des Containers:
 
 1. Lege das CA-Zertifikat (PEM, Zwischenzertifikate angehängt) unter
    ``./certs/ad-ca.pem`` neben der ``compose.yml`` ab. Die Compose-Dateien binden

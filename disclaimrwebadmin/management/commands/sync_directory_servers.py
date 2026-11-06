@@ -119,6 +119,8 @@ def _build_payload(handle: str) -> dict[str, Any]:
         "enabled": _bool(_server_var(handle, "ENABLED"), True),
         "flavor": flavor,
         "base_dn": base_dn,
+        # The URLs carry the choice for env-managed servers; a CA uploaded in the admin is kept.
+        "use_tls": any(u.lower().startswith("ldaps://") for u in urls),
         "auth": auth,
         "userdn": bind_dn,
         "password": bind_pw,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import ssl
 from datetime import timedelta
 
 import netaddr
@@ -34,6 +35,18 @@ def _signature_image_upload_to(instance: SignatureImage, filename: str) -> str:
     shows the version history.
     """
     return f"signatures/{instance.slug}/{filename}"
+
+
+def validate_pem_certificate(value: str) -> None:
+    """Reject text that is no PEM certificate (empty is fine: use the system CA store)."""
+    if not value.strip():
+        return
+    try:
+        ssl.create_default_context(cadata=value)
+    except (ssl.SSLError, ValueError) as exc:
+        raise ValidationError(
+            _("Not a valid PEM certificate: %(error)s"), params={"error": exc}
+        ) from exc
 
 
 class Tenant(models.Model):
@@ -425,6 +438,25 @@ class DirectoryServer(models.Model):
         _("base-dn"),
         max_length=255,
         help_text=_("The LDAP base dn."),
+    )
+    use_tls = models.BooleanField(
+        _("encrypt the connection (TLS)"),
+        help_text=_(
+            "Connect over TLS (ldaps://, usually port 636). Without it everything, "
+            "including the bind password, travels unencrypted (ldap://, port 389). "
+            "The URLs below must match."
+        ),
+        default=True,
+    )
+    ca_certificate = models.TextField(
+        _("CA certificate"),
+        help_text=_(
+            "PEM certificate of the CA that signed the server certificate. Leave empty "
+            "to use the container's CA store (or LDAPTLS_CACERT)."
+        ),
+        blank=True,
+        default="",
+        validators=[validate_pem_certificate],
     )
     auth = models.SmallIntegerField(
         _("auth-method"),

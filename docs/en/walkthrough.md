@@ -51,7 +51,7 @@ milter matches whichever domain owns the sender's address.
 5. **Hosts** (in the Connection block), one per line for failover:
    ``dc1.example.com`` and ``dc2.example.com``
 6. Save.
-7. On the change page, click **Test connection** at the top — both
+7. Click **Test connection** next to the save buttons — both
    URLs should report ``bind + base search ok``.
 8. Click **Discover attributes** — this samples a few real entries
    and lists what AD actually has. Copy the relevant attribute names

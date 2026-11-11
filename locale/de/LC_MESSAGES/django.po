@@ -619,21 +619,27 @@ msgstr "Hochgeladen als „{slug}“. Zum Einfügen anklicken."
 msgid "Connection tools"
 msgstr "Verbindungswerkzeuge"
 
-msgid "Check the configured URLs or fill the attribute vocabulary from the directory."
-msgstr "Prüft die konfigurierten URLs oder füllt das Attribut-Vokabular aus dem Verzeichnis."
+msgid ""
+"Fill the attribute vocabulary from the directory. The connection test is next "
+"to the save buttons."
+msgstr ""
+"Füllt das Attribut-Vokabular aus dem Verzeichnis. Der Verbindungstest sitzt "
+"neben den Speichern-Buttons."
+
+msgid "Save this directory server first to enable attribute discovery."
+msgstr "Diesen Verzeichnisserver zuerst speichern, um Attribute zu ermitteln."
+
+msgid "Correct the form first — %s"
+msgstr "Bitte zuerst das Formular korrigieren — %s"
+
+msgid "Edit"
+msgstr "Bearbeiten"
 
 msgid "Test connection"
 msgstr "Verbindung testen"
 
 msgid "Discover attributes"
 msgstr "Attribute ermitteln"
-
-msgid ""
-"Save this directory server first to enable connection test and attribute "
-"discovery."
-msgstr ""
-"Speichern Sie den Verzeichnisserver zuerst, um Verbindungstest und "
-"Attribut-Ermittlung zu nutzen."
 
 # --- Validation --------------------------------------------------------------
 msgid "Invalid regular expression: %(error)s"

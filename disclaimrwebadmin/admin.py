@@ -9,6 +9,7 @@ from adminsortable2.admin import SortableAdminBase
 from django import forms
 from django.contrib import admin
 from django.template.defaultfilters import linebreaksbr
+from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
@@ -279,7 +280,7 @@ class DirectoryServerForm(forms.ModelForm):
 
 @admin.register(DirectoryServer)
 class DirectoryServerAdmin(ModelAdmin):
-    list_display = ("name", "tenant", "flavor", "enabled", "base_dn")
+    list_display = ("name", "tenant", "flavor", "enabled", "base_dn", "edit_link")
     list_filter = ("tenant", "flavor", "enabled")
     list_select_related = ("tenant",)
     autocomplete_fields = ("tenant",)
@@ -322,6 +323,15 @@ class DirectoryServerAdmin(ModelAdmin):
         css = {
             "all": ("disclaimrwebadmin/directory_server/directory_server.css",),
         }
+
+    @admin.display(description=_("Edit"))
+    def edit_link(self, obj: DirectoryServer) -> str:
+        # The name links there too, but nothing in the list says so.
+        return format_html(
+            '<a href="{}" title="{}"><span class="material-symbols-outlined">edit</span></a>',
+            reverse("admin:disclaimrwebadmin_directoryserver_change", args=[obj.pk]),
+            _("Edit"),
+        )
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

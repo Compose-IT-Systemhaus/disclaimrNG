@@ -22,7 +22,7 @@ def plain_staff_client(db) -> Client:
 @pytest.mark.parametrize(
     ("name", "method", "uses_pk"),
     [
-        ("directoryserver-test", "post", True),
+        ("directoryserver-test", "post", False),
         ("directoryserver-attributes", "post", True),
         ("directoryserver-vocabulary", "get", False),
         ("disclaimer-preview", "post", False),

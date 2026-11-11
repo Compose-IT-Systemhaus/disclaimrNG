@@ -43,14 +43,16 @@ Das Formular hat vier Abschnitte:
 
 ## Test-Connection und Discover-Attributes Buttons
 
-Im Change-Form (pro Server) liegen zwei Buttons über dem Formular:
+- **Verbindung testen** (neben den Speichern-Buttons) — probiert jeden Host
+  mit den Werten, die gerade im Formular stehen, auch vor dem ersten Speichern,
+  und zeigt das Ergebnis pro URL über den Buttons: ``bind + base search ok``,
+  ``unreachable: …``, ``invalid credentials``, ``base DN not found``,
+  ``ldap error: …``. Gespeichert wird dabei nichts.
+- **Attribute ermitteln** (über dem Formular, nur bei gespeicherten Servern) —
+  sampelt fünf echte Einträge unter dem Base-DN und liefert die Vereinigung
+  der gefundenen Attributnamen. Damit kann man bequem die *Attributliste* befüllen.
 
-- **Test connection** — bindet an jede konfigurierte URL und meldet
-  pro URL das Ergebnis (``bind ok``, ``unreachable: …``, ``invalid
-  credentials``, ``base DN not found``, ``ldap error: …``).
-- **Discover attributes** — sampelt fünf echte Einträge unter dem
-  Base-DN und liefert die Vereinigung der gefundenen Attributnamen.
-  Damit kann man bequem die *Attributliste* befüllen.
+Zum Bearbeiten eines Servers in der Liste auf den Namen oder den Stift klicken.
 
 Beide Buttons sind admin-only und POST-only (CSRF-geschützt).
 

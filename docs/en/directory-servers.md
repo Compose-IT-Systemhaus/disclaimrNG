@@ -45,14 +45,16 @@ The form has four sections:
 
 ## Test-connection and discover-attributes buttons
 
-In the change form (per server), two buttons live above the form:
+- **Test connection** (next to the save buttons) — tries every host with
+  the values currently in the form, also before the server is saved, and
+  shows the outcome per URL above the buttons: ``bind + base search ok``,
+  ``unreachable: …``, ``invalid credentials``, ``base DN not found``,
+  ``ldap error: …``. Nothing is saved.
+- **Discover attributes** (above the form, saved servers only) — samples
+  five real entries under the base DN and returns the union of attribute
+  names found. Use the result to populate the *Attribute vocabulary* field.
 
-- **Test connection** — binds to every configured URL and reports
-  the per-URL outcome (``bind ok``, ``unreachable: …``, ``invalid
-  credentials``, ``base DN not found``, ``ldap error: …``).
-- **Discover attributes** — samples five real entries under the base
-  DN and returns the union of attribute names found. Use the result
-  to populate the *Attribute vocabulary* field.
+To edit a server, click its name or the pencil in the list.
 
 Both buttons are admin-only and POST-only (CSRF-protected).
 

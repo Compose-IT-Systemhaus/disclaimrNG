@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-11
+
+No migrations.
+
 ### Changed
 - Directory servers: the URL inline at the bottom of the form is replaced by a **Hosts** field in the *Connection* block. Enter host name or IP (optionally `:port`), one per line for failover; the `ldap://`/`ldaps://` URL follows the TLS switch. Existing URLs are shown as hosts and kept as they are until the server is saved.
 - Directory servers: **Test connection** moved next to the save buttons and tests the values in the form (reachability, bind credentials, base DN) — also before the first save, without saving. The list has a pencil column to open a server for editing.
@@ -101,7 +105,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.1.2...v0.1.3

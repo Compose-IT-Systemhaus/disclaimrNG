@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-11
+
+No migrations.
+
 ### Changed
 - *Add a disclaimer string to the body* puts two blank lines between the message and the signature, so the name no longer sits right under the greeting. Trailing blank lines of the message are folded into these two. In HTML parts a plaintext signature starts after two line breaks; an HTML signature keeps its own spacing.
 
@@ -119,7 +123,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.2.0...v0.3.0

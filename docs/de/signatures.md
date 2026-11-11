@@ -157,8 +157,10 @@ Die Seite *Signaturtest* listet jede geprüfte Bedingung mit ihrem Ergebnis auf.
 
 Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
 
-- **Add a disclaimer string to the body** — hängt an den Body an. Bei
-  HTML-Mails wird der Disclaimer geparst und vor ``</body>`` eingefügt.
+- **Add a disclaimer string to the body** — hängt an den Body an, nach
+  zwei Leerzeilen (in HTML-Teilen mit Plaintext-Signatur: zwei Zeilenumbrüche;
+  eine HTML-Signatur bringt ihre Abstände selbst mit). Bei HTML-Mails wird
+  der Disclaimer geparst und vor ``</body>`` eingefügt.
 - **Replace a tag in the body with a disclaimer string** — praktisch
   für Templates, in denen der User einen wörtlichen ``#DISCLAIMER#``-
   Marker im Mail-Entwurf platziert.

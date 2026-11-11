@@ -1093,7 +1093,12 @@ class MilterHelper:
 
         elif action.action == constants.ACTION_ACTION_ADD:
             if content_type == "text/plain":
-                new_text = f"{new_text}\n{disclaimer_text}"
+                # Two blank lines keep the signature off the greeting ("Kind regards");
+                # a signature that rendered empty adds no gap.
+                if disclaimer_text.strip():
+                    new_text = f"{new_text.rstrip()}\n\n\n{disclaimer_text}"
+                else:
+                    new_text = f"{new_text}\n{disclaimer_text}"
             elif content_type == "text/html":
                 # ``etree.HTML`` only exposes child *elements* via iteration —
                 # bare text inside ``<body>`` is hidden away in
@@ -1103,7 +1108,10 @@ class MilterHelper:
                 # ``html_use_text=True``) that meant nothing got appended
                 # at all. Wrap such a disclaimer in a ``<p>`` so it parses
                 # as a real element subtree.
-                if not disclaimer_text.lstrip().startswith("<"):
+                if text_as_html:
+                    # The same two blank lines as in plain text.
+                    disclaimer_text = f"<p><br /><br />{disclaimer_text}</p>"
+                elif not disclaimer_text.lstrip().startswith("<"):
                     disclaimer_text = f"<p>{disclaimer_text}</p>"
 
                 if not new_text.strip():

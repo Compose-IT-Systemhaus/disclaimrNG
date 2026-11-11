@@ -176,7 +176,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)
@@ -224,7 +224,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)
@@ -276,7 +276,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s|%s|Test" % (
+            "%s\n\n\n%s|%s|Test" % (
                 self.test_text,
                 self.test_address,
                 self.test_address
@@ -337,7 +337,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)
@@ -368,7 +368,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 returned_mail.get_payload()[0]
             )[1],
-            "%s\n%s" % (test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (test_text, self.disclaimer.text),
             "Text-Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     returned_mail.get_payload()[0]
@@ -380,7 +380,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 returned_mail.get_payload()[1]
             )[1],
-            "<html><body>\n%s\n<p>%s</p>\n</body></html>\n" % (
+            "<html><body>\n%s\n<p><br><br>%s</p>\n</body></html>\n" % (
                 test_html,
                 self.disclaimer.text
             ),
@@ -408,7 +408,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 returned_mail
             )[1],
-            "<html><body>\n%s\n<p>%s</p>\n</body></html>\n" % (
+            "<html><body>\n%s\n<p><br><br>%s</p>\n</body></html>\n" % (
                 test_html,
                 self.disclaimer.text
             ),
@@ -512,7 +512,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)
@@ -581,7 +581,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)
@@ -631,7 +631,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "%s\n%s\nTest-Disclaimer2" % (self.test_text, self.disclaimer.text),
+            "%s\n\n\n%s\n\n\nTest-Disclaimer2" % (self.test_text, self.disclaimer.text),
             "Body was unexpectedly modified to %s" % (
                 milter_helper.MilterHelper.decode_mail(
                     self.tool_make_returned_mail(returned)

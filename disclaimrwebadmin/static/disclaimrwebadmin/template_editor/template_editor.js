@@ -507,6 +507,22 @@
         if (tinymceHost) {
             const tinymce = await ensureTinyMCE();
             tinymceHost.value = textarea.value || "";
+            let fonts = { families: [], sizes: [] };
+            try {
+                fonts = JSON.parse(root.dataset.fonts || "{}");
+            } catch (err) {
+                console.warn("font list parse failed", err);
+            }
+            // Default font of the signature (the form's "Formatting" fields), shown in the editor.
+            const familyField = document.querySelector('[name="font_family"]');
+            const sizeField = document.querySelector('[name="font_size"]');
+            const defaultFont = () =>
+                [
+                    familyField && familyField.value ? `font-family: ${familyField.value}` : "",
+                    sizeField && sizeField.value ? `font-size: ${sizeField.value}pt` : "",
+                ]
+                    .filter(Boolean)
+                    .join("; ");
             const inits = await tinymce.init({
                 target: tinymceHost,
                 // Tell TinyMCE where to fetch its skins/themes/plugins
@@ -518,15 +534,30 @@
                 license_key: "gpl",
                 menubar: false,
                 toolbar:
-                    "undo redo | bold italic underline | bullist numlist | " +
-                    "link unlink | alignleft aligncenter alignright | code",
-                plugins: ["link", "lists", "code"],
+                    "undo redo | fontfamily fontsize lineheight | " +
+                    "bold italic underline forecolor | alignleft aligncenter alignright | " +
+                    "bullist numlist | link unlink | table hr | removeformat code",
+                toolbar_mode: "wrap",
+                plugins: ["link", "lists", "code", "table"],
+                font_family_formats: (fonts.families || [])
+                    .map(([name, stack]) => `${name}=${stack}`)
+                    .join("; "),
+                font_size_formats: (fonts.sizes || []).map((s) => `${s}pt`).join(" "),
+                line_height_formats: "1 1.15 1.5 2",
+                // Outlook lays tables out by their attributes, not by CSS.
+                table_default_attributes: { border: "0", cellpadding: "0", cellspacing: "0" },
+                table_default_styles: { "border-collapse": "collapse" },
+                content_style: `body { ${defaultFont()} }`,
                 height: 320,
                 skin: isDarkMode() ? "oxide-dark" : "oxide",
                 content_css: isDarkMode() ? "dark" : "default",
                 setup: (ed) => {
-                    ed.on("Change KeyUp Undo Redo", () => {
+                    ed.on("Change KeyUp Undo Redo ExecCommand input", () => {
                         textarea.value = ed.getContent();
+                    });
+                    ed.on("init", () => {
+                        const apply = () => ed.getBody().setAttribute("style", defaultFont());
+                        [familyField, sizeField].forEach((f) => f && f.addEventListener("change", apply));
                     });
                 },
             });
@@ -559,6 +590,10 @@
                     const formData = new FormData();
                     formData.append("content", textarea.value || "");
                     formData.append("content_type", contentType);
+                    ["font_family", "font_size"].forEach((name) => {
+                        const field = document.querySelector(`[name="${name}"]`);
+                        if (field) formData.append(name, field.value);
+                    });
                     const csrf = document.querySelector(
                         "[name=csrfmiddlewaretoken]"
                     );

@@ -25,6 +25,28 @@ tabs share one underlying textarea so you never lose edits:
   ``{sender}``, ``{recipient}`` and a few resolver attributes filled
   in, so you can see what the disclaimer will look like.
 
+### Designing the signature (visual editor)
+
+Formatting exists only in HTML mails, so the signature is designed in the **HTML part**,
+in the **Visual** tab (its default tab). The toolbar offers font, font size, line height,
+bold/italic/underline, text colour, alignment, lists, links, **tables** and a horizontal
+line. Formatting is stored as inline styles, which Outlook, Gmail and Apple Mail all keep.
+
+- **Fonts** — Arial, Helvetica, Verdana, Tahoma, Trebuchet MS, Georgia, Times New Roman,
+  Courier New, plus Calibri and Segoe UI (Outlook/Windows). Every font comes with a
+  fallback: on a Mac or a phone without Calibri the text shows in Arial.
+- **Formatting › Font / Font size** — the default font of the whole signature. It is
+  shown in the editor and the preview, and the signature is sent inside
+  ``<div style="font-family: …; font-size: …pt">`` so it does not take over the font of
+  the recipient's mail client. Single words can still be formatted differently.
+- **Tables** are the reliable way to lay out a logo next to the contact details; new
+  tables have no borders or cell spacing (Outlook reads these attributes, not CSS).
+- **Create the text part from the HTML part** (on for new signatures) — when saving, the
+  text part is generated from the HTML: line breaks and paragraphs stay, links become
+  ``text <URL>``, a horizontal line becomes ``--``, placeholders stay, images are left out.
+  Turn it off to write the text part yourself. It cannot be combined with *use text part*
+  in the HTML part (the HTML would come from the text and the text from the HTML).
+
 ### Placeholder chips
 
 Underneath the editor: clickable pills you can use to insert
@@ -156,9 +178,9 @@ The *Signature test* page lists every checked condition with its result.
 The **Action** inline picks the disclaimer and how to merge it:
 
 - **Add a disclaimer string to the body** — appends to the existing
-  body, after two blank lines (in HTML parts with a plaintext signature:
-  two line breaks; an HTML signature brings its own spacing). For HTML
-  mails the disclaimer is parsed and inserted before ``</body>``.
+  body, after two blank lines (in HTML parts: two line breaks, inside the
+  ``<div>`` with the default font). For HTML mails the disclaimer is parsed
+  and inserted before ``</body>``.
 - **Replace a tag in the body with a disclaimer string** — handy for
   templates where the user puts a literal ``#DISCLAIMER#`` placeholder
   in their drafted mail.

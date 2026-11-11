@@ -414,6 +414,29 @@ class Disclaimer(models.Model):
         help_text=_("Use the contents of the text part for the html part"),
         default=True,
     )
+    text_from_html = models.BooleanField(
+        _("create the text part from the HTML part"),
+        help_text=_(
+            "The text part is generated from the HTML part when saving (placeholders stay, "
+            "images are left out). Turn off to write the text part yourself."
+        ),
+        default=False,
+    )
+    font_family = models.CharField(
+        _("font"),
+        max_length=100,
+        blank=True,
+        default="",
+        choices=[(stack, name) for name, stack in constants.SIGNATURE_FONTS],
+        help_text=_("Default font of the HTML signature; text can be formatted differently."),
+    )
+    font_size = models.PositiveSmallIntegerField(
+        _("font size"),
+        null=True,
+        blank=True,
+        choices=[(size, f"{size} pt") for size in constants.SIGNATURE_FONT_SIZES],
+        help_text=_("Default font size of the HTML signature in pt."),
+    )
     html = models.TextField(
         _("html-part"),
         help_text=_(
@@ -462,6 +485,15 @@ class Disclaimer(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def clean(self) -> None:
+        if self.html_use_text and self.text_from_html:
+            raise ValidationError(
+                _(
+                    "The HTML part cannot come from the text part while the text part comes "
+                    "from the HTML part. Turn one of them off."
+                )
+            )
 
 
 class DirectoryServer(models.Model):

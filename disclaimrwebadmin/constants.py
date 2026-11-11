@@ -5,6 +5,24 @@
 REQ_ACTION_ACCEPT = 0
 REQ_ACTION_DENY = 1
 
+# Fonts offered for signatures: (name, CSS font stack). Mail-safe fonts, plus Calibri and
+# Segoe UI (Outlook/Windows) with a fallback for Mac and mobile. Used by the model choices
+# and the TinyMCE toolbar alike.
+SIGNATURE_FONTS = [
+    ("Arial", "Arial, Helvetica, sans-serif"),
+    ("Calibri", "Calibri, Arial, sans-serif"),
+    ("Courier New", "'Courier New', Courier, monospace"),
+    ("Georgia", "Georgia, serif"),
+    ("Helvetica", "Helvetica, Arial, sans-serif"),
+    ("Segoe UI", "'Segoe UI', Arial, sans-serif"),
+    ("Tahoma", "Tahoma, Geneva, sans-serif"),
+    ("Times New Roman", "'Times New Roman', Times, serif"),
+    ("Trebuchet MS", "'Trebuchet MS', Arial, sans-serif"),
+    ("Verdana", "Verdana, Geneva, sans-serif"),
+]
+# Font sizes in pt (Outlook measures in pt).
+SIGNATURE_FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 24]
+
 # Requirement directory conditions
 
 COND_KIND_ATTRIBUTE = 0

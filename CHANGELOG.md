@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Visual signature editor: the HTML part's toolbar now has font, font size, line height, text colour, tables and a horizontal line (mail-safe fonts plus Calibri and Segoe UI, each with a fallback). Formatting is stored as inline styles.
+- Default font and font size per signature (*Formatting*): HTML signatures are sent inside a `<div>` with that font, also shown in the editor and the preview.
+- *Create the text part from the HTML part*: the text part is generated from the HTML when saving (placeholders stay, images are left out). New signatures start with it on and the HTML part designed in the *Visual* tab, which is now the default tab of the HTML editor.
+
+### Changed
+- HTML signatures added by *Add a disclaimer string to the body* now also start after two line breaks, inside a `<div>` (before only plaintext signatures in HTML parts had the gap).
+
 ## [0.3.3] - 2026-11-11
 
 No migrations.

@@ -23,6 +23,7 @@ def test_tinymce_keeps_min_files_of_the_used_plugins_only():
     keep = fetch.wanted
     assert keep("tinymce", "tinymce.min.js")
     assert keep("tinymce", "plugins/link/plugin.min.js")
+    assert keep("tinymce", "plugins/table/plugin.min.js")  # tables in signatures
     assert keep("tinymce", "skins/ui/oxide-dark/skin.min.css")
     assert not keep("tinymce", "plugins/emoticons/plugin.min.js")
     assert not keep("tinymce", "plugins/link/plugin.js")

@@ -26,6 +26,29 @@ geht:
   Beispiel-Werten für ``{sender}``, ``{recipient}`` und einigen
   Resolver-Attributen, damit du siehst wie die Signatur aussieht.
 
+### Signatur gestalten (visueller Editor)
+
+Formatierung gibt es nur in HTML-Mails, deshalb wird die Signatur im **HTML-Teil** gestaltet,
+im Tab **Visual** (dort der Standard-Tab). Die Toolbar bietet Schriftart, Schriftgröße,
+Zeilenabstand, fett/kursiv/unterstrichen, Textfarbe, Ausrichtung, Listen, Links, **Tabellen**
+und eine Trennlinie. Formatierung wird als Inline-Style gespeichert; das übernehmen Outlook,
+Gmail und Apple Mail.
+
+- **Schriftarten** — Arial, Helvetica, Verdana, Tahoma, Trebuchet MS, Georgia, Times New Roman,
+  Courier New sowie Calibri und Segoe UI (Outlook/Windows). Jede Schrift hat eine Ersatzschrift:
+  Auf einem Mac oder Smartphone ohne Calibri erscheint der Text in Arial.
+- **Formatierung › Schriftart / Schriftgröße** — die Standard-Schrift der ganzen Signatur. Sie
+  gilt im Editor und in der Vorschau, und die Signatur wird in
+  ``<div style="font-family: …; font-size: …pt">`` verschickt, damit sie nicht die Schrift des
+  Mailprogramms beim Empfänger übernimmt. Einzelne Wörter lassen sich trotzdem anders formatieren.
+- **Tabellen** sind der verlässliche Weg, ein Logo neben die Kontaktdaten zu setzen; neue Tabellen
+  haben keinen Rahmen und keinen Zellabstand (Outlook liest diese Attribute, nicht CSS).
+- **Textteil aus dem HTML-Teil erzeugen** (bei neuen Signaturen an) — beim Speichern entsteht der
+  Textteil aus dem HTML: Zeilenumbrüche und Absätze bleiben, Links werden zu ``Text <URL>``, eine
+  Trennlinie zu ``--``, Platzhalter bleiben, Bilder fallen weg. Ausschalten, wer den Textteil selbst
+  schreiben will. Nicht zusammen mit *Textteil verwenden* im HTML-Teil möglich (sonst käme das HTML
+  aus dem Text und der Text aus dem HTML).
+
 ### Platzhalter-Chips
 
 Unter dem Editor: klickbare Pills zum Einfügen am Cursor.
@@ -158,9 +181,9 @@ Die Seite *Signaturtest* listet jede geprüfte Bedingung mit ihrem Ergebnis auf.
 Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
 
 - **Add a disclaimer string to the body** — hängt an den Body an, nach
-  zwei Leerzeilen (in HTML-Teilen mit Plaintext-Signatur: zwei Zeilenumbrüche;
-  eine HTML-Signatur bringt ihre Abstände selbst mit). Bei HTML-Mails wird
-  der Disclaimer geparst und vor ``</body>`` eingefügt.
+  zwei Leerzeilen (in HTML-Teilen: zwei Zeilenumbrüche, im ``<div>`` mit der
+  Standard-Schrift). Bei HTML-Mails wird der Disclaimer geparst und vor
+  ``</body>`` eingefügt.
 - **Replace a tag in the body with a disclaimer string** — praktisch
   für Templates, in denen der User einen wörtlichen ``#DISCLAIMER#``-
   Marker im Mail-Entwurf platziert.

@@ -197,6 +197,7 @@ SignatureImage.objects.create(
 )
 disclaimer = Disclaimer.objects.create(
     name="Logo", html_use_text=False, html='<p>EMBED-LOGO {image["logo"]}</p>', html_use_template=True,
+    font_family="Verdana, Geneva, sans-serif", font_size=10,
 )
 Action.objects.create(rule=Rule.objects.get(name="E2E"), disclaimer=disclaimer, position=3,
                       name="Logo", action=constants.ACTION_ACTION_ADD)
@@ -277,6 +278,11 @@ def main() -> int:
         cid = image["Content-ID"].strip("<>")
         check(f"cid:{cid}" in page.get_content(), "the HTML references the image by cid", raw)
         check("EMBED-LOGO" in page.get_content(), "the disclaimer text is in the HTML", raw)
+        check(
+            "font-family: Verdana, Geneva, sans-serif; font-size: 10pt" in page.get_content(),
+            "the signature carries its default font",
+            raw,
+        )
         check(image.get_content() == png, "the image bytes arrive unchanged", raw)
 
     print()

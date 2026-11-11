@@ -234,6 +234,38 @@ msgstr "Zeichensatz"
 msgid "use template tags"
 msgstr "Vorlagen-Platzhalter verwenden"
 
+msgid "create the text part from the HTML part"
+msgstr "Textteil aus dem HTML-Teil erzeugen"
+
+msgid ""
+"The text part is generated from the HTML part when saving (placeholders stay, "
+"images are left out). Turn off to write the text part yourself."
+msgstr ""
+"Der Textteil wird beim Speichern aus dem HTML-Teil erzeugt (Platzhalter bleiben, "
+"Bilder fallen weg). Ausschalten, um den Textteil selbst zu schreiben."
+
+msgid "font"
+msgstr "Schriftart"
+
+msgid "Default font of the HTML signature; text can be formatted differently."
+msgstr "Standard-Schrift der HTML-Signatur; einzelner Text kann anders formatiert werden."
+
+msgid "font size"
+msgstr "Schriftgröße"
+
+msgid "Default font size of the HTML signature in pt."
+msgstr "Standard-Schriftgröße der HTML-Signatur in pt."
+
+msgid ""
+"The HTML part cannot come from the text part while the text part comes from "
+"the HTML part. Turn one of them off."
+msgstr ""
+"Der HTML-Teil kann nicht aus dem Textteil kommen, während der Textteil aus dem "
+"HTML-Teil erzeugt wird. Eines davon ausschalten."
+
+msgid "Generated from the HTML part when saving — changes here are overwritten."
+msgstr "Wird beim Speichern aus dem HTML-Teil erzeugt — Änderungen hier werden überschrieben."
+
 msgid "use text part"
 msgstr "Textteil verwenden"
 

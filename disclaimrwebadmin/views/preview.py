@@ -14,6 +14,7 @@ admins pick a real :class:`DirectoryServer` to source live attribute names.
 from __future__ import annotations
 
 from html import escape
+from types import SimpleNamespace
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -24,8 +25,10 @@ from disclaimr.milter_helper import (
     _build_image_replacements,
     escape_html_value,
     render_template,
+    signature_html,
 )
 
+from .. import constants
 from .permissions import staff_with_perm
 
 _SAMPLE_DATA: dict[str, Any] = {
@@ -69,6 +72,17 @@ class DisclaimerPreviewView(View):
         content_type = request.POST.get("content_type", "text/html")
 
         rendered = _render(content, content_type)
+        if content_type == "text/html":
+            # Only known values reach the style attribute.
+            family = request.POST.get("font_family", "")
+            size = request.POST.get("font_size", "")
+            stacks = [stack for _, stack in constants.SIGNATURE_FONTS]
+            sizes = [str(s) for s in constants.SIGNATURE_FONT_SIZES]
+            font = SimpleNamespace(
+                font_family=family if family in stacks else "",
+                font_size=size if size in sizes else None,
+            )
+            rendered = signature_html(font, rendered)
 
         if content_type == "text/plain":
             body = (

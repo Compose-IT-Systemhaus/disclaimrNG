@@ -164,6 +164,26 @@ def _normalize_dn(dn: str) -> str:
     return re.sub(r"\s*([,=])\s*", r"\1", dn.strip().lower())
 
 
+def signature_html(disclaimer: Any, markup: str, *, always: bool = False) -> str:
+    """``markup`` in a ``<div>`` with the default font and size of the signature.
+
+    Without a default font the markup is returned as it is, unless ``always`` (the add
+    action needs an element to copy into the mail).
+    """
+    style = "; ".join(
+        rule
+        for rule in (
+            f"font-family: {disclaimer.font_family}" if disclaimer.font_family else "",
+            f"font-size: {disclaimer.font_size}pt" if disclaimer.font_size else "",
+        )
+        if rule
+    )
+    if not style and not always:
+        return markup
+    attr = f' style="{html.escape(style)}"' if style else ""
+    return f"<div{attr}>{markup}</div>"
+
+
 def _is_entity_header(name: str) -> bool:
     """``Content-*`` and ``MIME-Version`` describe the body, not the mail."""
     return name.lower().startswith("content-") or name.lower() == "mime-version"
@@ -1088,6 +1108,9 @@ class MilterHelper:
         encoding, new_text = self.decode_mail(mail)
         new_text = _to_str(new_text, charset)
 
+        if content_type == "text/html" and action.action != constants.ACTION_ACTION_ADD:
+            disclaimer_text = signature_html(action.disclaimer, disclaimer_text)
+
         if action.action == constants.ACTION_ACTION_REPLACETAG:
             new_text = re.sub(action.action_parameters, disclaimer_text, new_text)
 
@@ -1108,11 +1131,12 @@ class MilterHelper:
                 # ``html_use_text=True``) that meant nothing got appended
                 # at all. Wrap such a disclaimer in a ``<p>`` so it parses
                 # as a real element subtree.
-                if text_as_html:
-                    # The same two blank lines as in plain text.
-                    disclaimer_text = f"<p><br /><br />{disclaimer_text}</p>"
-                elif not disclaimer_text.lstrip().startswith("<"):
-                    disclaimer_text = f"<p>{disclaimer_text}</p>"
+                # The <div> (with the signature's default font) gives bare text an element
+                # to live in; two line breaks keep it off the greeting, as in plain text.
+                gap = "<br /><br />" if disclaimer_text.strip() else ""
+                disclaimer_text = signature_html(
+                    action.disclaimer, gap + disclaimer_text, always=True
+                )
 
                 if not new_text.strip():
                     # lxml raises "Document is empty"; nothing to append to.

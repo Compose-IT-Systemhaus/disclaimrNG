@@ -380,7 +380,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 returned_mail.get_payload()[1]
             )[1],
-            "<html><body>\n%s\n<p><br><br>%s</p>\n</body></html>\n" % (
+            "<html><body>\n%s\n<div>\n<br><br>%s</div>\n</body></html>\n" % (
                 test_html,
                 self.disclaimer.text
             ),
@@ -408,7 +408,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 returned_mail
             )[1],
-            "<html><body>\n%s\n<p><br><br>%s</p>\n</body></html>\n" % (
+            "<html><body>\n%s\n<div>\n<br><br>%s</div>\n</body></html>\n" % (
                 test_html,
                 self.disclaimer.text
             ),
@@ -538,7 +538,7 @@ class DisclaimerTestCase(TestCase):
             milter_helper.MilterHelper.decode_mail(
                 self.tool_make_returned_mail(returned)
             )[1],
-            "<html><body>\n<p>%s</p>\n%s\n</body></html>\n" % (
+            "<html><body>\n<p>%s</p>\n<div>\n<br><br>%s\n</div>\n</body></html>\n" % (
                 self.test_text,
                 self.disclaimer.html
             ),

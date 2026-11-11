@@ -199,9 +199,10 @@ class DirectoryServerForm(forms.ModelForm):
         label=_("Hosts"),
         widget=UnfoldAdminTextareaWidget(attrs={"rows": 2}),
         help_text=_(
-            "Host name or IP address of the server, optionally with :port (default 636 with "
-            "TLS, 389 without). One per line; further lines are tried in order if the first "
-            "does not answer."
+            "Host name of the server, optionally with :port (default 636 with TLS, 389 "
+            "without). With TLS it has to be the name in the server's certificate, usually "
+            "the full name (dc1.example.com), not the IP address. One per line; further "
+            "lines are tried in order if the first does not answer."
         ),
     )
     ca_certificate_file = forms.FileField(

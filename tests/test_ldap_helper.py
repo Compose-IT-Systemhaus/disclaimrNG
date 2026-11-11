@@ -7,6 +7,7 @@ underlying ``python-ldap`` library.
 
 from __future__ import annotations
 
+import ssl
 from unittest.mock import MagicMock, patch
 
 import ldap
@@ -113,3 +114,80 @@ def test_discover_attributes_falls_through_on_error(server):
         result = ldap_helper.discover_attributes(server)
     assert result.ok is True
     assert result.attributes == ["mail"]
+
+
+# ---------------------------------------------------------------------------
+# tls_problem: why an ldaps:// connection fails
+# ---------------------------------------------------------------------------
+
+
+def _verify_error(code: int, message: str) -> ssl.SSLCertVerificationError:
+    exc = ssl.SSLCertVerificationError("certificate verify failed")
+    exc.verify_code, exc.verify_message = code, message
+    return exc
+
+
+@pytest.fixture
+def tls_server(db) -> DirectoryServer:
+    return DirectoryServer.objects.create(
+        name="AD", base_dn="dc=x,dc=y", auth=constants.DIR_AUTH_NONE, use_tls=True
+    )
+
+
+def _handshake(error=None):
+    """Patch the TCP connect and let the TLS handshake raise ``error`` (or succeed)."""
+    context = MagicMock()
+    if error:
+        context.wrap_socket.side_effect = error
+    return (
+        patch.object(ldap_helper.socket, "create_connection", return_value=MagicMock()),
+        patch.object(ldap_helper.ssl, "create_default_context", return_value=context),
+    )
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (None, None),
+        (_verify_error(20, "unable to get local issuer certificate"), "certificate not trusted"),
+        (_verify_error(62, "hostname mismatch"), "not issued for dc1.example.com"),
+        (_verify_error(64, "IP address mismatch"), "not the IP address"),
+        (ssl.SSLError("handshake failure"), "TLS handshake failed"),
+    ],
+)
+def test_tls_problem_names_the_cause(tls_server, error, expected):
+    connect, context = _handshake(error)
+    with connect, context:
+        problem = ldap_helper.tls_problem(tls_server, "ldaps://dc1.example.com:636")
+    if expected is None:
+        assert problem is None
+    else:
+        assert expected in problem
+
+
+def test_tls_problem_reports_an_unreachable_port(tls_server):
+    with patch.object(
+        ldap_helper.socket, "create_connection", side_effect=OSError("connection refused")
+    ):
+        problem = ldap_helper.tls_problem(tls_server, "ldaps://dc1.example.com")
+    assert problem.startswith("port 636 on dc1.example.com not reachable")
+
+
+def test_tls_problem_reports_an_unusable_ca(tls_server):
+    tls_server.ca_certificate = "-----BEGIN CERTIFICATE-----\nbroken\n-----END CERTIFICATE-----"
+    assert "cannot be used" in ldap_helper.tls_problem(tls_server, "ldaps://dc1")
+
+
+def test_connection_test_uses_the_tls_cause_for_ldaps_only(tls_server):
+    conn = MagicMock()
+    conn.simple_bind_s.side_effect = ldap.SERVER_DOWN("Can't contact LDAP server")
+    with (
+        patch.object(ldap_helper.ldap, "initialize", return_value=conn),
+        patch.object(ldap_helper, "tls_problem", return_value="certificate not trusted (x)") as tls,
+    ):
+        result = ldap_helper.test_connection(tls_server, ["ldaps://dc1", "ldap://dc2"])
+    assert [p.detail for p in result.probes] == [
+        "certificate not trusted (x)",
+        "unreachable: Can't contact LDAP server",
+    ]
+    tls.assert_called_once_with(tls_server, "ldaps://dc1")

@@ -10,10 +10,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+import socket
+import ssl
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 import ldap
 
@@ -105,6 +108,50 @@ def _bind(directory_server: DirectoryServer, url: str):
     return conn
 
 
+# OpenSSL verify codes for a certificate that is fine but issued for another name / IP.
+_NAME_MISMATCH = {62, 64}
+
+
+def tls_problem(directory_server: DirectoryServer, url: str) -> str | None:
+    """Why an ``ldaps://`` connection fails, in words — or ``None`` if TLS itself works.
+
+    libldap reports every TLS failure as "Can't contact LDAP server". This repeats the
+    handshake with Python's ``ssl`` and the same trust (the server's stored CA, else
+    ``LDAPTLS_CACERT``, else the system store) to name the cause.
+    """
+    parts = urlsplit(url)
+    host, port = parts.hostname or "", parts.port or 636
+    pem = directory_server.ca_certificate
+    try:
+        if pem:
+            context = ssl.create_default_context(cadata=pem)
+        else:
+            context = ssl.create_default_context(cafile=os.environ.get("LDAPTLS_CACERT"))
+    except (ssl.SSLError, ValueError, OSError) as exc:
+        return f"the CA certificate cannot be used: {exc}"
+    try:
+        sock = socket.create_connection((host, port), LDAP_TIMEOUT)
+    except OSError as exc:
+        return f"port {port} on {host} not reachable: {exc}"
+    try:
+        with context.wrap_socket(sock, server_hostname=host):
+            return None
+    except ssl.SSLCertVerificationError as exc:
+        if exc.verify_code in _NAME_MISMATCH:
+            return (
+                f"the certificate is not issued for {host} — enter the host name from the "
+                "certificate (not the IP address)"
+            )
+        return (
+            f"certificate not trusted ({exc.verify_message}) — upload the certificate of "
+            "the CA that issued the server certificate"
+        )
+    except (ssl.SSLError, OSError) as exc:
+        return f"TLS handshake failed: {exc}"
+    finally:
+        sock.close()
+
+
 def test_connection(
     directory_server: DirectoryServer, urls: list[str] | None = None
 ) -> TestResult:
@@ -124,7 +171,8 @@ def test_connection(
         try:
             conn = _bind(directory_server, url)
         except ldap.SERVER_DOWN as exc:
-            probes.append(URLProbe(url=url, ok=False, detail=f"unreachable: {exc}"))
+            problem = tls_problem(directory_server, url) if url.lower().startswith("ldaps://") else None
+            probes.append(URLProbe(url=url, ok=False, detail=problem or f"unreachable: {exc}"))
             continue
         except ldap.INVALID_CREDENTIALS:
             probes.append(URLProbe(url=url, ok=False, detail="invalid credentials"))

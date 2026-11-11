@@ -17,8 +17,10 @@ Das Formular hat vier Abschnitte:
   - **Variante** — *LDAP* (vanilla OpenLDAP/389DS), *Active
     Directory* oder *Eigene*. AD/LDAP füllen sinnvolle Defaults für
     Suchanfrage und Attributliste; *Eigene* lässt sie leer.
-  - **Hosts** — Hostname oder IP-Adresse des Servers, optional mit
-    ``:Port``, z. B. ``dc1.acme.com``. Einer pro Zeile; weitere Zeilen werden
+  - **Hosts** — Hostname des Servers, optional mit ``:Port``, z. B.
+    ``dc1.acme.com``. Mit TLS muss es der Name aus dem Zertifikat des Servers sein
+    (bei Active Directory der volle DC-Name), nicht die IP-Adresse — sonst scheitert
+    die Zertifikatsprüfung. Einer pro Zeile; weitere Zeilen werden
     der Reihe nach versucht, wenn der erste nicht antwortet. Die URL baut
     disclaimrNG selbst.
   - **Verbindung verschlüsseln (TLS)** — standardmäßig an: ``ldaps://``
@@ -91,6 +93,14 @@ gesetztem ``LDAP_SERVERS``. ``LDAP_SYNC_PRUNE=1`` löscht
 env-verwaltete Einträge, die nicht mehr auftauchen.
 
 ## LDAPS mit privater CA
+
+Meldet *Verbindung testen* **certificate not trusted**, ist die hochgeladene Datei nicht das
+Zertifikat der CA, die das Serverzertifikat ausgestellt hat (oft wurde das Serverzertifikat selbst
+hochgeladen). Bei einer Windows-CA in PowerShell mit ``certutil '-ca.cert' C:\Temp\ca.cer``
+exportieren (die Anführungszeichen sind in PowerShell nötig) oder auf jedem Domänenrechner mit
+``certutil -store Root "<CA-Name>" C:\Temp\ca.cer``, dann
+``certutil -encode C:\Temp\ca.cer C:\Temp\ca.pem`` und ``ca.pem`` hochladen. **Not issued for …**
+heißt: Der Hostname weicht vom Zertifikat ab — den dort genannten Namen verwenden.
 
 ``ldaps://``-URLs werden gegen ein CA-Zertifikat geprüft. Der übliche Weg ist das Feld
 **CA-Zertifikat** am Verzeichnisserver (Upload im Admin, siehe oben): es gilt nur für diesen

@@ -18,8 +18,10 @@ The form has four sections:
     or *Custom*. Picking AD or LDAP fills in sensible defaults for
     the search query and attribute vocabulary; *Custom* leaves them
     blank.
-  - **Hosts** — host name or IP address of the server, optionally with
-    ``:port``, e.g. ``dc1.acme.com``. One per line; further lines are tried
+  - **Hosts** — host name of the server, optionally with ``:port``, e.g.
+    ``dc1.acme.com``. With TLS it has to be the name in the server's certificate
+    (for Active Directory the full DC name), not the IP address — otherwise the
+    certificate check fails. One per line; further lines are tried
     in order if the first does not answer. disclaimrNG builds the URL itself.
   - **Encrypt the connection (TLS)** — on by default: ``ldaps://``
     (port 636). Off: ``ldap://`` (port 389), and everything — including the
@@ -93,6 +95,14 @@ Per handle (replace ``<HANDLE>`` with the uppercased handle):
 rows that no longer appear.
 
 ## LDAPS with a private CA
+
+If *Test connection* reports **certificate not trusted**, the uploaded file is not the
+certificate of the CA that issued the server certificate (often the server certificate itself
+was uploaded). On a Windows CA, export it in PowerShell with
+``certutil '-ca.cert' C:\Temp\ca.cer`` (the quotes matter in PowerShell) or on any domain
+member with ``certutil -store Root "<CA name>" C:\Temp\ca.cer``, then
+``certutil -encode C:\Temp\ca.cer C:\Temp\ca.pem`` and upload ``ca.pem``. **Not issued for
+…** means the host name differs from the certificate — use the name shown there.
 
 ``ldaps://`` URLs are verified against a CA certificate. The usual way is the
 **CA certificate** field of the directory server (upload in the admin, see above): it

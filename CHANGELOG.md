@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- *Test connection* names the cause when an `ldaps://` connection fails instead of libldap's "Can't contact LDAP server": port not reachable, certificate not trusted (wrong or missing CA), or certificate issued for another name (IP address instead of the host name). The help text of *Hosts* and the docs say that with TLS the host name from the certificate is needed.
+
 ## [0.3.1] - 2026-11-11
 
 No migrations.

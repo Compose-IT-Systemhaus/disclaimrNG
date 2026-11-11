@@ -91,7 +91,7 @@ docker compose up -d --build
 
 Um statt eines lokalen Builds ein veröffentlichtes Image zu nutzen, setze in der
 ``.env`` ``DISCLAIMR_IMAGE`` (z. B.
-``ghcr.io/compose-it-systemhaus/disclaimrng:0.3.0``) und
+``ghcr.io/compose-it-systemhaus/disclaimrng:0.3.1``) und
 ``DISCLAIMR_PULL_POLICY=missing``. Dann aktualisierst du so:
 
 ```bash

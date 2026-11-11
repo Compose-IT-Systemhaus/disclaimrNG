@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile
     # Built from this checkout by default. To run a published release instead,
-    # set DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.3.0 and
+    # set DISCLAIMR_IMAGE=ghcr.io/compose-it-systemhaus/disclaimrng:0.3.1 and
     # DISCLAIMR_PULL_POLICY=missing in .env (see .env.example).
     image: ${DISCLAIMR_IMAGE:-ghcr.io/compose-it-systemhaus/disclaimrng:dev}
     pull_policy: ${DISCLAIMR_PULL_POLICY:-build}

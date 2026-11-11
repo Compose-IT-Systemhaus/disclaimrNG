@@ -136,7 +136,7 @@ docker compose exec web mypy disclaimr disclaimrwebadmin
 docker compose logs web | grep -A3 -i password               # Admin-Passwort nach Erststart
 ```
 
-CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite), `e2e` (siehe unten), `docker` (Build; bei PRs Smoke-Import, bei master-Push Push nach GHCR).
+CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite, im Container `python:3.12-bookworm` — Pakete von Debian statt GitHubs Ubuntu-Spiegel), `e2e` (siehe unten), `docker` (Build; bei PRs Smoke-Import, bei master-Push Push nach GHCR).
 
 ## Historie (gemergte PRs)
 

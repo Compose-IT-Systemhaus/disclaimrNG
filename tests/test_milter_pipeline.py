@@ -714,3 +714,19 @@ def test_active_directory_search_references_do_not_hide_the_sender(db):
 
     assert resolved
     assert attributes == {"displayname": "Alice Example", "title": "CEO"}
+
+
+def test_two_blank_lines_separate_the_signature_from_the_text(db):
+    _setup_rule(text="Alice\nCEO")
+    workflow = _send(_connected_helper(), _PLAIN_8BIT, [b"Hello\n\nKind regards\n"])
+    assert "Kind regards\r\n\r\n\r\nAlice\r\nCEO" in workflow["repl_body"]
+
+
+def test_text_signature_in_html_starts_after_two_line_breaks(db):
+    _setup_rule(text="Alice")
+    headers, body = _split_mime(MIMEText("<p>Kind regards</p>", "html", "utf-8"))
+    workflow = _send(_connected_helper(), headers, [body])
+    rebuilt = email.message_from_string(
+        "\n".join(f"{k}: {v}" for k, v in headers) + "\n\n" + workflow["repl_body"]
+    )
+    assert "<p><br><br>Alice</p>" in MilterHelper.decode_mail(rebuilt)[1]

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- *Add a disclaimer string to the body* puts two blank lines between the message and the signature, so the name no longer sits right under the greeting. Trailing blank lines of the message are folded into these two. In HTML parts a plaintext signature starts after two line breaks; an HTML signature keeps its own spacing.
+
 ## [0.3.2] - 2026-11-11
 
 No migrations.

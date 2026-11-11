@@ -156,8 +156,9 @@ The *Signature test* page lists every checked condition with its result.
 The **Action** inline picks the disclaimer and how to merge it:
 
 - **Add a disclaimer string to the body** — appends to the existing
-  body. For HTML mails the disclaimer is parsed and inserted before
-  ``</body>``.
+  body, after two blank lines (in HTML parts with a plaintext signature:
+  two line breaks; an HTML signature brings its own spacing). For HTML
+  mails the disclaimer is parsed and inserted before ``</body>``.
 - **Replace a tag in the body with a disclaimer string** — handy for
   templates where the user puts a literal ``#DISCLAIMER#`` placeholder
   in their drafted mail.

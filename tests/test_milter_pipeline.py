@@ -7,7 +7,7 @@ import importlib.util
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -679,3 +679,38 @@ def test_skipped_action_attaches_nothing(logo):
     _setup_rule(html='<p>{image["logo"]} {missing}</p>', html_use_text=False, template_fail=True)
     workflow = _send(_connected_helper(), _HTML_HEADERS, ["<p>Hello</p>\n"])
     assert not _rebuilt(_HTML_HEADERS, workflow).is_multipart()
+
+
+def test_active_directory_search_references_do_not_hide_the_sender(db):
+    """A search on the AD domain root returns the user plus references (dn None) to other
+    partitions; they used to count as further results and the attributes were dropped."""
+    server = models.DirectoryServer.objects.create(
+        name="AD",
+        flavor=constants.DIR_FLAVOR_AD,
+        base_dn="DC=intern,DC=example,DC=com",
+        search_query=constants.DIR_FLAVOR_DEFAULT_QUERY[constants.DIR_FLAVOR_AD],
+        auth=constants.DIR_AUTH_NONE,
+        enable_cache=False,
+    )
+    models.DirectoryServerURL.objects.create(directory_server=server, url="ldaps://dc1", position=0)
+    _setup_rule(text='{resolver["displayName"]}\n{resolver["title"]}')
+    action = models.Action.objects.get()
+    action.directory_servers.add(server)
+    action.resolve_sender = True
+    action.save()
+
+    conn = MagicMock()
+    conn.search_s.return_value = [
+        ("CN=Alice,OU=Users,DC=intern,DC=example,DC=com",
+         {"displayName": [b"Alice Example"], "title": [b"CEO"]}),
+        (None, ["ldaps://DomainDnsZones.intern.example.com/DC=DomainDnsZones,DC=intern"]),
+        (None, ["ldaps://ForestDnsZones.intern.example.com/DC=ForestDnsZones,DC=intern"]),
+        (None, ["ldaps://intern.example.com/CN=Configuration,DC=intern"]),
+    ]  # fmt: skip
+    helper = _connected_helper()
+    helper.mail_from("alice@example.com", {})
+    with patch.object(milter_helper, "open_connection", return_value=conn):
+        resolved, attributes = helper._lookup_sender(action)
+
+    assert resolved
+    assert attributes == {"displayname": "Alice Example", "title": "CEO"}

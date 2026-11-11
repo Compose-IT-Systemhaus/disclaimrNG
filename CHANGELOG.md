@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Active Directory: `{resolver[…]}` placeholders stayed empty and directory conditions never held when the base DN is the domain root (`DC=…,DC=…`). AD answers such a search with the user *and* references to `DomainDnsZones`, `ForestDnsZones` and `Configuration`; these were counted as further results, so the sender looked ambiguous and its attributes were dropped. References are now ignored.
+
 ## [0.3.1] - 2026-11-11
 
 No migrations.

@@ -867,9 +867,13 @@ class MilterHelper:
                 return None
 
             try:
-                return conn.search_s(
+                results = conn.search_s(
                     directory_server.base_dn, ldap.SCOPE_SUBTREE, query, attrlist
                 )
+                # Active Directory adds search references (dn None) to DomainDnsZones,
+                # ForestDnsZones and Configuration when the base is the domain root; they
+                # are no entries, and counting them made every sender look ambiguous.
+                return [entry for entry in results if entry[0] is not None]
             except ldap.SERVER_DOWN:
                 syslog.warning("Cannot reach server %s. Skipping.", url)
             except ldap.TIMEOUT:

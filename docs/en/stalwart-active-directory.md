@@ -4,11 +4,11 @@ Step by step: outgoing mail that users submit through **Stalwart 1.0** gets a
 signature with data from **Active Directory**. Stalwart and disclaimrNG run as
 Docker containers on the **same host**.
 
-> **Status and limits.** Written against the Stalwart 1.0 documentation
-> (as of 4 Nov 2026) and the Stalwart source code. The procedure has **not** yet
-> been run against a live Stalwart instance, so the acceptance test in
-> [Step 8](#step-8-acceptance-test) is mandatory. If a menu or field name in
-> Stalwart differs, check the [Stalwart docs](https://stalw.art/docs/).
+> **Status.** Tested on 11 Nov 2026 with Stalwart 1.0, an Active Directory with
+> LDAPS and an internal CA, and real mailboxes (disclaimrNG 0.3.3). Still run the
+> acceptance test in [Step 8](#step-8-acceptance-test) on your setup. If a menu or
+> field name differs in a newer Stalwart, check the
+> [Stalwart docs](https://stalw.art/docs/).
 
 ## 0. Overview
 
@@ -109,9 +109,13 @@ LDAPS or signing for simple binds.
 1. Export the **root CA certificate** that issued the DC certificates,
    Base-64 encoded (PEM), e.g. via `certlm.msc` → *Trusted Root Certification
    Authorities* → certificate → *All Tasks → Export*. If there are intermediate
-   CAs, append them to the same file. Alternative on the CA server:
-   `certutil -ca.cert ca.cer`, then
-   `openssl x509 -inform der -in ca.cer -out ad-ca.pem`.
+   CAs, append them to the same file. Alternative in PowerShell on the CA server
+   (the quotes matter, PowerShell splits `-ca.cert` otherwise):
+   `certutil '-ca.cert' C:\Temp\ca.cer`, or on any domain member
+   `certutil -store Root "<CA name>" C:\Temp\ca.cer`; then
+   `certutil -encode C:\Temp\ca.cer C:\Temp\ad-ca.pem`. It has to be the **CA's**
+   certificate (issuer of the DC certificate), not the DC certificate itself — the
+   most common mistake in the live test.
 2. Put the file on the Docker host:
 
    ```bash
@@ -271,7 +275,7 @@ Stalwart has to trust the domain controllers' certificate. How Stalwart picks up
 cd /opt
 git clone https://github.com/Compose-IT-Systemhaus/disclaimrNG.git disclaimrng
 cd disclaimrng
-git checkout master            # until a release contains compose.stalwart.yml, then use its tag
+git checkout v0.3.3            # the latest release tag
 cp .env.example .env
 chmod 600 .env
 ```
@@ -473,8 +477,10 @@ only the AD part of the signature is missing (the whole signature, depending on
 |---|---|
 | Client gets `451 4.3.5` when sending | Milter unreachable or crashed. `docker compose … ps` (healthy?), the network test from Step 4.1, `host` in Stalwart = `disclaimrng-milter`? Check `docker compose … logs milter` for `Unhandled error`. |
 | Mail goes through but **without** a signature | (1) Milter not active in Stalwart: `enable` only matches signed-in sessions. (2) No rule matches: try the **Signature test** with sender/recipient. (3) The recipient regex matches no recipient. (4) "fail when unable to resolve" is on and the AD lookup failed. |
-| Signature without AD data (empty fields) | The sender is not found in AD: is `mail` set on the user? Alias address? Then extend `SEARCH_QUERY` (Step 4). In the milter log: `Cannot resolve email …`. |
-| **Test connection**: `unreachable` / `ldap error` | Network/port 636, host name in the certificate, CA not trusted. Check `docker compose … logs web \| grep LDAPS` (must show `trusting the CA`) and `docker compose … exec web ls -l /etc/ssl/ad` (is `ad-ca.pem` there? exact file name, readable for user 1000?). |
+| Signature without AD data (empty fields) | The sender is not found in AD: is `mail` set on the user? Alias address? Then extend `SEARCH_QUERY` (Step 4). In the milter log: `Cannot resolve email …`. Before 0.3.2 a base DN on the domain root (`DC=…,DC=…`) always gave empty fields (`Multiple results found` in the log) — update. |
+| **Test connection**: `certificate not trusted` | The uploaded/mounted file is not the certificate of the CA that issued the DC certificate (Step 1.3). |
+| **Test connection**: `the certificate is not issued for …` | *Hosts* holds the IP address or a short name; enter the FQDN from the DC certificate (`dc1.corp.example.com`). |
+| **Test connection**: `unreachable` / `ldap error` (before 0.3.2 also for certificate problems) | Network/port 636, host name in the certificate, CA not trusted. Check `docker compose … logs web \| grep LDAPS` (must show `trusting the CA`) and `docker compose … exec web ls -l /etc/ssl/ad` (is `ad-ca.pem` there? exact file name, readable for user 1000?). |
 | **Test connection**: `invalid credentials` | Bind DN/password of `svc-disclaimr`; quote special characters in the password in `.env` if needed. |
 | Stalwart: sign-in with an AD user fails | `filterLogin` too strict (account disabled, no `mail`/UPN?), wrong `bindDn`/password, CA not trusted (Step 3.4). `docker logs stalwart` shows the LDAP message. |
 | After switching to AD nobody gets into the WebUI as admin | Set a recovery administrator (`STALWART_RECOVERY_ADMIN`, see Step 3.2) and give the AD account the administrator role. |

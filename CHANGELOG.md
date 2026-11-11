@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- *Test connection* names the cause when an `ldaps://` connection fails instead of libldap's "Can't contact LDAP server": port not reachable, certificate not trusted (wrong or missing CA), or certificate issued for another name (IP address instead of the host name). The help text of *Hosts* and the docs say that with TLS the host name from the certificate is needed.
+
 ### Fixed
 - Active Directory: `{resolver[…]}` placeholders stayed empty and directory conditions never held when the base DN is the domain root (`DC=…,DC=…`). AD answers such a search with the user *and* references to `DomainDnsZones`, `ForestDnsZones` and `Configuration`; these were counted as further results, so the sender looked ambiguous and its attributes were dropped. References are now ignored.
+- *Discover attributes* reported "search returned no entries" on Active Directory: the search stops after five entries, and python-ldap dropped the entries already received when the size limit hit. It now keeps them and samples persons (`objectClass=person`, no computer accounts) instead of any object.
 
 ## [0.3.1] - 2026-11-11
 

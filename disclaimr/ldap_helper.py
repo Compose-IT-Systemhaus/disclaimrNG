@@ -10,10 +10,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+import socket
+import ssl
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 import ldap
 
@@ -105,6 +108,50 @@ def _bind(directory_server: DirectoryServer, url: str):
     return conn
 
 
+# OpenSSL verify codes for a certificate that is fine but issued for another name / IP.
+_NAME_MISMATCH = {62, 64}
+
+
+def tls_problem(directory_server: DirectoryServer, url: str) -> str | None:
+    """Why an ``ldaps://`` connection fails, in words — or ``None`` if TLS itself works.
+
+    libldap reports every TLS failure as "Can't contact LDAP server". This repeats the
+    handshake with Python's ``ssl`` and the same trust (the server's stored CA, else
+    ``LDAPTLS_CACERT``, else the system store) to name the cause.
+    """
+    parts = urlsplit(url)
+    host, port = parts.hostname or "", parts.port or 636
+    pem = directory_server.ca_certificate
+    try:
+        if pem:
+            context = ssl.create_default_context(cadata=pem)
+        else:
+            context = ssl.create_default_context(cafile=os.environ.get("LDAPTLS_CACERT"))
+    except (ssl.SSLError, ValueError, OSError) as exc:
+        return f"the CA certificate cannot be used: {exc}"
+    try:
+        sock = socket.create_connection((host, port), LDAP_TIMEOUT)
+    except OSError as exc:
+        return f"port {port} on {host} not reachable: {exc}"
+    try:
+        with context.wrap_socket(sock, server_hostname=host):
+            return None
+    except ssl.SSLCertVerificationError as exc:
+        if exc.verify_code in _NAME_MISMATCH:
+            return (
+                f"the certificate is not issued for {host} — enter the host name from the "
+                "certificate (not the IP address)"
+            )
+        return (
+            f"certificate not trusted ({exc.verify_message}) — upload the certificate of "
+            "the CA that issued the server certificate"
+        )
+    except (ssl.SSLError, OSError) as exc:
+        return f"TLS handshake failed: {exc}"
+    finally:
+        sock.close()
+
+
 def test_connection(
     directory_server: DirectoryServer, urls: list[str] | None = None
 ) -> TestResult:
@@ -124,7 +171,8 @@ def test_connection(
         try:
             conn = _bind(directory_server, url)
         except ldap.SERVER_DOWN as exc:
-            probes.append(URLProbe(url=url, ok=False, detail=f"unreachable: {exc}"))
+            problem = tls_problem(directory_server, url) if url.lower().startswith("ldaps://") else None
+            probes.append(URLProbe(url=url, ok=False, detail=problem or f"unreachable: {exc}"))
             continue
         except ldap.INVALID_CREDENTIALS:
             probes.append(URLProbe(url=url, ok=False, detail="invalid credentials"))
@@ -157,6 +205,32 @@ def test_connection(
     return TestResult(ok=overall, probes=probes, summary=summary)
 
 
+# Users; in Active Directory computer accounts are persons too.
+_PEOPLE = "(&(objectClass=person)(!(objectClass=computer)))"
+
+
+def _sample_people(conn, base_dn: str, size: int) -> list:
+    """Up to ``size`` person entries under ``base_dn``.
+
+    ``search_ext_s`` throws away the entries it already received when the size limit
+    hits — and with thousands of objects in an AD it always does — so collect them one
+    by one. Persons, because the vocabulary is for user attributes, not containers.
+    """
+    msgid = conn.search_ext(
+        base_dn, ldap.SCOPE_SUBTREE, _PEOPLE, sizelimit=size
+    )
+    entries: list = []
+    try:
+        while True:
+            rtype, data, *_ = conn.result3(msgid, all=0, timeout=LDAP_TIMEOUT)
+            entries.extend(data)
+            if rtype == ldap.RES_SEARCH_RESULT:
+                break
+    except ldap.SIZELIMIT_EXCEEDED:
+        pass
+    return entries
+
+
 def discover_attributes(
     directory_server: DirectoryServer, sample_size: int = 5
 ) -> AttributeDiscoveryResult:
@@ -181,14 +255,7 @@ def discover_attributes(
             continue
 
         try:
-            results = conn.search_ext_s(
-                directory_server.base_dn,
-                ldap.SCOPE_SUBTREE,
-                "(objectClass=*)",
-                sizelimit=sample_size,
-            )
-        except ldap.SIZELIMIT_EXCEEDED as exc:
-            results = getattr(exc, "args", [{}])[0].get("results", [])
+            results = _sample_people(conn, directory_server.base_dn, sample_size)
         except ldap.NO_SUCH_OBJECT:
             last_error = f"{url}: base DN not found"
             conn.unbind_s()
@@ -221,6 +288,6 @@ def discover_attributes(
                 attributes=sorted(attrs, key=str.lower),
                 sample_dn=sample_dn,
             )
-        last_error = f"{url}: search returned no entries"
+        last_error = f"{url}: no person entries found under {directory_server.base_dn}"
 
     return AttributeDiscoveryResult(ok=False, detail=last_error or "All URLs failed.")

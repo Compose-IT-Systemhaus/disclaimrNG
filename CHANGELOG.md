@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-11
+
+Migration `0009` runs on start-up (signature formatting). Existing signatures keep their settings; to design one in the visual editor, turn off *use text part* in the HTML part and turn on *create the text part from the HTML part*.
+
 ### Added
 - Visual signature editor: the HTML part's toolbar now has font, font size, line height, text colour, tables and a horizontal line (mail-safe fonts plus Calibri and Segoe UI, each with a fallback). Formatting is stored as inline styles.
 - Default font and font size per signature (*Formatting*): HTML signatures are sent inside a `<div>` with that font, also shown in the editor and the preview.
 - *Create the text part from the HTML part*: the text part is generated from the HTML when saving (placeholders stay, images are left out). New signatures start with it on and the HTML part designed in the *Visual* tab, which is now the default tab of the HTML editor.
 
 ### Changed
+- The Stalwart/Active Directory runbook is confirmed by a live test (Stalwart 1.0, AD with LDAPS and an internal CA, real mailboxes) and explains the CA export and the connection test messages.
 - HTML signatures added by *Add a disclaimer string to the body* now also start after two line breaks, inside a `<div>` (before only plaintext signatures in HTML parts had the gap).
 
 ## [0.3.3] - 2026-11-11
@@ -131,7 +136,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.0...v0.3.1

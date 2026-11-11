@@ -1,6 +1,6 @@
 # CLAUDE.md — disclaimrNG
 
-Projektkontext für Claude Code. Stand: 2026-11-11 (letzter gemergter PR: #65).
+Projektkontext für Claude Code. Stand: 2026-11-11 (letzter gemergter PR: #69).
 
 ## User & Arbeitsweise
 
@@ -109,7 +109,7 @@ Projektkontext für Claude Code. Stand: 2026-11-11 (letzter gemergter PR: #65).
 - **Eigene Admin-Views** (`directory_server`, `preview`, `signature_test`) prüfen Modellrechte über `views/permissions.py::staff_with_perm`, nicht nur `is_staff`; `signature_image` prüft `add_signatureimage` und validiert die Datei als Bild. Tests dafür brauchen einen Superuser oder gezielte Rechte.
 - **`/media/` wird immer von Django ausgeliefert** (`disclaimrweb/urls.py`, `serve`), auch ohne `DEBUG` — die Bilder gehen per Mail an Empfänger ohne Login. Bei viel Bild-Traffic einen Proxy davor setzen.
 - Der Milter-Port wird nur auf `${MILTER_BIND:-127.0.0.1}` veröffentlicht (kein Auth im Protokoll, ein Fork pro Verbindung). `DJANGO_SECURE_COOKIES=true` (in `compose.traefik.yml` gesetzt) schaltet Secure-Cookies und `X-Forwarded-Proto` ein.
-- **Compose:** Das Image kommt aus `${DISCLAIMR_IMAGE:-…:dev}` mit `${DISCLAIMR_PULL_POLICY:-build}` (Standard: lokal bauen; für ein Release `DISCLAIMR_IMAGE=…:0.3.3` + `missing`). `WEB_BIND` steuert die Host-Adresse von Port 8000 in `compose.yml`. Der Milter mountet `/app/media` read-only (nur für eingebettete Bilder, s. u.). `compose.dev.yml` führt beim Start `migrate`, `compilemessages` und `bootstrap_admin` aus, bevor `runserver` startet — der Healthcheck bleibt bis dahin rot, der Milter wartet darauf. Traefik ist auf `v3.7` gepinnt (ältere Versionen vertragen sich nicht mit neuen Docker-Engines).
+- **Compose:** Das Image kommt aus `${DISCLAIMR_IMAGE:-…:dev}` mit `${DISCLAIMR_PULL_POLICY:-build}` (Standard: lokal bauen; für ein Release `DISCLAIMR_IMAGE=…:0.3.4` + `missing`). `WEB_BIND` steuert die Host-Adresse von Port 8000 in `compose.yml`. Der Milter mountet `/app/media` read-only (nur für eingebettete Bilder, s. u.). `compose.dev.yml` führt beim Start `migrate`, `compilemessages` und `bootstrap_admin` aus, bevor `runserver` startet — der Healthcheck bleibt bis dahin rot, der Milter wartet darauf. Traefik ist auf `v3.7` gepinnt (ältere Versionen vertragen sich nicht mit neuen Docker-Engines).
 - **Stalwart-Runbook:** `docs/{de,en}/stalwart-active-directory.md` (TOC-Slug `stalwart-active-directory`) beschreibt Stalwart 1.0 + AD; `compose.stalwart.yml` hängt den Milter als `disclaimrng-milter` ins externe Docker-Netz `mailnet`. Die private CA für `ldaps://` gilt für jedes Setup: `compose.yml`/`compose.traefik.yml` mounten `./certs` nach `/etc/ssl/ad` (read-only, nicht im Git), und `docker/entrypoint.sh` setzt `LDAPTLS_CACERT` auf `/etc/ssl/ad/ad-ca.pem`, wenn die Datei existiert und die Variable nicht schon gesetzt ist (nur für den Hauptprozess — `docker compose exec` sieht sie nicht). Stalwart ruft Milter nur bei der Einlieferung (kein Outbound-Filter), Stage `data`, `enable: authenticated_as != ''`; es sendet keine Queue-ID (`i`). Am 2026-11-11 live getestet (Stalwart 1.0, AD mit LDAPS und interner CA, echte Postfächer, v0.3.3). Der AD-Standardfilter hat zwei `%s` — `_lookup_sender` ersetzt alle (früher `TypeError`).
 - **Stalwart-Kompatibilität (gegen Doku und Quelltext `crates/smtp/src/inbound/milter` geprüft):** Stalwart bietet die Protokollmaske 66 an, also keine NR-Flags — jeder Befehl wird synchron beantwortet, python-libmilter regelt das beim Aushandeln. Es sendet `raw_body` (nur den Body, obwohl die Doku „Header inklusive“ sagt) und schreibt den Ersatz-Body **unverändert** in die Mail, deshalb liefert `eob()` den Body mit CRLF (`_NEWLINE_RE`). `ChangeHeader` zählt Vorkommen (Index 1 = erstes), `AddHeader` landet oben. Die Context7-Kopie der Stalwart-Doku ist älter (Feld `hostname`, in 1.0 heißt es `host`) — die offizielle 1.0-Referenz gilt.
 - **Verzeichnisserver-TLS:** `DirectoryServer.use_tls` (Standard an) bestimmt das Schema der URLs. Im Admin gibt es kein URL-Inline mehr: `DirectoryServerForm.hosts` (Block *Connection*, `host[:port]` je Zeile, eine eingefügte URL wird auf den Host gekürzt) und `DirectoryServerAdmin.save_model` schreibt die `DirectoryServerURL`-Zeilen bei jedem Speichern neu (`ldaps://` bei TLS, sonst `ldap://`, Reihenfolge = Failover). STARTTLS gibt es nicht. `ca_certificate` (PEM, im Admin als Upload oder Text) liegt in der DB, weil Milter und Web kein gemeinsames Dateisystem haben; `ldap_helper.open_connection(url, server)` schreibt sie in eine Datei im Temp-Verzeichnis (libldap liest CAs nur aus Dateien) und setzt `OPT_X_TLS_REQUIRE_CERT`, `OPT_X_TLS_CACERTFILE` und zuletzt `OPT_X_TLS_NEWCTX`. Ohne CA gilt der Container-Speicher/`LDAPTLS_CACERT`. Das Env-Bootstrap leitet `use_tls` aus den URLs ab und lässt ein hochgeladenes CA unangetastet. Der Button *Verbindung testen* sitzt neben den Speichern-Buttons (per JS in `#submit-row` eingefügt) und schickt das ungespeicherte Formular an `DirectoryServerTestView`, die `DirectoryServerForm` validiert und `test_connection(form.save(commit=False), form.urls())` aufruft — nichts wird gespeichert.
@@ -189,10 +189,14 @@ CI (`.github/workflows/ci.yml`): Jobs `lint` (ruff), `test` (pytest, SQLite, im 
 - Release `v0.3.2`
 - #65 Zwei Leerzeilen zwischen Nachricht und Signatur (Aktion „hinzufügen“)
 - Release `v0.3.3`
+- #67 Doku zum Live-Test (AD + Stalwart), Runbook bestätigt
+- #68 Visueller Signatur-Editor: Schriften, Standard-Schrift, Textteil aus HTML
+- #69 CI: `test`-Job im Container `python:3.12-bookworm`
+- Release `v0.3.4`
 
 ## Releases
 
-Release (zuletzt `v0.3.3`): Version in `pyproject.toml` (`X.Y.Z`) und `disclaimr.py` (`vX.Y.Z`) anheben, CHANGELOG ergänzen und als PR mergen, danach den Tag auf dem grünen `master` setzen (`git tag -a vX.Y.Z -m … && git push origin vX.Y.Z`). Der Tag löst den Image-Build mit Semver-Tags (CI) und das GitHub Release (`.github/workflows/release.yml`) aus; der Workflow bricht ab, wenn Tag und `pyproject.toml`-Version nicht übereinstimmen.
+Release (zuletzt `v0.3.4`): Version in `pyproject.toml` (`X.Y.Z`) und `disclaimr.py` (`vX.Y.Z`) anheben, CHANGELOG ergänzen und als PR mergen, danach den Tag auf dem grünen `master` setzen (`git tag -a vX.Y.Z -m … && git push origin vX.Y.Z`). Der Tag löst den Image-Build mit Semver-Tags (CI) und das GitHub Release (`.github/workflows/release.yml`) aus; der Workflow bricht ab, wenn Tag und `pyproject.toml`-Version nicht übereinstimmen.
 
 ## Live-Test 2026-11-11 (AD + Stalwart + Postfächer, v0.3.3)
 

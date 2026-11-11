@@ -17,11 +17,14 @@ Das Formular hat vier Abschnitte:
   - **Variante** — *LDAP* (vanilla OpenLDAP/389DS), *Active
     Directory* oder *Eigene*. AD/LDAP füllen sinnvolle Defaults für
     Suchanfrage und Attributliste; *Eigene* lässt sie leer.
+  - **Hosts** — Hostname oder IP-Adresse des Servers, optional mit
+    ``:Port``, z. B. ``dc1.acme.com``. Einer pro Zeile; weitere Zeilen werden
+    der Reihe nach versucht, wenn der erste nicht antwortet. Die URL baut
+    disclaimrNG selbst.
+  - **Verbindung verschlüsseln (TLS)** — standardmäßig an: ``ldaps://``
+    (Port 636). Aus: ``ldap://`` (Port 389), und alles — auch das
+    Bind-Passwort — läuft unverschlüsselt.
   - **Base DN** — z. B. ``dc=acme,dc=com``.
-  - **Verbindung verschlüsseln (TLS)** — standardmäßig an: ``ldaps://``-URLs
-    verwenden (Port 636). Aus: ``ldap://``-URLs (Port 389), und alles —
-    auch das Bind-Passwort — läuft unverschlüsselt. Das URL-Schema muss
-    dazu passen; das Formular meldet es, wenn nicht.
   - **CA-Zertifikatsdatei** / **CA-Zertifikat** — nur mit TLS. PEM-Datei
     der CA, die das Serverzertifikat ausgestellt hat, hochladen (oder den
     PEM-Text einfügen). Sie liegt in der Datenbank und gilt für diesen Server,
@@ -38,20 +41,18 @@ Das Formular hat vier Abschnitte:
     (``cn, mail, telephoneNumber, …``). Leer = Variante-Defaults.
 - **Cache** — Milter-seitiger Query-Cache; Default an, 1 Stunde TTL.
 
-Im Inline unten mindestens eine **URL** eintragen — z. B.
-``ldaps://dc1.acme.com``. Mehrere URLs werden bei Failure in
-Reihenfolge probiert (HA).
-
 ## Test-Connection und Discover-Attributes Buttons
 
-Im Change-Form (pro Server) liegen zwei Buttons über dem Formular:
+- **Verbindung testen** (neben den Speichern-Buttons) — probiert jeden Host
+  mit den Werten, die gerade im Formular stehen, auch vor dem ersten Speichern,
+  und zeigt das Ergebnis pro URL über den Buttons: ``bind + base search ok``,
+  ``unreachable: …``, ``invalid credentials``, ``base DN not found``,
+  ``ldap error: …``. Gespeichert wird dabei nichts.
+- **Attribute ermitteln** (über dem Formular, nur bei gespeicherten Servern) —
+  sampelt fünf echte Einträge unter dem Base-DN und liefert die Vereinigung
+  der gefundenen Attributnamen. Damit kann man bequem die *Attributliste* befüllen.
 
-- **Test connection** — bindet an jede konfigurierte URL und meldet
-  pro URL das Ergebnis (``bind ok``, ``unreachable: …``, ``invalid
-  credentials``, ``base DN not found``, ``ldap error: …``).
-- **Discover attributes** — sampelt fünf echte Einträge unter dem
-  Base-DN und liefert die Vereinigung der gefundenen Attributnamen.
-  Damit kann man bequem die *Attributliste* befüllen.
+Zum Bearbeiten eines Servers in der Liste auf den Namen oder den Stift klicken.
 
 Beide Buttons sind admin-only und POST-only (CSRF-geschützt).
 

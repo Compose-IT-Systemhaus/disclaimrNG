@@ -18,11 +18,13 @@ The form has four sections:
     or *Custom*. Picking AD or LDAP fills in sensible defaults for
     the search query and attribute vocabulary; *Custom* leaves them
     blank.
+  - **Hosts** — host name or IP address of the server, optionally with
+    ``:port``, e.g. ``dc1.acme.com``. One per line; further lines are tried
+    in order if the first does not answer. disclaimrNG builds the URL itself.
+  - **Encrypt the connection (TLS)** — on by default: ``ldaps://``
+    (port 636). Off: ``ldap://`` (port 389), and everything — including the
+    bind password — travels unencrypted.
   - **Base DN** — e.g. ``dc=acme,dc=com``.
-  - **Encrypt the connection (TLS)** — on by default: use ``ldaps://``
-    URLs (port 636). Off: ``ldap://`` URLs (port 389), and everything —
-    including the bind password — travels unencrypted. The URL scheme must
-    match; the form tells you when it does not.
   - **CA certificate file** / **CA certificate** — only with TLS. Upload a
     PEM file (or paste the PEM text) of the CA that signed the server
     certificate. It is stored in the database and used for this server by
@@ -41,20 +43,18 @@ The form has four sections:
 - **Cache** — milter-side query cache; on by default with a 1-hour
   TTL.
 
-Add at least one **URL** in the inline at the bottom — e.g.
-``ldaps://dc1.acme.com``. Multiple URLs are tried in order on
-failure for HA.
-
 ## Test-connection and discover-attributes buttons
 
-In the change form (per server), two buttons live above the form:
+- **Test connection** (next to the save buttons) — tries every host with
+  the values currently in the form, also before the server is saved, and
+  shows the outcome per URL above the buttons: ``bind + base search ok``,
+  ``unreachable: …``, ``invalid credentials``, ``base DN not found``,
+  ``ldap error: …``. Nothing is saved.
+- **Discover attributes** (above the form, saved servers only) — samples
+  five real entries under the base DN and returns the union of attribute
+  names found. Use the result to populate the *Attribute vocabulary* field.
 
-- **Test connection** — binds to every configured URL and reports
-  the per-URL outcome (``bind ok``, ``unreachable: …``, ``invalid
-  credentials``, ``base DN not found``, ``ldap error: …``).
-- **Discover attributes** — samples five real entries under the base
-  DN and returns the union of attribute names found. Use the result
-  to populate the *Attribute vocabulary* field.
+To edit a server, click its name or the pencil in the list.
 
 Both buttons are admin-only and POST-only (CSRF-protected).
 

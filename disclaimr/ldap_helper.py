@@ -105,15 +105,22 @@ def _bind(directory_server: DirectoryServer, url: str):
     return conn
 
 
-def test_connection(directory_server: DirectoryServer) -> TestResult:
-    """Try to bind to every configured URL and report the result of each."""
-    urls = list(directory_server.directoryserverurl_set.order_by("position"))
+def test_connection(
+    directory_server: DirectoryServer, urls: list[str] | None = None
+) -> TestResult:
+    """Try to bind to every URL and report the result of each.
+
+    ``urls`` defaults to the saved ones; the admin passes those of an unsaved form.
+    """
+    if urls is None:
+        urls = [
+            u.url for u in directory_server.directoryserverurl_set.order_by("position")
+        ]
     if not urls:
         return TestResult(ok=False, summary="No URLs configured.")
 
     probes: list[URLProbe] = []
-    for entry in urls:
-        url = entry.url
+    for url in urls:
         try:
             conn = _bind(directory_server, url)
         except ldap.SERVER_DOWN as exc:

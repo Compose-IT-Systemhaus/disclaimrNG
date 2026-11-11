@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Directory servers: the URL inline at the bottom of the form is replaced by a **Hosts** field in the *Connection* block. Enter host name or IP (optionally `:port`), one per line for failover; the `ldap://`/`ldaps://` URL follows the TLS switch. Existing URLs are shown as hosts and kept as they are until the server is saved.
+- Directory servers: **Test connection** moved next to the save buttons and tests the values in the form (reachability, bind credentials, base DN) — also before the first save, without saving. The list has a pencil column to open a server for editing.
+
 ## [0.3.0] - 2026-11-06
 
 New migrations run on start-up (`0008` and the tables of `django-allauth`). The roles Admins, Editor and Reader are created automatically. Single sign-on stays off until the `OIDC_*` variables are set; see the new documentation page *Single sign-on (OIDC)* — the sign-in round trip has not been tested against a live Authentik yet.

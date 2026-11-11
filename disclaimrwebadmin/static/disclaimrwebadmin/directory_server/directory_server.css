@@ -84,3 +84,8 @@
 .directory-server-actions__output.is-pending {
     color: var(--dz-text-muted);
 }
+
+/* Result of the test button next to the save buttons. */
+.directory-server-test-output {
+    margin: 1rem 0;
+}

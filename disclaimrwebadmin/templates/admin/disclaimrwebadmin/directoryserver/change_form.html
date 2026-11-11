@@ -4,7 +4,8 @@
 {% block field_sets %}
     <div class="directory-server-actions"
          data-object-id="{{ original.pk|default_if_none:'' }}"
-         data-test-url-template="{% url 'disclaimrwebadmin:directoryserver-test' 0 %}"
+         data-test-url="{% url 'disclaimrwebadmin:directoryserver-test' %}"
+         data-test-label="{% translate 'Test connection' %}"
          data-attributes-url-template="{% url 'disclaimrwebadmin:directoryserver-attributes' 0 %}"
          data-flavor-defaults="{{ flavor_defaults }}">
         {% if original.pk %}
@@ -12,16 +13,10 @@
                 <span class="directory-server-actions__icon material-symbols-outlined" aria-hidden="true">lan</span>
                 <div>
                     <p class="directory-server-actions__title">{% translate "Connection tools" %}</p>
-                    <p class="directory-server-actions__hint">{% translate "Check the configured URLs or fill the attribute vocabulary from the directory." %}</p>
+                    <p class="directory-server-actions__hint">{% translate "Fill the attribute vocabulary from the directory. The connection test is next to the save buttons." %}</p>
                 </div>
             </div>
             <div class="directory-server-actions__buttons">
-                <button type="button"
-                        class="dz-btn directory-server-actions__test"
-                        data-action="test">
-                    <span class="material-symbols-outlined" aria-hidden="true">network_check</span>
-                    {% translate "Test connection" %}
-                </button>
                 <button type="button"
                         class="dz-btn directory-server-actions__discover"
                         data-action="discover">
@@ -34,7 +29,7 @@
             <div class="directory-server-actions__intro">
                 <span class="directory-server-actions__icon material-symbols-outlined" aria-hidden="true">info</span>
                 <p class="directory-server-actions__hint">
-                    {% translate "Save this directory server first to enable connection test and attribute discovery." %}
+                    {% translate "Save this directory server first to enable attribute discovery." %}
                 </p>
             </div>
         {% endif %}

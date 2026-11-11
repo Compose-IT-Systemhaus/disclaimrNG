@@ -4,8 +4,8 @@
  *  - Flavour preset auto-fill: changing the "flavour" select drops a default
  *    search query and attribute vocabulary into their fields, but only when
  *    those fields are still empty (so we never clobber an admin's edits).
- *  - "Test connection" button: POSTs to the test endpoint and renders the
- *    per-URL probe results.
+ *  - "Test connection" button next to the save buttons: POSTs the form as it is
+ *    (nothing is saved) and renders the per-URL probe results above the buttons.
  *  - "Discover attributes" button: POSTs to the attributes endpoint and
  *    drops the discovered attribute names into the search_attributes
  *    textarea (after confirming with the admin if it isn't empty).
@@ -34,14 +34,14 @@
         return template.replace(/\/0\//, `/${id}/`);
     }
 
-    async function postAction(url) {
-        const fd = new FormData();
-        fd.append("csrfmiddlewaretoken", csrfToken());
+    async function postAction(url, fd = new FormData()) {
+        fd.set("csrfmiddlewaretoken", csrfToken());
         const response = await fetch(url, {
             method: "POST",
             body: fd,
             credentials: "same-origin",
         });
+        if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
         return response.json();
     }
 
@@ -98,6 +98,41 @@
         }
     }
 
+    function addTestButton(root) {
+        const form = document.querySelector("#directoryserver_form");
+        const save = document.querySelector('#submit-row [name="_save"]');
+        if (!form || !save) return;
+
+        const button = document.createElement("button");
+        button.type = "button";
+        const next = document.querySelector('#submit-row [name="_continue"]') || save;
+        button.className = next.className;
+        button.innerHTML =
+            '<span class="material-symbols-outlined" aria-hidden="true">network_check</span>';
+        button.append(` ${root.dataset.testLabel}`);
+        // The row is flex-row-reverse: right after "Save" in the DOM is just left of it.
+        save.after(button);
+
+        const output = document.createElement("div");
+        output.className = "directory-server-actions__output directory-server-test-output";
+        output.hidden = true;
+        document.querySelector("#submit-row").before(output);
+
+        button.addEventListener("click", async () => {
+            setOutput(output, "pending", "…");
+            button.disabled = true;
+            try {
+                const fd = new FormData(form);
+                if (root.dataset.objectId) fd.set("_object_id", root.dataset.objectId);
+                renderTestResult(output, await postAction(root.dataset.testUrl, fd));
+            } catch (err) {
+                setOutput(output, "error", String(err));
+            } finally {
+                button.disabled = false;
+            }
+        });
+    }
+
     function init() {
         const root = document.querySelector(".directory-server-actions");
         if (!root) return;
@@ -130,11 +165,12 @@
             });
         }
 
+        addTestButton(root);
+
         const objectId = root.dataset.objectId;
         if (!objectId) return;
 
         const output = root.querySelector(".directory-server-actions__output");
-        const testUrl = buildUrl(root.dataset.testUrlTemplate, objectId);
         const attrsUrl = buildUrl(root.dataset.attributesUrlTemplate, objectId);
         const vocabField = getField("search_attributes");
 
@@ -143,10 +179,7 @@
                 setOutput(output, "pending", "Working…");
                 btn.disabled = true;
                 try {
-                    if (btn.dataset.action === "test") {
-                        const data = await postAction(testUrl);
-                        renderTestResult(output, data);
-                    } else if (btn.dataset.action === "discover") {
+                    if (btn.dataset.action === "discover") {
                         const data = await postAction(attrsUrl);
                         renderAttributes(output, data, vocabField);
                     }

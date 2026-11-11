@@ -39,7 +39,7 @@ urlpatterns = [
         name="docs-page",
     ),
     path(
-        "directoryserver/<int:pk>/test/",
+        "directoryserver/test/",
         DirectoryServerTestView.as_view(),
         name="directoryserver-test",
     ),

@@ -225,6 +225,7 @@ def test_embed_references_cid_and_collects_the_part(db):
     assert part.get_payload(decode=True) == _png_bytes()
 
 
+@override_settings(MEDIA_BASE_URL="https://signatures.example.com")
 def test_embed_only_applies_to_html_and_when_asked_for(db):
     _make_image("logo", embed=True)
     embedded: dict = {}

@@ -82,6 +82,10 @@ Standardmäßig wird ein Bild **verlinkt**: Die Mail enthält ein ``<img>`` auf
 ``MEDIA_BASE_URL``, das Mailprogramm des Empfängers lädt es von Ihrem Server (viele
 blockieren das, bis der Nutzer „Bilder laden“ klickt).
 
+Ohne ``MEDIA_BASE_URL`` (oder mit einer relativen Adresse) gibt es keine Adresse, die ein
+Empfänger laden könnte; dann wird jedes Bild eingebettet, mit oder ohne Haken, und im
+Plaintext weggelassen.
+
 Mit **In die Mail einbetten** am Bild wird es stattdessen an die Mail angehängt
 (``cid:``-Verweis, ``multipart/related``). Es erscheint sofort und braucht keinen
 Zugriff auf Ihren Server, dafür wird jede Mail um die Bildgröße größer. Eingebettet wird

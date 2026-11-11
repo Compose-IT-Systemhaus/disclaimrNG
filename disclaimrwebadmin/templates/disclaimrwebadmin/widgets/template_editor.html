@@ -5,24 +5,25 @@
      data-vocabulary-url="{{ widget.vocabulary_url }}"
      data-upload-url="{{ widget.upload_url }}"
      data-common-fields="{{ widget.common_fields_json }}"
-     data-i18n="{{ widget.i18n_json }}">
+     data-i18n="{{ widget.i18n_json }}"
+     data-fonts="{{ widget.fonts_json }}">
     <div class="template-editor__tabs" role="tablist">
-        <button type="button" class="template-editor__tab is-active"
-                data-tab="code" role="tab" aria-selected="true">{% translate "Code" %}</button>
         {% if widget.content_type == "text/html" %}
-        <button type="button" class="template-editor__tab"
-                data-tab="visual" role="tab" aria-selected="false">{% translate "Visual" %}</button>
+        <button type="button" class="template-editor__tab is-active"
+                data-tab="visual" role="tab" aria-selected="true">{% translate "Visual" %}</button>
         {% endif %}
+        <button type="button" class="template-editor__tab{% if widget.content_type != "text/html" %} is-active{% endif %}"
+                data-tab="code" role="tab" aria-selected="{% if widget.content_type == "text/html" %}false{% else %}true{% endif %}">{% translate "Code" %}</button>
         <button type="button" class="template-editor__tab"
                 data-tab="preview" role="tab" aria-selected="false">{% translate "Preview" %}</button>
     </div>
 
     <div class="template-editor__panes">
-        <div class="template-editor__pane is-active" data-pane="code">
+        <div class="template-editor__pane{% if widget.content_type != "text/html" %} is-active{% endif %}" data-pane="code">
             <div class="template-editor__monaco" data-target="{{ widget.attrs.id }}"></div>
         </div>
         {% if widget.content_type == "text/html" %}
-        <div class="template-editor__pane" data-pane="visual">
+        <div class="template-editor__pane is-active" data-pane="visual">
             <textarea class="template-editor__tinymce" data-target="{{ widget.attrs.id }}"></textarea>
         </div>
         {% endif %}

@@ -20,6 +20,7 @@ from unfold.widgets import (
 )
 
 from . import constants
+from .html_text import html_to_text
 from .models import (
     Action,
     DirectoryServer,
@@ -123,6 +124,9 @@ class DisclaimerForm(forms.ModelForm):
             "html",
             "html_charset",
             "html_use_template",
+            "font_family",
+            "font_size",
+            "text_from_html",
             "template_fail",
             "use_html_fallback",
         )
@@ -130,6 +134,19 @@ class DisclaimerForm(forms.ModelForm):
             "text": TemplateEditorWidget(content_type="text/plain"),
             "html": TemplateEditorWidget(content_type="text/html"),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Shown above the text part by disclaimer_form.js while the switch is on.
+        self.fields["text_from_html"].widget.attrs["data-hint"] = _(
+            "Generated from the HTML part when saving — changes here are overwritten."
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("text_from_html"):
+            cleaned["text"] = html_to_text(cleaned.get("html", ""))
+        return cleaned
 
 
 @admin.register(Disclaimer)
@@ -139,18 +156,9 @@ class DisclaimerAdmin(ModelAdmin):
     list_filter = ("tenant",)
     list_select_related = ("tenant",)
     autocomplete_fields = ("tenant",)
+    # The signature is designed in the HTML part; the text part usually follows from it.
     fieldsets = (
         (None, {"fields": ("tenant", "name", "description")}),
-        (
-            "Plaintext part",
-            {
-                "fields": (
-                    "text",
-                    "text_charset",
-                    "text_use_template",
-                ),
-            },
-        ),
         (
             "HTML part",
             {
@@ -163,8 +171,31 @@ class DisclaimerAdmin(ModelAdmin):
                 ),
             },
         ),
+        ("Formatting", {"fields": ("font_family", "font_size")}),
+        (
+            "Plaintext part",
+            {
+                "fields": (
+                    "text_from_html",
+                    "text",
+                    "text_charset",
+                    "text_use_template",
+                ),
+            },
+        ),
         ("Behaviour", {"fields": ("template_fail",)}),
     )
+
+    class Media:
+        js = ("disclaimrwebadmin/js/disclaimer_form.js",)
+
+    def get_changeform_initial_data(self, request):
+        # New signatures start in the HTML workflow; existing ones keep their setting.
+        return {
+            "html_use_text": False,
+            "text_from_html": True,
+            **super().get_changeform_initial_data(request),
+        }
 
 
 @admin.register(SignatureImage)

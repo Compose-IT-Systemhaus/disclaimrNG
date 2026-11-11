@@ -21,6 +21,8 @@ from django import forms
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
+from disclaimrwebadmin import constants
+
 # Common, human-named placeholder chips. Each entry maps a *display label*
 # (translatable) to the actual ``{resolver["..."]}`` token that should be
 # inserted. The labels here are what an operator naturally reaches for
@@ -95,5 +97,12 @@ class TemplateEditorWidget(forms.Textarea):
         # Same for the texts the JS renders itself.
         context["widget"]["i18n_json"] = json.dumps(
             {key: str(text) for key, text in _JS_TEXTS.items()}
+        )
+        # Font choices for the TinyMCE toolbar — the same list as the model's default font.
+        context["widget"]["fonts_json"] = json.dumps(
+            {
+                "families": [[name, stack] for name, stack in constants.SIGNATURE_FONTS],
+                "sizes": constants.SIGNATURE_FONT_SIZES,
+            }
         )
         return context

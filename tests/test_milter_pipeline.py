@@ -729,4 +729,4 @@ def test_text_signature_in_html_starts_after_two_line_breaks(db):
     rebuilt = email.message_from_string(
         "\n".join(f"{k}: {v}" for k, v in headers) + "\n\n" + workflow["repl_body"]
     )
-    assert "<p><br><br>Alice</p>" in MilterHelper.decode_mail(rebuilt)[1]
+    assert "<br><br>Alice</div>" in MilterHelper.decode_mail(rebuilt)[1]

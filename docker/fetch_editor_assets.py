@@ -51,6 +51,7 @@ TINYMCE_KEEP = (
     "plugins/link/",
     "plugins/lists/",
     "plugins/code/",
+    "plugins/table/",
 )
 
 

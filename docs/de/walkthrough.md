@@ -50,9 +50,8 @@ Sender-Adresse gehört.
    - **Passwort**: (Service-Account-Passwort)
 4. Anfrage-Block — AD-Defaults lassen
    (``(|(mail=%s)(userPrincipalName=%s))``).
-5. URL-Inline:
-   - **URL**: ``ldaps://dc1.example.com``
-   - Zweite URL für Failover: ``ldaps://dc2.example.com``
+5. **Hosts** (im Block Verbindung), einer pro Zeile für Failover:
+   ``dc1.example.com`` und ``dc2.example.com``
 6. Speichern.
 7. Auf der Change-Seite oben **Test connection** klicken — beide URLs
    sollten ``bind + base search ok`` melden.

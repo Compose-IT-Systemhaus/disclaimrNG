@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from disclaimr import ldap_helper
 from disclaimrwebadmin import constants
-from disclaimrwebadmin.models import DirectoryServer, validate_pem_certificate
+from disclaimrwebadmin.models import DirectoryServer, DirectoryServerURL, validate_pem_certificate
 
 # Throw-away self-signed certificate, only used to exercise the PEM handling.
 PEM = """-----BEGIN CERTIFICATE-----
@@ -49,7 +49,7 @@ def admin_client(db) -> Client:
     return client
 
 
-def _post(client, *, url, use_tls=True, extra=None):
+def _post(client, *, hosts, use_tls=True, extra=None, server=None):
     data = {
         "name": "AD",
         "description": "",
@@ -64,18 +64,21 @@ def _post(client, *, url, use_tls=True, extra=None):
         "search_attributes": "",
         "enable_cache": "on",
         "cache_timeout": 3600,
-        "directoryserverurl_set-TOTAL_FORMS": 1,
-        "directoryserverurl_set-INITIAL_FORMS": 0,
-        "directoryserverurl_set-MIN_NUM_FORMS": 1,
-        "directoryserverurl_set-MAX_NUM_FORMS": 1000,
-        "directoryserverurl_set-0-url": url,
-        "directoryserverurl_set-0-position": 0,
+        "hosts": hosts,
         "_save": "Save",
         **(extra or {}),
     }
     if use_tls:
         data["use_tls"] = "on"
-    return client.post(reverse("admin:disclaimrwebadmin_directoryserver_add"), data)
+    if server is None:
+        return client.post(reverse("admin:disclaimrwebadmin_directoryserver_add"), data)
+    return client.post(
+        reverse("admin:disclaimrwebadmin_directoryserver_change", args=[server.pk]), data
+    )
+
+
+def _urls() -> list[str]:
+    return list(DirectoryServerURL.objects.order_by("position").values_list("url", flat=True))
 
 
 def test_pem_validator_accepts_a_certificate_and_rejects_garbage():
@@ -87,7 +90,7 @@ def test_pem_validator_accepts_a_certificate_and_rejects_garbage():
 
 def test_uploaded_ca_is_stored_on_the_server(admin_client):
     upload = SimpleUploadedFile("ca.pem", PEM.encode(), content_type="application/x-pem-file")
-    response = _post(admin_client, url="ldaps://dc1", extra={"ca_certificate_file": upload})
+    response = _post(admin_client, hosts="dc1", extra={"ca_certificate_file": upload})
     assert response.status_code == 302, response.content.decode()[:500]
     server = DirectoryServer.objects.get()
     assert server.use_tls
@@ -96,25 +99,41 @@ def test_uploaded_ca_is_stored_on_the_server(admin_client):
 
 def test_upload_that_is_no_certificate_is_rejected(admin_client):
     upload = SimpleUploadedFile("ca.pem", b"hello", content_type="text/plain")
-    response = _post(admin_client, url="ldaps://dc1", extra={"ca_certificate_file": upload})
+    response = _post(admin_client, hosts="dc1", extra={"ca_certificate_file": upload})
     assert response.status_code == 200
     assert not DirectoryServer.objects.exists()
 
 
 @pytest.mark.parametrize(
-    ("use_tls", "url"),
-    [(True, "ldap://dc1"), (False, "ldaps://dc1")],
+    ("use_tls", "hosts", "urls"),
+    [
+        (True, "dc1.example.com\n\n10.0.0.2:3269", ["ldaps://dc1.example.com", "ldaps://10.0.0.2:3269"]),
+        (False, "dc1", ["ldap://dc1"]),
+        (True, "ldap://dc1:636/", ["ldaps://dc1:636"]),  # a pasted URL: TLS decides the scheme
+        (False, "[2001:db8::1]:389", ["ldap://[2001:db8::1]:389"]),
+    ],
 )
-def test_url_scheme_has_to_match_the_tls_setting(admin_client, use_tls, url):
-    response = _post(admin_client, url=url, use_tls=use_tls)
-    assert response.status_code == 200
+def test_hosts_become_urls_with_the_scheme_of_the_tls_switch(admin_client, use_tls, hosts, urls):
+    response = _post(admin_client, hosts=hosts, use_tls=use_tls)
+    assert response.status_code == 302, response.content.decode()[:500]
+    assert DirectoryServer.objects.get().use_tls == use_tls
+    assert _urls() == urls
+
+
+@pytest.mark.parametrize("hosts", ["", "dc1 dc2", "dc1:port", "ldaps://dc1/dc=example"])
+def test_bad_hosts_are_rejected(admin_client, hosts):
+    assert _post(admin_client, hosts=hosts).status_code == 200
     assert not DirectoryServer.objects.exists()
 
 
-def test_plain_ldap_without_tls_is_accepted(admin_client):
-    response = _post(admin_client, url="ldap://dc1", use_tls=False)
-    assert response.status_code == 302
-    assert not DirectoryServer.objects.get().use_tls
+def test_editing_shows_the_hosts_and_replaces_the_urls(admin_client):
+    _post(admin_client, hosts="dc1\ndc2:3269")
+    server = DirectoryServer.objects.get()
+    page = admin_client.get(reverse("admin:disclaimrwebadmin_directoryserver_change", args=[server.pk]))
+    assert "dc1\ndc2:3269" in page.content.decode().replace("\r\n", "\n")
+
+    assert _post(admin_client, hosts="dc3", use_tls=False, server=server).status_code == 302
+    assert _urls() == ["ldap://dc3"]
 
 
 def test_connection_uses_the_servers_ca_for_ldaps_only(db):

@@ -664,11 +664,20 @@ msgstr "PEM-Datei hochladen; sie ersetzt den CA-Zertifikat-Text darunter."
 msgid "Not a PEM certificate file."
 msgstr "Keine PEM-Zertifikatsdatei."
 
-msgid "TLS is on: use an ldaps:// URL (or turn TLS off)."
-msgstr "TLS ist an: eine ldaps://-URL verwenden (oder TLS ausschalten)."
+msgid "Hosts"
+msgstr "Hosts"
 
-msgid "TLS is off: use an ldap:// URL (or turn TLS on)."
-msgstr "TLS ist aus: eine ldap://-URL verwenden (oder TLS einschalten)."
+msgid ""
+"Host name or IP address of the server, optionally with :port (default 636 with "
+"TLS, 389 without). One per line; further lines are tried in order if the first "
+"does not answer."
+msgstr ""
+"Hostname oder IP-Adresse des Servers, optional mit :Port (Standard 636 mit TLS, "
+"389 ohne). Einer pro Zeile; weitere Zeilen werden der Reihe nach versucht, wenn "
+"der erste nicht antwortet."
+
+msgid "Not a host name or IP address (with optional :port): %(hosts)s"
+msgstr "Kein Hostname und keine IP-Adresse (mit optionalem :Port): %(hosts)s"
 
 # --- Logs ---------------------------------------------------------------------
 msgid "time"

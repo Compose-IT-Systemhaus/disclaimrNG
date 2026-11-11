@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 
-from adminsortable2.admin import CustomInlineFormSet, SortableAdminBase, SortableTabularInline
+from adminsortable2.admin import SortableAdminBase
 from django import forms
 from django.contrib import admin
 from django.template.defaultfilters import linebreaksbr
@@ -94,30 +95,6 @@ class TenantAdmin(ModelAdmin):
         if len(domains) <= 3:
             return ", ".join(domains)
         return f"{', '.join(domains[:3])} (+{len(domains) - 3} more)"
-
-
-class DirectoryServerURLFormSet(CustomInlineFormSet):
-    """The URL scheme has to match the server's TLS setting (ldaps:// iff TLS)."""
-
-    def clean(self):
-        super().clean()
-        for form in self.forms:
-            data = getattr(form, "cleaned_data", {})
-            url = data.get("url", "")
-            if not url or data.get("DELETE"):
-                continue
-            is_tls = url.lower().startswith("ldaps://")
-            if self.instance.use_tls and not is_tls:
-                form.add_error("url", _("TLS is on: use an ldaps:// URL (or turn TLS off)."))
-            elif not self.instance.use_tls and is_tls:
-                form.add_error("url", _("TLS is off: use an ldap:// URL (or turn TLS on)."))
-
-
-class DirectoryServerURLInline(SortableTabularInline, TabularInline):
-    model = DirectoryServerURL
-    formset = DirectoryServerURLFormSet
-    extra = 0
-    min_num = 1
 
 
 @admin.register(Rule)
@@ -212,7 +189,20 @@ class SignatureImageAdmin(ModelAdmin):
         )
 
 
+# host, IPv4 or [IPv6], optionally :port — what is left of an LDAP URL without scheme and path
+_HOST_RE = re.compile(r"^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9][A-Za-z0-9.-]*)(:\d{1,5})?$")
+
+
 class DirectoryServerForm(forms.ModelForm):
+    hosts = forms.CharField(
+        label=_("Hosts"),
+        widget=UnfoldAdminTextareaWidget(attrs={"rows": 2}),
+        help_text=_(
+            "Host name or IP address of the server, optionally with :port (default 636 with "
+            "TLS, 389 without). One per line; further lines are tried in order if the first "
+            "does not answer."
+        ),
+    )
     ca_certificate_file = forms.FileField(
         required=False,
         label=_("CA certificate file"),
@@ -247,6 +237,33 @@ class DirectoryServerForm(forms.ModelForm):
             "ca_certificate": UnfoldAdminTextareaWidget(attrs={"rows": 6}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial["hosts"] = "\n".join(
+                re.sub(r"^ldaps?://|/$", "", u.url)
+                for u in self.instance.directoryserverurl_set.all()
+            )
+
+    def clean_hosts(self) -> list[str]:
+        # A pasted URL is fine: the scheme comes from the TLS switch, the rest is checked.
+        hosts = [
+            re.sub(r"^ldaps?://|/$", "", line.strip(), flags=re.IGNORECASE)
+            for line in self.cleaned_data["hosts"].splitlines()
+            if line.strip()
+        ]
+        bad = [h for h in hosts if not _HOST_RE.match(h)]
+        if bad or not hosts:
+            raise forms.ValidationError(
+                _("Not a host name or IP address (with optional :port): %(hosts)s"),
+                params={"hosts": ", ".join(bad)},
+            )
+        return hosts
+
+    def urls(self) -> list[str]:
+        scheme = "ldaps" if self.cleaned_data.get("use_tls") else "ldap"
+        return [f"{scheme}://{host}" for host in self.cleaned_data["hosts"]]
+
     def clean(self):
         cleaned = super().clean()
         upload = cleaned.get("ca_certificate_file")
@@ -261,13 +278,12 @@ class DirectoryServerForm(forms.ModelForm):
 
 
 @admin.register(DirectoryServer)
-class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
+class DirectoryServerAdmin(ModelAdmin):
     list_display = ("name", "tenant", "flavor", "enabled", "base_dn")
     list_filter = ("tenant", "flavor", "enabled")
     list_select_related = ("tenant",)
     autocomplete_fields = ("tenant",)
     form = DirectoryServerForm
-    inlines = [DirectoryServerURLInline]
     change_form_template = "admin/disclaimrwebadmin/directoryserver/change_form.html"
     fieldsets = (
         (None, {"fields": ("tenant", "name", "description", "enabled")}),
@@ -276,8 +292,9 @@ class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
             {
                 "fields": (
                     "flavor",
-                    "base_dn",
+                    "hosts",
                     "use_tls",
+                    "base_dn",
                     "ca_certificate_file",
                     "ca_certificate",
                     "auth",
@@ -305,6 +322,14 @@ class DirectoryServerAdmin(SortableAdminBase, ModelAdmin):
         css = {
             "all": ("disclaimrwebadmin/directory_server/directory_server.css",),
         }
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        obj.directoryserverurl_set.all().delete()
+        DirectoryServerURL.objects.bulk_create(
+            DirectoryServerURL(directory_server=obj, url=url, position=i)
+            for i, url in enumerate(form.urls())
+        )
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         extra_context = extra_context or {}

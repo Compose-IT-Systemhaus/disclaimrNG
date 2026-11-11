@@ -18,11 +18,13 @@ The form has four sections:
     or *Custom*. Picking AD or LDAP fills in sensible defaults for
     the search query and attribute vocabulary; *Custom* leaves them
     blank.
+  - **Hosts** — host name or IP address of the server, optionally with
+    ``:port``, e.g. ``dc1.acme.com``. One per line; further lines are tried
+    in order if the first does not answer. disclaimrNG builds the URL itself.
+  - **Encrypt the connection (TLS)** — on by default: ``ldaps://``
+    (port 636). Off: ``ldap://`` (port 389), and everything — including the
+    bind password — travels unencrypted.
   - **Base DN** — e.g. ``dc=acme,dc=com``.
-  - **Encrypt the connection (TLS)** — on by default: use ``ldaps://``
-    URLs (port 636). Off: ``ldap://`` URLs (port 389), and everything —
-    including the bind password — travels unencrypted. The URL scheme must
-    match; the form tells you when it does not.
   - **CA certificate file** / **CA certificate** — only with TLS. Upload a
     PEM file (or paste the PEM text) of the CA that signed the server
     certificate. It is stored in the database and used for this server by
@@ -40,10 +42,6 @@ The form has four sections:
     flavour defaults.
 - **Cache** — milter-side query cache; on by default with a 1-hour
   TTL.
-
-Add at least one **URL** in the inline at the bottom — e.g.
-``ldaps://dc1.acme.com``. Multiple URLs are tried in order on
-failure for HA.
 
 ## Test-connection and discover-attributes buttons
 

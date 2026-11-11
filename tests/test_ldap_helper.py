@@ -71,12 +71,20 @@ def test_test_connection_handles_server_down(server):
     assert "unreachable" in primary_probe.detail
 
 
+def _answers(conn, entries, *, size_limited=False):
+    """Let ``conn`` hand out ``entries`` one result at a time, as python-ldap does."""
+    steps = [(ldap.RES_SEARCH_ENTRY, [entry], 1, []) for entry in entries]
+    steps.append(ldap.SIZELIMIT_EXCEEDED({}) if size_limited else (ldap.RES_SEARCH_RESULT, [], 1, []))
+    conn.search_ext.return_value = 1
+    conn.result3.side_effect = steps
+    return conn
+
+
 def test_discover_attributes_returns_sorted_union(server):
-    conn = MagicMock()
-    conn.search_ext_s.return_value = [
+    conn = _answers(MagicMock(), [
         ("cn=alice,dc=example,dc=com", {"cn": [b"Alice"], "mail": [b"a@x"]}),
         ("cn=bob,dc=example,dc=com", {"telephoneNumber": [b"+1"], "cn": [b"Bob"]}),
-    ]
+    ])
     with patch.object(ldap_helper.ldap, "initialize", return_value=conn):
         result = ldap_helper.discover_attributes(server)
     assert result.ok is True
@@ -84,19 +92,41 @@ def test_discover_attributes_returns_sorted_union(server):
         ["cn", "mail", "telephoneNumber"], key=str.lower
     )
     assert result.sample_dn.startswith("cn=alice")
+    args, kwargs = conn.search_ext.call_args
+    assert args[2] == "(&(objectClass=person)(!(objectClass=computer)))" and kwargs["sizelimit"] == 5
+
+
+def test_discover_attributes_keeps_the_entries_when_the_size_limit_hits(server):
+    """Active Directory has more than five people: the search ends with
+    SIZELIMIT_EXCEEDED, and the entries received until then must not get lost."""
+    conn = _answers(
+        MagicMock(),
+        [(f"cn=u{i},dc=example,dc=com", {"cn": [b"x"], "department": [b"y"]}) for i in range(5)],
+        size_limited=True,
+    )
+    with patch.object(ldap_helper.ldap, "initialize", return_value=conn):
+        result = ldap_helper.discover_attributes(server)
+    assert result.ok is True
+    assert result.attributes == ["cn", "department"]
 
 
 def test_discover_attributes_skips_referrals(server):
-    conn = MagicMock()
-    conn.search_ext_s.return_value = [
+    conn = _answers(MagicMock(), [
         (None, ["ldap://referral.example.com"]),  # referral entries have dn=None
         ("cn=carol,dc=example,dc=com", {"sn": [b"Smith"]}),
-    ]
+    ])
     with patch.object(ldap_helper.ldap, "initialize", return_value=conn):
         result = ldap_helper.discover_attributes(server)
     assert result.ok is True
     assert result.attributes == ["sn"]
     assert result.sample_dn.startswith("cn=carol")
+
+
+def test_discover_attributes_says_when_nobody_is_found(server):
+    with patch.object(ldap_helper.ldap, "initialize", side_effect=lambda url: _answers(MagicMock(), [])):
+        result = ldap_helper.discover_attributes(server)
+    assert result.ok is False
+    assert "no person entries found under dc=example,dc=com" in result.detail
 
 
 def test_discover_attributes_falls_through_on_error(server):
@@ -105,9 +135,7 @@ def test_discover_attributes_falls_through_on_error(server):
         if "primary" in url:
             m.simple_bind_s.side_effect = ldap.LDAPError("boom")
         else:
-            m.search_ext_s.return_value = [
-                ("cn=dan,dc=example,dc=com", {"mail": [b"d@x"]}),
-            ]
+            _answers(m, [("cn=dan,dc=example,dc=com", {"mail": [b"d@x"]})])
         return m
 
     with patch.object(ldap_helper.ldap, "initialize", side_effect=_initialize):

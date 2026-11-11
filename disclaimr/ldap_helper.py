@@ -205,6 +205,32 @@ def test_connection(
     return TestResult(ok=overall, probes=probes, summary=summary)
 
 
+# Users; in Active Directory computer accounts are persons too.
+_PEOPLE = "(&(objectClass=person)(!(objectClass=computer)))"
+
+
+def _sample_people(conn, base_dn: str, size: int) -> list:
+    """Up to ``size`` person entries under ``base_dn``.
+
+    ``search_ext_s`` throws away the entries it already received when the size limit
+    hits — and with thousands of objects in an AD it always does — so collect them one
+    by one. Persons, because the vocabulary is for user attributes, not containers.
+    """
+    msgid = conn.search_ext(
+        base_dn, ldap.SCOPE_SUBTREE, _PEOPLE, sizelimit=size
+    )
+    entries: list = []
+    try:
+        while True:
+            rtype, data, *_ = conn.result3(msgid, all=0, timeout=LDAP_TIMEOUT)
+            entries.extend(data)
+            if rtype == ldap.RES_SEARCH_RESULT:
+                break
+    except ldap.SIZELIMIT_EXCEEDED:
+        pass
+    return entries
+
+
 def discover_attributes(
     directory_server: DirectoryServer, sample_size: int = 5
 ) -> AttributeDiscoveryResult:
@@ -229,14 +255,7 @@ def discover_attributes(
             continue
 
         try:
-            results = conn.search_ext_s(
-                directory_server.base_dn,
-                ldap.SCOPE_SUBTREE,
-                "(objectClass=*)",
-                sizelimit=sample_size,
-            )
-        except ldap.SIZELIMIT_EXCEEDED as exc:
-            results = getattr(exc, "args", [{}])[0].get("results", [])
+            results = _sample_people(conn, directory_server.base_dn, sample_size)
         except ldap.NO_SUCH_OBJECT:
             last_error = f"{url}: base DN not found"
             conn.unbind_s()
@@ -269,6 +288,6 @@ def discover_attributes(
                 attributes=sorted(attrs, key=str.lower),
                 sample_dn=sample_dn,
             )
-        last_error = f"{url}: search returned no entries"
+        last_error = f"{url}: no person entries found under {directory_server.base_dn}"
 
     return AttributeDiscoveryResult(ok=False, detail=last_error or "All URLs failed.")

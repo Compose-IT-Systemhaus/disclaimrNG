@@ -293,3 +293,61 @@
 .template-editor__images-status[data-kind="pending"] {
     color: var(--dz-text-muted);
 }
+
+/* TinyMCE: its oxide skins are navy (dark) or white; take the admin's surface, borders and
+   text instead, so the visual editor looks like the code editor next to it. The skin is
+   loaded after this file, hence the extra class in every selector. */
+.template-editor .template-editor__panes .tox.tox-tinymce {
+    border: 0;
+    border-radius: 0;
+}
+
+.template-editor .template-editor__panes .tox .tox-editor-header,
+.template-editor .template-editor__panes .tox .tox-toolbar-overlord,
+.template-editor .template-editor__panes .tox .tox-toolbar,
+.template-editor .template-editor__panes .tox .tox-toolbar__primary,
+.template-editor .template-editor__panes .tox .tox-toolbar__overflow,
+.template-editor .template-editor__panes .tox .tox-edit-area,
+.template-editor .template-editor__panes .tox .tox-edit-area__iframe,
+.template-editor .template-editor__panes .tox .tox-statusbar {
+    background: var(--dz-surface);
+}
+
+.template-editor .template-editor__panes .tox .tox-editor-header {
+    border-bottom: 1px solid var(--dz-border);
+    box-shadow: none;
+}
+
+.template-editor .template-editor__panes .tox .tox-statusbar {
+    border-top: 1px solid var(--dz-border);
+    color: var(--dz-text-muted);
+}
+
+.template-editor .template-editor__panes .tox .tox-statusbar a,
+.template-editor .template-editor__panes .tox .tox-statusbar__path-item,
+.template-editor .template-editor__panes .tox .tox-statusbar__wordcount {
+    color: var(--dz-text-muted);
+}
+
+.template-editor .template-editor__panes .tox .tox-tbtn,
+.template-editor .template-editor__panes .tox .tox-tbtn--select,
+.template-editor .template-editor__panes .tox .tox-split-button {
+    color: var(--dz-text-body);
+    background: transparent;
+}
+
+.template-editor .template-editor__panes .tox .tox-tbtn svg {
+    fill: var(--dz-text-body);
+}
+
+.template-editor .template-editor__panes .tox .tox-tbtn:hover,
+.template-editor .template-editor__panes .tox .tox-split-button:hover,
+.template-editor .template-editor__panes .tox .tox-tbtn--enabled,
+.template-editor .template-editor__panes .tox .tox-tbtn--enabled:hover {
+    background: var(--dz-surface-muted);
+    color: var(--dz-text);
+}
+
+.template-editor .template-editor__panes .tox .tox-tbtn--select {
+    border: 1px solid var(--dz-border);
+}

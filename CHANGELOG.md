@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The visual editor takes the admin's colours (toolbar, status bar and editing area) instead of TinyMCE's navy/white skin, in light and dark mode.
+- Every list (signatures, rules, images, tenants, directory servers, SSO groups, users, groups) has a pencil column *Edit*.
+
 ## [0.3.4] - 2026-11-11
 
 Migration `0009` runs on start-up (signature formatting). Existing signatures keep their settings; to design one in the visual editor, turn off *use text part* in the HTML part and turn on *create the text part from the HTML part*.

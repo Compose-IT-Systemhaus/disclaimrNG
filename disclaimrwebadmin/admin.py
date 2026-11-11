@@ -8,6 +8,9 @@ import re
 from adminsortable2.admin import SortableAdminBase
 from django import forms
 from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group, User
 from django.template.defaultfilters import linebreaksbr
 from django.urls import reverse
 from django.utils.html import format_html
@@ -50,6 +53,24 @@ class RequirementConditionInline(TabularInline):
     fields = ("kind", "attribute", "pattern", "group_dn")
 
 
+class EditLinkMixin:
+    """A pencil column that opens the object.
+
+    The first column links there too, but nothing in the list says so.
+    """
+
+    @admin.display(description=_("Edit"))
+    def edit_link(self, obj) -> str:
+        opts = obj._meta
+        return format_html(
+            '<a href="{}" title="{}" aria-label="{}">'
+            '<span class="material-symbols-outlined" aria-hidden="true">edit</span></a>',
+            reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[obj.pk]),
+            _("Edit"),
+            _("Edit"),
+        )
+
+
 @admin.register(Requirement)
 class RequirementAdmin(ModelAdmin):
     """Reached from the rule; it carries the directory conditions as an inline."""
@@ -75,8 +96,8 @@ class TenantDomainInline(TabularInline):
 
 
 @admin.register(Tenant)
-class TenantAdmin(ModelAdmin):
-    list_display = ("name", "slug", "enabled", "domain_summary")
+class TenantAdmin(EditLinkMixin, ModelAdmin):
+    list_display = ("name", "slug", "enabled", "domain_summary", "edit_link")
     list_filter = ("enabled",)
     search_fields = ("name", "slug", "description", "domains__domain")
     prepopulated_fields = {"slug": ("name",)}
@@ -100,8 +121,8 @@ class TenantAdmin(ModelAdmin):
 
 
 @admin.register(Rule)
-class RuleAdmin(SortableAdminBase, ModelAdmin):
-    list_display = ("name", "tenant", "position", "continue_rules")
+class RuleAdmin(EditLinkMixin, SortableAdminBase, ModelAdmin):
+    list_display = ("name", "tenant", "position", "continue_rules", "edit_link")
     list_filter = ("tenant", "continue_rules")
     list_select_related = ("tenant",)
     autocomplete_fields = ("tenant",)
@@ -150,9 +171,9 @@ class DisclaimerForm(forms.ModelForm):
 
 
 @admin.register(Disclaimer)
-class DisclaimerAdmin(ModelAdmin):
+class DisclaimerAdmin(EditLinkMixin, ModelAdmin):
     form = DisclaimerForm
-    list_display = ("name", "tenant", "html_use_text", "use_html_fallback")
+    list_display = ("name", "tenant", "html_use_text", "use_html_fallback", "edit_link")
     list_filter = ("tenant",)
     list_select_related = ("tenant",)
     autocomplete_fields = ("tenant",)
@@ -199,8 +220,8 @@ class DisclaimerAdmin(ModelAdmin):
 
 
 @admin.register(SignatureImage)
-class SignatureImageAdmin(ModelAdmin):
-    list_display = ("slug", "name", "thumbnail")
+class SignatureImageAdmin(EditLinkMixin, ModelAdmin):
+    list_display = ("slug", "name", "thumbnail", "edit_link")
     search_fields = ("slug", "name", "description")
     readonly_fields = ("thumbnail",)
     fieldsets = (
@@ -311,7 +332,7 @@ class DirectoryServerForm(forms.ModelForm):
 
 
 @admin.register(DirectoryServer)
-class DirectoryServerAdmin(ModelAdmin):
+class DirectoryServerAdmin(EditLinkMixin, ModelAdmin):
     list_display = ("name", "tenant", "flavor", "enabled", "base_dn", "edit_link")
     list_filter = ("tenant", "flavor", "enabled")
     list_select_related = ("tenant",)
@@ -356,15 +377,6 @@ class DirectoryServerAdmin(ModelAdmin):
             "all": ("disclaimrwebadmin/directory_server/directory_server.css",),
         }
 
-    @admin.display(description=_("Edit"))
-    def edit_link(self, obj: DirectoryServer) -> str:
-        # The name links there too, but nothing in the list says so.
-        return format_html(
-            '<a href="{}" title="{}"><span class="material-symbols-outlined">edit</span></a>',
-            reverse("admin:disclaimrwebadmin_directoryserver_change", args=[obj.pk]),
-            _("Edit"),
-        )
-
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         obj.directoryserverurl_set.all().delete()
@@ -388,8 +400,8 @@ class DirectoryServerAdmin(ModelAdmin):
 
 
 @admin.register(SSOGroupMapping)
-class SSOGroupMappingAdmin(ModelAdmin):
-    list_display = ("sso_group", "group")
+class SSOGroupMappingAdmin(EditLinkMixin, ModelAdmin):
+    list_display = ("sso_group", "group", "edit_link")
     list_select_related = ("group",)
     search_fields = ("sso_group", "group__name")
 
@@ -425,3 +437,18 @@ class MailLogAdmin(ModelAdmin):
     @admin.display(description=_("Applied signatures"))
     def applied_summary(self, obj: MailLog) -> str:
         return linebreaksbr(obj.applied) or "—"
+
+
+# Users and groups keep Django's admins; they only get the edit column like the other lists.
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+
+@admin.register(User)
+class UserAdmin(EditLinkMixin, BaseUserAdmin):
+    list_display = (*BaseUserAdmin.list_display, "edit_link")
+
+
+@admin.register(Group)
+class GroupAdmin(EditLinkMixin, BaseGroupAdmin):
+    list_display = ("name", "edit_link")

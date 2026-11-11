@@ -523,6 +523,14 @@
                 ]
                     .filter(Boolean)
                     .join("; ");
+            // TinyMCE's skins bring their own navy (dark) or white; the editing area takes the
+            // admin's surface and text colour instead (the iframe cannot read our CSS variables).
+            const probe = document.createElement("span");
+            probe.style.cssText = "color: var(--dz-text); background: var(--dz-surface)";
+            root.append(probe);
+            const surface = getComputedStyle(probe);
+            const areaStyle = `background: ${surface.backgroundColor}; color: ${surface.color};`;
+            probe.remove();
             const inits = await tinymce.init({
                 target: tinymceHost,
                 // Tell TinyMCE where to fetch its skins/themes/plugins
@@ -547,7 +555,7 @@
                 // Outlook lays tables out by their attributes, not by CSS.
                 table_default_attributes: { border: "0", cellpadding: "0", cellspacing: "0" },
                 table_default_styles: { "border-collapse": "collapse" },
-                content_style: `body { ${defaultFont()} }`,
+                content_style: `body { ${areaStyle} ${defaultFont()} }`,
                 height: 320,
                 skin: isDarkMode() ? "oxide-dark" : "oxide",
                 content_css: isDarkMode() ? "dark" : "default",

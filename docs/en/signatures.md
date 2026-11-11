@@ -80,6 +80,9 @@ By default an image is **linked**: the mail contains an ``<img>`` that points to
 ``MEDIA_BASE_URL``, and the recipient's mail client loads it from your server (many
 clients block that until the user clicks "load images").
 
+Without ``MEDIA_BASE_URL`` (or with a relative one) there is no address a recipient could load,
+so every image is embedded, flagged or not, and left out of plaintext parts.
+
 Tick **Embed in the mail** on the image to attach it to the mail instead
 (``cid:`` reference, ``multipart/related``). It then shows right away and needs no
 access to your server, but every mail grows by the size of the image. Embedding only

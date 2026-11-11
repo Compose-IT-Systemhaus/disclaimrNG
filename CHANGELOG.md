@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Signature images showed as broken in received mails when `MEDIA_BASE_URL` was not set: the link was the relative `/media/…`, which no recipient can load. Without a public base URL the milter now embeds every image (as if *Embed in the mail* were ticked) and leaves it out of plaintext parts.
+
 ## [0.3.4] - 2026-11-11
 
 Migration `0009` runs on start-up (signature formatting). Existing signatures keep their settings; to design one in the visual editor, turn off *use text part* in the HTML part and turn on *create the text part from the HTML part*.

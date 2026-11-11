@@ -654,7 +654,8 @@ def test_same_image_is_attached_once_for_two_actions(logo):
     assert len(_rebuilt(_HTML_HEADERS, workflow).get_payload()) == 2
 
 
-def test_plaintext_and_unflagged_images_stay_links(logo):
+def test_plaintext_and_unflagged_images_stay_links(logo, settings):
+    settings.MEDIA_BASE_URL = "https://signatures.example.com/media"
     models.SignatureImage.objects.update(embed=False)
     mail = _signed_with_logo(_HTML_HEADERS, "<p>Hello</p>\n")
     assert not mail.is_multipart()
@@ -730,3 +731,19 @@ def test_text_signature_in_html_starts_after_two_line_breaks(db):
         "\n".join(f"{k}: {v}" for k, v in headers) + "\n\n" + workflow["repl_body"]
     )
     assert "<br><br>Alice</div>" in MilterHelper.decode_mail(rebuilt)[1]
+
+
+def test_without_a_public_base_url_images_are_embedded(logo, settings):
+    """``/media/…`` cannot be loaded by any recipient, so the milter embeds the image
+    even when it is not flagged, and leaves it out of plain text."""
+    settings.MEDIA_BASE_URL = ""
+    models.SignatureImage.objects.update(embed=False)
+    mail = _signed_with_logo(_HTML_HEADERS, "<p>Hello</p>\n")
+    assert mail.get_content_type() == "multipart/related"
+    assert 'src="cid:' in _html_of(mail.get_payload()[0])
+    assert 'src="/media/' not in _html_of(mail.get_payload()[0])
+
+    models.Disclaimer.objects.update(text='Logo: {image["logo"]}', html_use_text=True)
+    plain = [("From", "alice@example.com"), ("Content-Type", "text/plain; charset=utf-8")]
+    workflow = _send(_connected_helper(), plain, ["Hello\n"])
+    assert "Logo: " in workflow["repl_body"] and "/media/" not in workflow["repl_body"]

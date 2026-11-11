@@ -124,13 +124,16 @@ def _build_image_replacements(
     template_fail logic decides whether to skip the action.
 
     With an ``embedded`` dict, images flagged ``embed`` are referenced as ``cid:`` in
-    HTML and their MIME parts are collected there (Content-ID → part).
+    HTML and their MIME parts are collected there (Content-ID → part). Without a public
+    ``MEDIA_BASE_URL`` every image is embedded: a relative ``/media/…`` link cannot be
+    loaded by any recipient, and in plain text such an image is left out.
     """
     slugs = {m.lower() for m in _IMAGE_REF_RE.findall(disclaimer_text)}
     if not slugs:
         return {}
 
     base = _media_base_url()
+    public = base.startswith(("http://", "https://"))
     rendered: dict[str, str] = {}
     for image in models.SignatureImage.objects.filter(slug__in=slugs):
         if not image.image:
@@ -138,7 +141,8 @@ def _build_image_replacements(
         absolute_url = f"{base}/{image.image.name}"
         if content_type == "text/html":
             src = absolute_url
-            part = _embedded_image(image) if embedded is not None and image.embed else None
+            wanted = embedded is not None and (image.embed or not public)
+            part = _embedded_image(image) if wanted else None
             if part is not None:
                 cid = part["Content-ID"].strip("<>")
                 embedded[cid] = part
@@ -151,7 +155,7 @@ def _build_image_replacements(
                 attrs.append(f'height="{image.height}"')
             rendered[image.slug.lower()] = f"<img {' '.join(attrs)} />"
         else:
-            rendered[image.slug.lower()] = absolute_url
+            rendered[image.slug.lower()] = absolute_url if public else ""
     return rendered
 
 

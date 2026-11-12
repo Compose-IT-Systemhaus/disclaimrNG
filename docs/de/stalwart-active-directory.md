@@ -280,7 +280,7 @@ dieser Reihenfolge:
 cd /opt
 git clone https://github.com/Compose-IT-Systemhaus/disclaimrNG.git disclaimrng
 cd disclaimrng
-git checkout v0.3.4            # der aktuelle Release-Tag
+git checkout v0.3.5            # der aktuelle Release-Tag
 cp .env.example .env
 chmod 600 .env
 ```

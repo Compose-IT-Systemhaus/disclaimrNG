@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-11-12
+
+No migrations.
+
 ### Changed
 - The visual editor takes the admin's colours (toolbar, status bar and editing area) instead of TinyMCE's navy/white skin, in light and dark mode.
 - Every list (signatures, rules, images, tenants, directory servers, SSO groups, users, groups) has a pencil column *Edit*.
@@ -143,7 +147,8 @@ The first release of disclaimrNG ports the original [disclaimr](https://github.c
 - Mails without a `Content-Transfer-Encoding` header get a valid `7bit` instead of an invented value.
 - Uploaded images were not served in production.
 
-[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Compose-IT-Systemhaus/disclaimrNG/compare/v0.3.1...v0.3.2

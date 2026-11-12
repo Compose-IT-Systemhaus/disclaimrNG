@@ -275,7 +275,7 @@ Stalwart has to trust the domain controllers' certificate. How Stalwart picks up
 cd /opt
 git clone https://github.com/Compose-IT-Systemhaus/disclaimrNG.git disclaimrng
 cd disclaimrng
-git checkout v0.3.4            # the latest release tag
+git checkout v0.3.5            # the latest release tag
 cp .env.example .env
 chmod 600 .env
 ```

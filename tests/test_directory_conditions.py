@@ -26,13 +26,16 @@ def directory(db, monkeypatch):
     )
     models.DirectoryServerURL.objects.create(directory_server=server, url="ldaps://dc", position=0)
 
-    state = {"entry": {"department": [b"Sales"], "title": [b"Head of Sales", b"Mentor"]}}
+    state = {
+        "entry": {"department": [b"Sales"], "title": [b"Head of Sales", b"Mentor"]},
+        "dn": "CN=Alice",
+    }
     searches: list[tuple[str, list[str]]] = []
 
     def fake_search(directory_server, url, query, attrlist):
         searches.append((query, attrlist))
         entry = state["entry"]
-        return None if entry is None else [("CN=Alice", entry)]
+        return None if entry is None else [(state["dn"], entry)]
 
     monkeypatch.setattr(MilterHelper, "_search_url", staticmethod(fake_search))
     return type("Directory", (), {"state": state, "searches": searches})
@@ -259,3 +262,103 @@ def test_signature_test_page_lists_the_conditions(directory, client):
     text = page.content.decode()
     assert "department ~ ^Sales$ — met" in " ".join(text.split())
     assert "title ~ Director — not met" in " ".join(text.split())
+
+
+# ---------------------------------------------------------------------------
+# OU conditions
+# ---------------------------------------------------------------------------
+
+
+def _ou_requirement(dn: str):
+    requirement = models.Requirement.objects.get(rule__name="r")
+    requirement.conditions.create(kind=constants.COND_KIND_OU, group_dn=dn)
+    return requirement
+
+
+@pytest.mark.parametrize(
+    ("sender_dn", "ou", "signed"),
+    [
+        ("CN=Alice,OU=Sales,DC=example,DC=com", "OU=Sales,DC=example,DC=com", True),
+        ("CN=Alice,OU=North,OU=Sales,DC=example,DC=com", "OU=Sales,DC=example,DC=com", True),
+        ("cn=Alice, ou=sales, dc=example, dc=com", "OU=Sales,DC=Example,DC=com", True),
+        ("CN=Alice,OU=Inside Sales,DC=example,DC=com", "OU=Sales,DC=example,DC=com", False),
+        ("CN=Alice,OU=Support,DC=example,DC=com", "OU=Sales,DC=example,DC=com", False),
+        ("OU=Sales,DC=example,DC=com", "OU=Sales,DC=example,DC=com", False),  # the OU itself
+    ],
+)
+def test_ou_condition(directory, sender_dn, ou, signed):
+    directory.state["dn"] = sender_dn
+    _setup_rule()
+    _ou_requirement(ou)
+    assert _signed() is signed
+    assert directory.searches[0][1] == ["1.1"]  # the DN comes with the lookup
+
+
+def test_ou_condition_with_unknown_sender_does_not_hold(directory):
+    directory.state["entry"] = None
+    _setup_rule()
+    _ou_requirement("DC=example,DC=com")
+    assert not _signed()
+
+
+def test_ou_and_group_conditions_together(directory):
+    directory.state.update(
+        dn="CN=Alice,OU=Sales,DC=example,DC=com", entry={"memberOf": [GROUP.encode()]}
+    )
+    _setup_rule()
+    _ou_requirement("OU=Sales,DC=example,DC=com")
+    _group_requirement()
+    assert _signed()
+    models.RequirementCondition.objects.filter(kind=constants.COND_KIND_OU).update(
+        group_dn="OU=Support,DC=example,DC=com"
+    )
+    assert not _signed()
+
+
+def test_ou_condition_requires_a_dn():
+    with pytest.raises(ValidationError):
+        models.RequirementCondition(kind=constants.COND_KIND_OU).full_clean(
+            exclude=["requirement"]
+        )
+    condition = models.RequirementCondition(kind=constants.COND_KIND_OU, group_dn="OU=Sales,DC=x")
+    condition.full_clean(exclude=["requirement"])
+    assert str(condition) == "in OU OU=Sales,DC=x"
+
+
+# ---------------------------------------------------------------------------
+# DN search for the condition form
+# ---------------------------------------------------------------------------
+
+
+def test_dn_search_asks_the_servers_of_the_rules_tenant(directory, client, monkeypatch):
+    _setup_rule()
+    requirement = models.Requirement.objects.get(rule__name="r")
+    models.Rule.objects.update(tenant=models.Tenant.objects.get())
+    models.DirectoryServer.objects.create(name="Other", base_dn="dc=other")
+    asked = []
+
+    def fake(servers, kind, text):
+        asked.append(([s.name for s in servers], kind, text))
+        return [{"dn": "OU=Sales,DC=example,DC=com", "name": "Sales"}], ""
+
+    monkeypatch.setattr("disclaimrwebadmin.views.directory_server.search_dns", fake)
+    client.force_login(get_user_model().objects.create_superuser("root", "r@example.com", "pw"))
+    url = reverse("disclaimrwebadmin:directory-dn-search")
+
+    page = client.get(url, {"kind": "ou", "q": "Sal", "requirement": requirement.pk})
+    assert page.json()["results"][0]["name"] == "Sales"
+    assert asked == [(["LDAP"], "ou", "Sal")]
+
+    client.get(url, {"kind": "group", "q": "Sal"})  # no requirement yet: every server
+    assert asked[-1] == (["LDAP", "Other"], "group", "Sal")
+
+    client.get(url, {"kind": "ou", "q": "S"})  # too short
+    client.get(url, {"kind": "attribute", "q": "Sales"})
+    assert len(asked) == 2
+
+
+def test_dn_search_needs_the_requirement_permission(db, client):
+    staff = get_user_model().objects.create_user("ed", "e@example.com", "pw", is_staff=True)
+    client.force_login(staff)
+    url = reverse("disclaimrwebadmin:directory-dn-search")
+    assert client.get(url, {"kind": "ou", "q": "Sales"}).status_code == 403

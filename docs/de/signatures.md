@@ -159,7 +159,7 @@ für „Abteilung A oder B“ legt man zwei Requirements an (eine Regel greift, 
 *Akzeptieren*-Requirement passt). „Nicht in der Abteilung“ ist eine *Ablehnen*-Requirement
 mit der Bedingung.
 
-Es gibt zwei Arten von Bedingung:
+Es gibt drei Arten von Bedingung:
 
 - **Attribut passt** — Attribut plus Regex, wie oben.
 - **Mitglied der Gruppe** — der DN einer Gruppe, z. B. ``CN=Vertrieb,OU=Gruppen,DC=example,DC=com``
@@ -168,6 +168,14 @@ Es gibt zwei Arten von Bedingung:
   Gruppen: disclaimrNG fragt den Server mit der In-Chain-Matching-Rule. Bei anderen Servern
   werden die ``memberOf``-Werte des Absenders verglichen; das sind nur direkte Mitgliedschaften,
   und der Server muss ``memberOf`` liefern (z. B. das OpenLDAP-memberof-Overlay).
+- **In Organisationseinheit (OU)** — der DN einer OU, z. B. ``OU=Vertrieb,DC=example,DC=com``.
+  Sie gilt, wenn der Eintrag des Absenders in dieser OU oder einer OU darunter liegt
+  (``OU=Nord,OU=Vertrieb,…`` zählt, ``OU=Innenvertrieb,…`` nicht). Keine zusätzliche
+  Abfrage: Der DN des Absenders kommt mit der Suche.
+
+Bei Gruppen und OUs einen Teil des Namens ins Feld **DN** tippen: Passende Gruppen bzw. OUs
+aus den Verzeichnisservern des Mandanten der Regel (ohne Mandant aus allen Servern) werden
+vorgeschlagen. Einen DN von Hand eintippen oder einfügen geht weiterhin.
 
 Active Directory führt die **primäre Gruppe** eines Benutzers (meist *Domain Users*) nicht in
 ``memberOf`` auf, eine Bedingung auf diese Gruppe trifft deshalb nie zu.
@@ -181,6 +189,12 @@ die Bedingung als **nicht erfüllt**, die Mail wird nicht zurückgestellt: Eine 
 ebenfalls nicht, die Mail kann also von einer anderen Regel noch signiert werden.
 
 Die Seite *Signaturtest* listet jede geprüfte Bedingung mit ihrem Ergebnis auf.
+
+**Beispiel — eine Signatur je OU:** eine Regel *Vertrieb* (Position 1) mit einer Requirement,
+deren Bedingung *In Organisationseinheit* ``OU=Vertrieb,DC=example,DC=com`` ist, und einer
+Action mit der Vertriebs-Signatur, dann eine Regel *Support* (Position 2) genauso. Die Regeln
+enden beim ersten Treffer, solange *Nach dieser Regel fortfahren* nicht gesetzt ist. Eine letzte
+Regel ohne Bedingungen fängt alle anderen mit der Standard-Signatur auf.
 
 Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
 

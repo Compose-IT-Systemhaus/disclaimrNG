@@ -219,3 +219,29 @@ def test_connection_test_uses_the_tls_cause_for_ldaps_only(tls_server):
         "unreachable: Can't contact LDAP server",
     ]
     tls.assert_called_once_with(tls_server, "ldaps://dc1")
+
+
+def test_search_dns_escapes_the_text_and_skips_referrals(server):
+    conn = _answers(MagicMock(), [
+        ("OU=Sales,DC=example,DC=com", {}),
+        (None, ["ldap://other/dc=example,dc=com"]),
+        ("OU=North,OU=Sales,DC=example,DC=com", {}),
+    ], size_limited=True)
+    with patch.object(ldap_helper.ldap, "initialize", return_value=conn):
+        results, error = ldap_helper.search_dns([server], "ou", "Sa*les")
+    assert error == ""
+    assert results == [
+        {"dn": "OU=North,OU=Sales,DC=example,DC=com", "name": "North"},
+        {"dn": "OU=Sales,DC=example,DC=com", "name": "Sales"},
+    ]
+    args, kwargs = conn.search_ext.call_args
+    assert args[2] == r"(&(objectClass=organizationalUnit)(ou=*Sa\2ales*))"
+    assert args[3] == ["1.1"] and kwargs["sizelimit"] == 20
+
+
+def test_search_dns_reports_an_unreachable_server(server):
+    conn = MagicMock()
+    conn.simple_bind_s.side_effect = ldap.SERVER_DOWN("nope")
+    with patch.object(ldap_helper.ldap, "initialize", return_value=conn):
+        results, error = ldap_helper.search_dns([server], "group", "Sales")
+    assert results == [] and error

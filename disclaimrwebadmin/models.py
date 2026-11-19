@@ -289,8 +289,9 @@ class RequirementCondition(models.Model):
     """A directory condition of a :class:`Requirement`.
 
     The sender is looked up in the directory servers of its tenant; the condition holds
-    when the regex matches one of the values of the attribute, or (kind *group*) when the
-    sender is a member of the group. All conditions of a requirement have to hold (AND); a
+    when the regex matches one of the values of the attribute, (kind *group*) when the
+    sender is a member of the group, or (kind *OU*) when the sender's entry lies in the
+    organisational unit or one below it. All conditions of a requirement have to hold (AND); a
     condition that cannot be checked (directory down, sender unknown) does not hold.
     """
 
@@ -305,6 +306,7 @@ class RequirementCondition(models.Model):
         choices=(
             (constants.COND_KIND_ATTRIBUTE, _("Attribute matches")),
             (constants.COND_KIND_GROUP, _("Member of group")),
+            (constants.COND_KIND_OU, _("In organisational unit")),
         ),
         default=constants.COND_KIND_ATTRIBUTE,
     )
@@ -326,15 +328,17 @@ class RequirementCondition(models.Model):
             "several values are checked value by value."
         ),
     )
+    # Holds the OU's DN as well; the name stays to keep the migration a relabel.
     group_dn = models.CharField(
-        _("group DN"),
+        _("DN"),
         max_length=500,
         blank=True,
         validators=[RegexValidator(r"^\s*[^=,]+=.+", _("Enter a distinguished name."))],
         help_text=_(
-            "DN of the group, e.g. CN=Sales,OU=Groups,DC=example,DC=com. On Active "
-            "Directory members of nested groups count too, otherwise only the "
-            "memberOf values of the sender are compared."
+            "DN of the group or organisational unit, e.g. "
+            "CN=Sales,OU=Groups,DC=example,DC=com. Type to search the directory. Groups: "
+            "on Active Directory members of nested groups count too, otherwise only the "
+            "memberOf values of the sender are compared. OUs: users in sub-OUs count too."
         ),
     )
 
@@ -346,11 +350,15 @@ class RequirementCondition(models.Model):
     def __str__(self) -> str:
         if self.kind == constants.COND_KIND_GROUP:
             return _("member of %(dn)s") % {"dn": self.group_dn}
+        if self.kind == constants.COND_KIND_OU:
+            return _("in OU %(dn)s") % {"dn": self.group_dn}
         return f"{self.attribute} ~ {self.pattern}"
 
     def clean(self) -> None:
         required = (
-            ["group_dn"] if self.kind == constants.COND_KIND_GROUP else ["attribute", "pattern"]
+            ["attribute", "pattern"]
+            if self.kind == constants.COND_KIND_ATTRIBUTE
+            else ["group_dn"]
         )
         errors = {f: _("This field is required.") for f in required if not getattr(self, f)}
         if errors:

@@ -626,11 +626,15 @@ class MilterHelper:
                 "Cannot look up %s for the directory conditions. They do not hold.",
                 self.mail_data["envelope_from"],
             )
-        server, values = found or (None, {})
+        server, sender_dn, values = found or (None, "", {})
 
         memberships: dict[str, bool] = {}
 
         def holds(condition: models.RequirementCondition) -> bool:
+            if condition.kind == constants.COND_KIND_OU:
+                # The comma keeps OU=Sales from matching OU=Inside Sales; sub-OUs count.
+                ou = "," + _normalize_dn(condition.group_dn)
+                return bool(sender_dn) and _normalize_dn(sender_dn).endswith(ou)
             if condition.kind == constants.COND_KIND_GROUP:
                 if server is None:
                     return False
@@ -653,8 +657,8 @@ class MilterHelper:
 
     def _sender_entry(
         self, attrlist: list[str], wants_groups: bool
-    ) -> tuple[models.DirectoryServer, dict[str, list[str]]] | None:
-        """Server and values of ``attrlist`` for the sender, from the first server that knows it.
+    ) -> tuple[models.DirectoryServer, str, dict[str, list[str]]] | None:
+        """Server, DN and values of ``attrlist`` for the sender, from the first server that knows it.
 
         Servers that are not Active Directory also deliver ``memberOf`` when group
         conditions need it (AD answers those with a query, see :meth:`_is_member`).
@@ -683,7 +687,7 @@ class MilterHelper:
                 continue
             if directory_server.enable_cache:
                 QueryCache.set(directory_server, cache_key, result)
-            return directory_server, {
+            return directory_server, result[0][0], {
                 key.lower(): [_to_str(v) for v in raw_values]
                 for key, raw_values in result[0][1].items()
             }

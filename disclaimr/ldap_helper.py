@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 import ldap
+import ldap.filter
 
 from disclaimrwebadmin import constants
 
@@ -209,15 +210,17 @@ def test_connection(
 _PEOPLE = "(&(objectClass=person)(!(objectClass=computer)))"
 
 
-def _sample_people(conn, base_dn: str, size: int) -> list:
-    """Up to ``size`` person entries under ``base_dn``.
+def _sample_people(
+    conn, base_dn: str, size: int, filterstr: str = _PEOPLE, attrlist: list[str] | None = None
+) -> list:
+    """Up to ``size`` entries under ``base_dn`` (by default persons).
 
     ``search_ext_s`` throws away the entries it already received when the size limit
     hits — and with thousands of objects in an AD it always does — so collect them one
     by one. Persons, because the vocabulary is for user attributes, not containers.
     """
     msgid = conn.search_ext(
-        base_dn, ldap.SCOPE_SUBTREE, _PEOPLE, sizelimit=size
+        base_dn, ldap.SCOPE_SUBTREE, filterstr, attrlist, sizelimit=size
     )
     entries: list = []
     try:
@@ -291,3 +294,41 @@ def discover_attributes(
         last_error = f"{url}: no person entries found under {directory_server.base_dn}"
 
     return AttributeDiscoveryResult(ok=False, detail=last_error or "All URLs failed.")
+
+
+_DN_FILTERS = {
+    "ou": "(&(objectClass=organizationalUnit)(ou=*{text}*))",
+    "group": (
+        "(&(|(objectClass=group)(objectClass=groupOfNames)(objectClass=groupOfUniqueNames)"
+        "(objectClass=posixGroup))(cn=*{text}*))"
+    ),
+}
+
+
+def search_dns(
+    servers: list[DirectoryServer], kind: str, text: str, size: int = 20
+) -> tuple[list[dict[str, str]], str]:
+    """Up to ``size`` OUs or groups (``kind``) whose name contains ``text``.
+
+    Returns ``[{"dn", "name"}]`` from the first URL of each server that answers, and the
+    last error (empty when every server answered).
+    """
+    filterstr = _DN_FILTERS[kind].format(text=ldap.filter.escape_filter_chars(text))
+    found: dict[str, dict[str, str]] = {}
+    error = ""
+    for server in servers:
+        for url in server.directoryserverurl_set.order_by("position"):
+            try:
+                conn = _bind(server, url.url)
+                try:
+                    entries = _sample_people(conn, server.base_dn, size, filterstr, ["1.1"])
+                finally:
+                    conn.unbind_s()
+            except ldap.LDAPError as exc:
+                error = f"{server.name}: {exc}"
+                continue
+            for dn, _ in entries:
+                if dn is not None:  # referrals
+                    found.setdefault(dn.lower(), {"dn": dn, "name": dn.split(",")[0].split("=", 1)[-1]})
+            break
+    return sorted(found.values(), key=lambda e: e["name"].lower())[:size], error

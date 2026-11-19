@@ -76,14 +76,29 @@ msgstr "Attribut passt"
 msgid "Member of group"
 msgstr "Mitglied der Gruppe"
 
-msgid "group DN"
-msgstr "Gruppen-DN"
+msgid "In organisational unit"
+msgstr "In Organisationseinheit (OU)"
+
+msgid "DN"
+msgstr "DN"
 
 msgid "Enter a distinguished name."
 msgstr "Geben Sie einen Distinguished Name ein."
 
 msgid "member of %(dn)s"
 msgstr "Mitglied von %(dn)s"
+
+msgid "in OU %(dn)s"
+msgstr "in OU %(dn)s"
+
+msgid "Searching the directory…"
+msgstr "Verzeichnis wird durchsucht …"
+
+msgid "Nothing found."
+msgstr "Nichts gefunden."
+
+msgid "Type a name to search"
+msgstr "Namen eingeben, um zu suchen"
 
 msgid "This field is required."
 msgstr "Dieses Feld ist zwingend erforderlich."
@@ -95,13 +110,15 @@ msgid "not met"
 msgstr "nicht erfüllt"
 
 msgid ""
-"DN of the group, e.g. CN=Sales,OU=Groups,DC=example,DC=com. On Active Directory "
-"members of nested groups count too, otherwise only the memberOf values of the "
-"sender are compared."
+"DN of the group or organisational unit, e.g. CN=Sales,OU=Groups,DC=example,DC=com. "
+"Type to search the directory. Groups: on Active Directory members of nested groups "
+"count too, otherwise only the memberOf values of the sender are compared. OUs: users "
+"in sub-OUs count too."
 msgstr ""
-"DN der Gruppe, z. B. CN=Vertrieb,OU=Gruppen,DC=example,DC=com. Bei Active Directory "
-"zählen auch Mitglieder verschachtelter Gruppen, sonst werden nur die memberOf-Werte "
-"des Absenders verglichen."
+"DN der Gruppe oder Organisationseinheit, z. B. CN=Vertrieb,OU=Gruppen,DC=example,DC=com. "
+"Beim Tippen wird das Verzeichnis durchsucht. Gruppen: Bei Active Directory zählen auch "
+"Mitglieder verschachtelter Gruppen, sonst werden nur die memberOf-Werte des Absenders "
+"verglichen. OUs: Benutzer in Unter-OUs zählen mit."
 
 msgid "Directory condition"
 msgstr "Verzeichnis-Bedingung"

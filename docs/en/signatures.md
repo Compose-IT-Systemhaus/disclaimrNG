@@ -198,6 +198,13 @@ The **Action** inline picks the disclaimer and how to merge it:
   body, after two blank lines (in HTML parts: two line breaks, inside the
   ``<div>`` with the default font). For HTML mails the disclaimer is parsed
   and inserted before ``</body>``.
+
+  With **insert above quoted text** (on by default) a reply or forward gets the
+  signature right below the new text, above the quoted mail, instead of below the
+  whole thread. Recognised: Bulwarkmail, Thunderbird, Apple Mail (and Gmail/Outlook
+  markup); in plain text a ``> `` quote with its "On …, X wrote:" line and the
+  "-------- Forwarded/Original message" separator. Without a recognised quote the
+  signature goes at the end as before.
 - **Replace a tag in the body with a disclaimer string** — handy for
   templates where the user puts a literal ``#DISCLAIMER#`` placeholder
   in their drafted mail.

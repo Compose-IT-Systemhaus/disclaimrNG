@@ -52,6 +52,23 @@ class RequirementConditionInline(TabularInline):
     extra = 1
     fields = ("kind", "attribute", "pattern", "group_dn")
 
+    class Media:
+        js = ("disclaimrwebadmin/js/dn_picker.js",)
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == "group_dn":
+            field.widget.attrs.update(
+                {
+                    "data-dn-search": reverse("disclaimrwebadmin:directory-dn-search"),
+                    "data-searching": _("Searching the directory…"),
+                    "data-none": _("Nothing found."),
+                    "placeholder": _("Type a name to search"),
+                    "autocomplete": "off",
+                }
+            )
+        return field
+
 
 class EditLinkMixin:
     """A pencil column that opens the object.

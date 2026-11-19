@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Migration `0010` runs on start-up (new condition type, no data change).
+
+### Added
+- Directory condition *In organisational unit*: holds when the sender's entry lies in the OU or an OU below it, so each OU can get its own signature.
+- The DN field of group and OU conditions suggests matching groups/OUs from the directory while typing (servers of the rule's tenant).
+
 ## [0.3.5] - 2026-11-12
 
 No migrations.

@@ -19,9 +19,9 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.generic import View
 
-from disclaimr.ldap_helper import discover_attributes, test_connection
+from disclaimr.ldap_helper import discover_attributes, search_dns, test_connection
 
-from ..models import DirectoryServer, SignatureImage
+from ..models import DirectoryServer, Requirement, SignatureImage
 from .permissions import staff_with_perm
 
 
@@ -106,3 +106,30 @@ class DirectoryServerVocabularyView(View):
                 "images": images,
             }
         )
+
+
+@method_decorator(staff_with_perm("add_requirement", "change_requirement"), name="dispatch")
+class DirectoryDNSearchView(View):
+    """OUs or groups for the DN field of a directory condition.
+
+    Asks the directory servers of the requirement's tenant (all enabled servers when the
+    rule has none). Returns DNs and names only, so editors without
+    ``view_directoryserver`` may use it.
+    """
+
+    def get(self, request: HttpRequest) -> JsonResponse:
+        kind = request.GET.get("kind", "")
+        text = request.GET.get("q", "").strip()
+        if kind not in ("ou", "group") or len(text) < 2:
+            return JsonResponse({"results": [], "error": ""})
+        servers = DirectoryServer.objects.filter(enabled=True)
+        pk = request.GET.get("requirement", "")
+        tenant = (
+            Requirement.objects.filter(pk=pk).values_list("rule__tenant", flat=True).first()
+            if pk.isdigit()
+            else None
+        )
+        if tenant:
+            servers = servers.filter(tenant=tenant)
+        results, error = search_dns(list(servers), kind, text)
+        return JsonResponse({"results": results, "error": error})

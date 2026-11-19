@@ -155,7 +155,7 @@ checked value by value. All conditions of a requirement have to hold; for "eithe
 department" write two requirements (a rule applies when any *Accept* requirement
 matches). "Not in the department" is a *Deny* requirement with the condition.
 
-There are two kinds of condition:
+There are three kinds of condition:
 
 - **Attribute matches** — attribute plus regex, as above.
 - **Member of group** — the DN of a group, e.g. ``CN=Sales,OU=Groups,DC=example,DC=com``
@@ -164,6 +164,14 @@ There are two kinds of condition:
   the server with the in-chain matching rule. On other servers the ``memberOf`` values of
   the sender are compared, which only lists direct memberships and needs a server that
   provides ``memberOf`` (e.g. the OpenLDAP memberof overlay).
+- **In organisational unit** — the DN of an OU, e.g. ``OU=Sales,DC=example,DC=com``. It
+  holds when the sender's entry lies in that OU or in an OU below it
+  (``OU=North,OU=Sales,…`` counts, ``OU=Inside Sales,…`` does not). No extra query: the
+  sender's DN comes with the lookup.
+
+For groups and OUs, type part of the name into the **DN** field: matching groups or OUs
+from the directory servers of the rule's tenant (all servers when the rule has none) are
+offered as suggestions. A DN can still be typed or pasted by hand.
 
 Active Directory does not list the **primary group** of a user (usually *Domain Users*)
 in ``memberOf``, so a condition on that group never holds.
@@ -177,6 +185,12 @@ skipped, but a *Deny* requirement does not take effect either, so such a mail ca
 be signed by another rule.
 
 The *Signature test* page lists every checked condition with its result.
+
+**Example — one signature per OU:** a rule *Sales* (position 1) with a requirement whose
+condition is *In organisational unit* ``OU=Sales,DC=example,DC=com`` and an action with the
+sales signature, then a rule *Support* (position 2) the same way. The rules stop at the first
+match unless *Continue after this rule* is ticked. A last rule without conditions catches everybody
+else with the default signature.
 
 The **Action** inline picks the disclaimer and how to merge it:
 

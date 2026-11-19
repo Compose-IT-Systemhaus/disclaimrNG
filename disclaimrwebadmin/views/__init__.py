@@ -1,4 +1,5 @@
 from .directory_server import (
+    DirectoryDNSearchView,
     DirectoryServerAttributesView,
     DirectoryServerTestView,
     DirectoryServerVocabularyView,
@@ -9,6 +10,7 @@ from .signature_image import SignatureImageQuickUploadView
 from .signature_test import SignatureTestView
 
 __all__ = [
+    "DirectoryDNSearchView",
     "DirectoryServerAttributesView",
     "DirectoryServerTestView",
     "DirectoryServerVocabularyView",

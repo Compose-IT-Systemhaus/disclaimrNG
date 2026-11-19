@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    DirectoryDNSearchView,
     DirectoryServerAttributesView,
     DirectoryServerTestView,
     DirectoryServerVocabularyView,
@@ -52,5 +53,10 @@ urlpatterns = [
         "directoryserver/vocabulary/",
         DirectoryServerVocabularyView.as_view(),
         name="directoryserver-vocabulary",
+    ),
+    path(
+        "directory/dn-search/",
+        DirectoryDNSearchView.as_view(),
+        name="directory-dn-search",
     ),
 ]

@@ -53,6 +53,21 @@ _NEWLINE_RE = re.compile(r"\r?\n")
 # ``resolver["attr"]`` references — only these attributes are fetched from LDAP.
 _RESOLVER_REF_RE = re.compile(r'resolver\["([^"]+)"\]', re.IGNORECASE)
 
+# Where mail clients start the quoted or forwarded mail: Bulwarkmail (data-*), Thunderbird
+# (moz-*), Apple Mail / Thunderbird (blockquote type=cite), Gmail, Outlook.
+_QUOTE_XPATH = etree.XPath(
+    "(//*[@data-reply-quote-start or @data-quoted-html"
+    " or (self::blockquote and @type='cite')"
+    " or @id='divRplyFwdMsg' or @id='appendonsend'"
+    " or contains(concat(' ', @class, ' '), ' moz-cite-prefix ')"
+    " or contains(concat(' ', @class, ' '), ' moz-forward-container ')"
+    " or contains(concat(' ', @class, ' '), ' gmail_quote ')])[1]"
+)
+# Separator line of a forwarded or quoted original in plain text.
+_FORWARD_LINE_RE = re.compile(
+    r"-{2,}\s*(original|forwarded|weitergeleitete|ursprüngliche)", re.IGNORECASE
+)
+
 _HTML_ESCAPE_TABLE = str.maketrans(
     {"&": "&amp;", '"': "&quot;", "'": "&apos;", ">": "&gt;", "<": "&lt;"}
 )
@@ -161,6 +176,37 @@ def _build_image_replacements(
 
 # LDAP_MATCHING_RULE_IN_CHAIN: memberOf including nested groups (Active Directory).
 _AD_IN_CHAIN = "1.2.840.113556.1.4.1941"
+
+
+def _quote_start(root: Any) -> Any:
+    """First element of the quoted mail in a reply/forward, or ``None``."""
+    found = _QUOTE_XPATH(root)
+    if not found:
+        return None
+    start = found[0]
+    if start.tag == "blockquote" or start.get("data-quoted-html") is not None:
+        # An unmarked "On ..., X wrote:" line right above belongs to the quote.
+        previous = start.getprevious()
+        if previous is not None and "".join(previous.itertext()).strip().endswith(":"):
+            return previous
+    return start
+
+
+def _quote_line(lines: list[str]) -> int | None:
+    """Index of the first line of the quoted mail in a plain-text reply, or ``None``."""
+    for index, line in enumerate(lines):
+        if _FORWARD_LINE_RE.match(line.strip()):
+            return index
+        if line.startswith(">"):
+            previous = index - 1
+            while previous >= 0 and not lines[previous].strip():
+                previous -= 1
+            # shortcut: only a one-line "Am ... schrieb X:" is kept above; a wrapped
+            # attribution loses its first line to the text above the signature.
+            if previous >= 0 and lines[previous].rstrip().endswith(":"):
+                return previous
+            return index
+    return None
 
 
 def _normalize_dn(dn: str) -> str:
@@ -1126,7 +1172,13 @@ class MilterHelper:
             if content_type == "text/plain":
                 # Two blank lines keep the signature off the greeting ("Kind regards");
                 # a signature that rendered empty adds no gap.
-                if disclaimer_text.strip():
+                lines = new_text.replace("\r\n", "\n").split("\n")
+                quote = _quote_line(lines) if action.insert_above_quote else None
+                if quote is not None and disclaimer_text.strip():
+                    head = "\n".join(lines[:quote]).rstrip()
+                    rest = "\n".join(lines[quote:])
+                    new_text = f"{head}\n\n\n{disclaimer_text.rstrip()}\n\n{rest}"
+                elif disclaimer_text.strip():
                     new_text = f"{new_text.rstrip()}\n\n\n{disclaimer_text}"
                 else:
                     new_text = f"{new_text}\n{disclaimer_text}"
@@ -1155,16 +1207,24 @@ class MilterHelper:
 
                 bodies = html_part.xpath("body")
                 target = bodies[0] if bodies else html_part
+                quote = _quote_start(html_part) if action.insert_above_quote else None
+                if quote is not None:
+                    target = quote.getparent()
+                    before = quote.getprevious()
+                else:
+                    before = target[-1] if len(target) > 0 else None
                 # Copy any leading text that lxml stuffed onto body.text
                 # (rare for our wrapped-in-<p> case but cheap insurance).
                 if disclaimer_body.text:
-                    if len(target) > 0:
-                        last = target[-1]
-                        last.tail = (last.tail or "") + disclaimer_body.text
+                    if before is not None:
+                        before.tail = (before.tail or "") + disclaimer_body.text
                     else:
                         target.text = (target.text or "") + disclaimer_body.text
-                for element in disclaimer_body:
-                    target.append(element)
+                for element in list(disclaimer_body):
+                    if quote is not None:
+                        quote.addprevious(element)
+                    else:
+                        target.append(element)
 
                 new_text = etree.tostring(
                     html_part, pretty_print=True, method="html"

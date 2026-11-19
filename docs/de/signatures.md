@@ -202,6 +202,13 @@ Das **Action**-Inline wählt die Signatur und wie sie eingefügt wird:
   zwei Leerzeilen (in HTML-Teilen: zwei Zeilenumbrüche, im ``<div>`` mit der
   Standard-Schrift). Bei HTML-Mails wird der Disclaimer geparst und vor
   ``</body>`` eingefügt.
+
+  Mit **insert above quoted text** (standardmäßig an) steht die Signatur in Antworten
+  und Weiterleitungen direkt unter dem neuen Text, über dem zitierten Verlauf, statt
+  ganz unten. Erkannt werden Bulwarkmail, Thunderbird und Apple Mail (dazu Gmail- und
+  Outlook-Markup); in Text-Mails ein ``> ``-Zitat samt Zeile „Am … schrieb X:“ und die
+  Trennzeile „-------- Weitergeleitete/Ursprüngliche Nachricht“. Ohne erkanntes Zitat
+  kommt die Signatur wie bisher ans Ende.
 - **Replace a tag in the body with a disclaimer string** — praktisch
   für Templates, in denen der User einen wörtlichen ``#DISCLAIMER#``-
   Marker im Mail-Entwurf platziert.

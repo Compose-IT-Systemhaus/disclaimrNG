@@ -866,6 +866,15 @@ class Action(models.Model):
         help_text=_("Stop the action if the sender cannot be resolved."),
         default=False,
     )
+    insert_above_quote = models.BooleanField(
+        _("insert above quoted text"),
+        help_text=_(
+            "Only for \"Add a disclaimer string to the body\": in replies and forwards the "
+            "signature goes right below the new text, above the quoted mail, instead of at "
+            "the very end. Without a recognised quote it is added at the end as before."
+        ),
+        default=True,
+    )
     disclaimer = models.ForeignKey(
         Disclaimer,
         verbose_name=_("Disclaimer"),
